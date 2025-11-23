@@ -1,0 +1,21 @@
+# Variables in Alya
+# Demonstrates variable declarations and usage
+
+let name = "Alya"
+let version = 1
+let year = 2025
+
+say "=== Language Information ==="
+say "Language:"
+say name
+
+say "Version:"
+say version
+
+say "Year:"
+say year
+
+# Using variables in expressions
+let next_version = version + 1
+say "Next version will be:"
+say next_version

@@ -1,0 +1,19 @@
+[package]
+name = "alya"
+version = "0.0.1"
+edition = "2021"
+authors = ["Taiizor"]
+description = "Alya - A simple, easy-to-learn programming language"
+license = "MIT"
+
+[dependencies]
+
+[[bin]]
+name = "alyac"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true

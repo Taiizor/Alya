@@ -1,0 +1,9 @@
+/target/
+/Cargo.lock
+*.s
+*.exe
+program
+program.exe
+output.s
+*.o
+.DS_Store

@@ -1,0 +1,16 @@
+# Simple arithmetic in Alya
+
+say "Addition:"
+say 10 + 5
+
+say "Subtraction:"
+say 20 - 8
+
+say "Multiplication:"
+say 6 * 7
+
+say "Division:"
+say 100 / 4
+
+say "Complex expression:"
+say (5 + 3) * 2

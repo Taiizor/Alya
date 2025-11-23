@@ -1,0 +1,34 @@
+# Simple calculator in Alya
+# Demonstrates arithmetic operations
+
+say "=== Simple Calculator ==="
+
+# Addition
+say "Addition: 15 + 7 = "
+say 15 + 7
+
+# Subtraction
+say "Subtraction: 15 - 7 = "
+say 15 - 7
+
+# Multiplication
+say "Multiplication: 15 * 7 = "
+say 15 * 7
+
+# Division
+say "Division: 15 / 7 = "
+say 15 / 7  # Integer division: result is 2
+
+# Complex expressions
+say "Complex: (15 + 7) * 2 = "
+say (15 + 7) * 2
+
+say "Complex: (15 - 7) / 2 = "
+say (15 - 7) / 2
+
+# More complex expressions
+say "Expression: 100 / 4 - 5 = "
+say 100 / 4 - 5
+
+say "Expression: (3 + 5) * (10 - 2) = "
+say (3 + 5) * (10 - 2)
