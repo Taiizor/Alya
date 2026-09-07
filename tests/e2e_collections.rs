@@ -245,3 +245,33 @@ say m["name"]
         );
     }
 }
+
+#[test]
+fn test_e2e_map_literals() {
+    let code = r#"
+let empty = {}
+say empty
+say empty.len()
+
+let user = { "name": "Alya", age: 2 }
+say user["name"]
+say user["age"]
+say user.len()
+
+let explicit = map { "foo": 123 }
+say explicit["foo"]
+
+let nested = { "outer": { "inner": 99 } }
+let inner_map = nested["outer"]
+say inner_map["inner"]
+
+say { "inline": 777 }["inline"]
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!("{}\n", "0\n", "Alya\n", "2\n", "2\n", "123\n", "99\n", "777\n",)
+        );
+    }
+}

@@ -246,6 +246,10 @@ impl Parser {
                     self.expect(TokenType::RightParen)?;
 
                     Ok(Expr::Call { name: ident, args })
+                } else if ident == "map"
+                    && matches!(self.current_token().token_type, TokenType::LeftBrace)
+                {
+                    self.parse_map_literal()
                 } else if matches!(self.current_token().token_type, TokenType::LeftBrace) {
                     self.advance();
                     self.skip_newlines();
@@ -303,6 +307,7 @@ impl Parser {
                 self.expect(TokenType::RightParen)?;
                 Ok(expr)
             }
+            TokenType::LeftBrace => self.parse_map_literal(),
             TokenType::LeftBracket => {
                 self.advance();
                 self.skip_newlines();
@@ -331,6 +336,55 @@ impl Parser {
                 self.current_token().column
             )),
         }
+    }
+
+    fn parse_map_literal(&mut self) -> Result<Expr, String> {
+        self.expect(TokenType::LeftBrace)?;
+        self.skip_newlines();
+        let mut entries = Vec::new();
+        while !matches!(self.current_token().token_type, TokenType::RightBrace) {
+            self.skip_newlines();
+            if matches!(self.current_token().token_type, TokenType::RightBrace) {
+                break;
+            }
+            let key = match &self.current_token().token_type {
+                TokenType::Identifier(id) => {
+                    let name = id.clone();
+                    self.advance();
+                    Expr::String(name)
+                }
+                _ => self.parse_expression()?,
+            };
+            self.skip_newlines();
+            if matches!(
+                self.current_token().token_type,
+                TokenType::Colon | TokenType::Assign
+            ) {
+                self.advance();
+            } else {
+                return Err(format!(
+                    "Expected ':' or '=' after map key at line {}, column {}",
+                    self.current_token().line,
+                    self.current_token().column
+                ));
+            }
+            self.skip_newlines();
+            let val = self.parse_expression()?;
+            entries.push((key, val));
+            self.skip_newlines();
+            if matches!(self.current_token().token_type, TokenType::Comma) {
+                self.advance();
+                self.skip_newlines();
+            } else if !matches!(self.current_token().token_type, TokenType::RightBrace) {
+                return Err(format!(
+                    "Expected ',' or '}}' after map value at line {}, column {}",
+                    self.current_token().line,
+                    self.current_token().column
+                ));
+            }
+        }
+        self.expect(TokenType::RightBrace)?;
+        Ok(Expr::Map(entries))
     }
 }
 

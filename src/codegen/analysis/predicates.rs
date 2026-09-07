@@ -119,6 +119,22 @@ pub fn is_map_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             matches!(vars.get(name), Some(VarType::Map(_)))
         }
         Expr::Call { name, .. } if name == "map" || name == "set_new" => true,
+        Expr::Map(_) => true,
+        Expr::Index { array, index } => {
+            if let Expr::String(field) = &**index {
+                let key = format!("map_field_map:{}", field);
+                if vars.contains_key(&key) {
+                    return true;
+                }
+            }
+            if let (Expr::Identifier(obj_name), Expr::String(field)) = (&**array, &**index) {
+                let key = format!("map_map:{}.{}", obj_name, field);
+                if vars.contains_key(&key) {
+                    return true;
+                }
+            }
+            false
+        }
         _ => false,
     }
 }

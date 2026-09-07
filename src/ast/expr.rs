@@ -31,6 +31,7 @@ pub enum Expr {
         name: String,
         fields: Vec<(String, Expr)>,
     },
+    Map(Vec<(Expr, Expr)>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -284,6 +284,11 @@ impl CodeGen {
                 arch::emit_print_array(&mut self.output, self.arch, self.ctx.stack_offset, self.os);
                 self.output.push('\n');
             }
+            Expr::Map(_) => {
+                self.generate_expression(expr);
+                arch::emit_print_map(&mut self.output, self.arch, self.ctx.stack_offset, self.os);
+                self.output.push('\n');
+            }
             Expr::Float(n) => {
                 let fmt_label = self.ctx.next_string_label();
                 self.emit_rodata_section();

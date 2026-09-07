@@ -112,6 +112,16 @@ fn collect_string_vars_from_stmts(stmts: &[Stmt], known_strings: &mut HashSet<St
                 if expr_is_string_array(value, known_strings) {
                     known_strings.insert(format!("arr_is_str:{}", name));
                 }
+                if let Expr::Map(entries) = value {
+                    for (k, v) in entries {
+                        if expr_is_definitely_string(v, known_strings) {
+                            if let Expr::String(field) = k {
+                                known_strings.insert(format!("map_field_str:{}", field));
+                                known_strings.insert(format!("map_str:{}.{}", name, field));
+                            }
+                        }
+                    }
+                }
             }
             Stmt::TryCatch {
                 try_block,

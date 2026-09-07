@@ -316,8 +316,121 @@ impl CodeGen {
 
                 arch::emit_pop_temp(&mut self.output, self.arch);
             }
+            Expr::Map(entries) => {
+                arch::emit_function_call(
+                    &mut self.output,
+                    self.arch,
+                    "map",
+                    0,
+                    self.ctx.stack_offset,
+                    self.os,
+                );
+                if !entries.is_empty() {
+                    arch::emit_allocate_var(
+                        &mut self.output,
+                        self.arch,
+                        &mut self.ctx.stack_offset,
+                    );
+                    let saved_offset = self.ctx.stack_offset;
+
+                    for (k, v) in entries {
+                        self.generate_expression(k);
+                        arch::emit_allocate_var(
+                            &mut self.output,
+                            self.arch,
+                            &mut self.ctx.stack_offset,
+                        );
+                        let k_offset = self.ctx.stack_offset;
+
+                        self.generate_expression(v);
+                        arch::emit_allocate_var(
+                            &mut self.output,
+                            self.arch,
+                            &mut self.ctx.stack_offset,
+                        );
+                        let v_offset = self.ctx.stack_offset;
+
+                        match self.arch {
+                            Architecture::X86 => {
+                                arch::emit_load_var(
+                                    &mut self.output,
+                                    self.arch,
+                                    v_offset,
+                                    self.ctx.stack_offset,
+                                );
+                                arch::emit_push_temp(&mut self.output, self.arch);
+
+                                arch::emit_load_var(
+                                    &mut self.output,
+                                    self.arch,
+                                    k_offset,
+                                    self.ctx.stack_offset,
+                                );
+                                arch::emit_push_temp(&mut self.output, self.arch);
+
+                                arch::emit_load_var(
+                                    &mut self.output,
+                                    self.arch,
+                                    saved_offset,
+                                    self.ctx.stack_offset,
+                                );
+                                arch::emit_push_temp(&mut self.output, self.arch);
+                            }
+                            _ => {
+                                arch::emit_load_var(
+                                    &mut self.output,
+                                    self.arch,
+                                    saved_offset,
+                                    self.ctx.stack_offset,
+                                );
+                                arch::emit_push_temp(&mut self.output, self.arch);
+
+                                arch::emit_load_var(
+                                    &mut self.output,
+                                    self.arch,
+                                    k_offset,
+                                    self.ctx.stack_offset,
+                                );
+                                arch::emit_push_temp(&mut self.output, self.arch);
+
+                                arch::emit_load_var(
+                                    &mut self.output,
+                                    self.arch,
+                                    v_offset,
+                                    self.ctx.stack_offset,
+                                );
+                                arch::emit_push_temp(&mut self.output, self.arch);
+                            }
+                        }
+
+                        arch::emit_function_call(
+                            &mut self.output,
+                            self.arch,
+                            "set",
+                            3,
+                            self.ctx.stack_offset,
+                            self.os,
+                        );
+
+                        arch::emit_pop_temp(&mut self.output, self.arch);
+                        arch::emit_pop_temp(&mut self.output, self.arch);
+                        self.ctx.stack_offset -= match self.arch {
+                            Architecture::ARM64 => 32,
+                            Architecture::X86 => 8,
+                            _ => 16,
+                        };
+                    }
+
+                    arch::emit_pop_temp(&mut self.output, self.arch);
+                    self.ctx.stack_offset -= match self.arch {
+                        Architecture::ARM64 => 16,
+                        Architecture::X86 => 4,
+                        _ => 8,
+                    };
+                }
+            }
             Expr::Index { array, index } => {
-                if is_map_expr(array, &self.ctx.variables) {
+                if is_map_expr(array, &self.ctx.variables) || matches!(**index, Expr::String(_)) {
                     let actual_args = [array.as_ref(), index.as_ref()];
                     match self.arch {
                         Architecture::X86 => {

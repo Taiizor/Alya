@@ -6,7 +6,21 @@ use std::collections::HashSet;
 fn expr_is_definitely_map(expr: &Expr, known_maps: &HashSet<String>) -> bool {
     match expr {
         Expr::Call { name, .. } if name == "map" || name == "set_new" => true,
+        Expr::Map(_) => true,
         Expr::Identifier(name) => known_maps.contains(name),
+        Expr::Index { array, index } => {
+            if let Expr::String(field) = &**index {
+                if known_maps.contains(&format!("map_field_map:{}", field)) {
+                    return true;
+                }
+            }
+            if let (Expr::Identifier(map_name), Expr::String(field)) = (&**array, &**index) {
+                if known_maps.contains(&format!("map_map:{}.{}", map_name, field)) {
+                    return true;
+                }
+            }
+            false
+        }
         _ => false,
     }
 }
@@ -14,10 +28,20 @@ fn expr_is_definitely_map(expr: &Expr, known_maps: &HashSet<String>) -> bool {
 fn collect_map_vars_from_stmts(stmts: &[Stmt], known_maps: &mut HashSet<String>) {
     for stmt in stmts {
         match stmt {
-            Stmt::Let { name, value, .. } | Stmt::Assign { name, value, .. }
-                if expr_is_definitely_map(value, known_maps) =>
-            {
-                known_maps.insert(name.clone());
+            Stmt::Let { name, value, .. } | Stmt::Assign { name, value, .. } => {
+                if expr_is_definitely_map(value, known_maps) {
+                    known_maps.insert(name.clone());
+                }
+                if let Expr::Map(entries) = value {
+                    for (k, v) in entries {
+                        if expr_is_definitely_map(v, known_maps) {
+                            if let Expr::String(field) = k {
+                                known_maps.insert(format!("map_field_map:{}", field));
+                                known_maps.insert(format!("map_map:{}.{}", name, field));
+                            }
+                        }
+                    }
+                }
             }
             Stmt::TryCatch {
                 try_block,

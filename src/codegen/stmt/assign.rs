@@ -154,6 +154,34 @@ impl CodeGen {
                     self.ctx
                         .variables
                         .insert(name.clone(), VarType::Map(self.ctx.stack_offset));
+                    if let Expr::Map(entries) = value {
+                        for (k, v) in entries {
+                            if is_string_expr(v, &self.ctx.variables) {
+                                if let Expr::String(field) = k {
+                                    self.ctx.variables.insert(
+                                        format!("map_field_str:{}", field),
+                                        VarType::StringOffset(0),
+                                    );
+                                    self.ctx.variables.insert(
+                                        format!("map_str:{}.{}", name, field),
+                                        VarType::StringOffset(0),
+                                    );
+                                }
+                            }
+                            if is_map_expr(v, &self.ctx.variables) {
+                                if let Expr::String(field) = k {
+                                    self.ctx.variables.insert(
+                                        format!("map_field_map:{}", field),
+                                        VarType::Map(0),
+                                    );
+                                    self.ctx.variables.insert(
+                                        format!("map_map:{}.{}", name, field),
+                                        VarType::Map(0),
+                                    );
+                                }
+                            }
+                        }
+                    }
                 } else if is_str {
                     self.ctx
                         .variables
@@ -211,6 +239,34 @@ impl CodeGen {
                         self.ctx
                             .variables
                             .insert(name.clone(), VarType::Map(offset));
+                        if let Expr::Map(entries) = value {
+                            for (k, v) in entries {
+                                if is_string_expr(v, &self.ctx.variables) {
+                                    if let Expr::String(field) = k {
+                                        self.ctx.variables.insert(
+                                            format!("map_field_str:{}", field),
+                                            VarType::StringOffset(0),
+                                        );
+                                        self.ctx.variables.insert(
+                                            format!("map_str:{}.{}", name, field),
+                                            VarType::StringOffset(0),
+                                        );
+                                    }
+                                }
+                                if is_map_expr(v, &self.ctx.variables) {
+                                    if let Expr::String(field) = k {
+                                        self.ctx.variables.insert(
+                                            format!("map_field_map:{}", field),
+                                            VarType::Map(0),
+                                        );
+                                        self.ctx.variables.insert(
+                                            format!("map_map:{}.{}", name, field),
+                                            VarType::Map(0),
+                                        );
+                                    }
+                                }
+                            }
+                        }
                     } else if is_str {
                         self.ctx
                             .variables
@@ -284,7 +340,7 @@ impl CodeGen {
     }
 
     pub(super) fn generate_index_assign(&mut self, array: &Expr, index: &Expr, value: &Expr) {
-        if is_map_expr(array, &self.ctx.variables) {
+        if is_map_expr(array, &self.ctx.variables) || matches!(index, Expr::String(_)) {
             let actual_args = [array, index, value];
             match self.arch {
                 Architecture::X86 => {
@@ -319,6 +375,18 @@ impl CodeGen {
                         format!("map_str:{}.{}", map_name, field),
                         VarType::StringOffset(0),
                     );
+                }
+            }
+            if is_map_expr(value, &self.ctx.variables) {
+                if let Expr::String(field) = index {
+                    self.ctx
+                        .variables
+                        .insert(format!("map_field_map:{}", field), VarType::Map(0));
+                }
+                if let (Expr::Identifier(map_name), Expr::String(field)) = (array, index) {
+                    self.ctx
+                        .variables
+                        .insert(format!("map_map:{}.{}", map_name, field), VarType::Map(0));
                 }
             }
         } else {

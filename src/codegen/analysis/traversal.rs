@@ -135,6 +135,17 @@ pub fn find_call_arg_in_expr<'a>(
             }
             None
         }
+        Expr::Map(entries) => {
+            for (k, v) in entries {
+                if let Some(arg) = find_call_arg_in_expr(k, func_name, param_idx) {
+                    return Some(arg);
+                }
+                if let Some(arg) = find_call_arg_in_expr(v, func_name, param_idx) {
+                    return Some(arg);
+                }
+            }
+            None
+        }
         Expr::InterpolatedString(parts) => {
             for part in parts {
                 if let Some(arg) = find_call_arg_in_expr(part, func_name, param_idx) {

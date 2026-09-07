@@ -324,3 +324,60 @@ fn test_parse_struct_and_field_access() {
         other => panic!("Expected Stmt::Say(FieldAccess), got {:?}", other),
     }
 }
+
+#[test]
+fn test_parse_map_literal() {
+    let source = "let empty = {}\nlet user = { \"name\": \"Alya\", age: 1, }\nlet explicit = map { \"active\": true }";
+    let mut lexer = crate::lexer::Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Failed to tokenize");
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().expect("Failed to parse");
+
+    assert_eq!(program.statements.len(), 3);
+
+    // 1. empty = {}
+    match &program.statements[0] {
+        Stmt::Let { name, value } => {
+            assert_eq!(name, "empty");
+            assert_eq!(*value, Expr::Map(vec![]));
+        }
+        other => panic!("Expected Stmt::Let with empty map, got {:?}", other),
+    }
+
+    // 2. user = { "name": "Alya", age: 1, }
+    match &program.statements[1] {
+        Stmt::Let { name, value } => {
+            assert_eq!(name, "user");
+            match value {
+                Expr::Map(entries) => {
+                    assert_eq!(entries.len(), 2);
+                    assert_eq!(
+                        entries[0],
+                        (Expr::String("name".into()), Expr::String("Alya".into()))
+                    );
+                    assert_eq!(entries[1], (Expr::String("age".into()), Expr::Number(1.0)));
+                }
+                other => panic!("Expected Expr::Map, got {:?}", other),
+            }
+        }
+        other => panic!("Expected Stmt::Let with map literal, got {:?}", other),
+    }
+
+    // 3. explicit = map { "active": true }
+    match &program.statements[2] {
+        Stmt::Let { name, value } => {
+            assert_eq!(name, "explicit");
+            match value {
+                Expr::Map(entries) => {
+                    assert_eq!(entries.len(), 1);
+                    assert_eq!(
+                        entries[0],
+                        (Expr::String("active".into()), Expr::Number(1.0))
+                    );
+                }
+                other => panic!("Expected Expr::Map, got {:?}", other),
+            }
+        }
+        other => panic!("Expected Stmt::Let with map literal, got {:?}", other),
+    }
+}
