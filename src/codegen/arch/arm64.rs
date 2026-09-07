@@ -61,12 +61,12 @@ pub fn emit_load_str_label(out: &mut String, label: &str, os: OperatingSystem) {
     emit_adrp_add(out, "x0", label, os);
 }
 
-pub fn emit_load_var(out: &mut String, offset: i32, stack_offset: i32) {
-    out.push_str(&format!("    ldr x0, [sp, #{}]\n", stack_offset - offset));
+pub fn emit_load_var(out: &mut String, offset: i32, _stack_offset: i32) {
+    out.push_str(&format!("    ldr x0, [x29, #-{}]\n", offset));
 }
 
-pub fn emit_store_var(out: &mut String, offset: i32, stack_offset: i32) {
-    out.push_str(&format!("    str x0, [sp, #{}]\n", stack_offset - offset));
+pub fn emit_store_var(out: &mut String, offset: i32, _stack_offset: i32) {
+    out.push_str(&format!("    str x0, [x29, #-{}]\n", offset));
 }
 
 pub fn emit_allocate_var(out: &mut String, stack_offset: &mut i32) {
@@ -150,16 +150,15 @@ pub fn emit_compare_and_jump_if_greater(out: &mut String, label: &str) {
     out.push_str(&format!("    b.gt {}\n", label));
 }
 
-pub fn emit_increment_var(out: &mut String, var_offset: i32, stack_offset: i32, start_label: &str) {
-    out.push_str(&format!(
-        "    ldr x0, [sp, #{}]\n",
-        stack_offset - var_offset
-    ));
+pub fn emit_increment_var(
+    out: &mut String,
+    var_offset: i32,
+    _stack_offset: i32,
+    start_label: &str,
+) {
+    out.push_str(&format!("    ldr x0, [x29, #-{}]\n", var_offset));
     out.push_str("    add x0, x0, #1\n");
-    out.push_str(&format!(
-        "    str x0, [sp, #{}]\n",
-        stack_offset - var_offset
-    ));
+    out.push_str(&format!("    str x0, [x29, #-{}]\n", var_offset));
     out.push_str(&format!("    b {}\n", start_label));
 }
 
@@ -213,7 +212,14 @@ pub fn emit_function_call(out: &mut String, name: &str, args_count: usize) {
 pub fn emit_say_str(out: &mut String, label: &str, fmt_label: &str, os: OperatingSystem) {
     emit_adrp_add(out, "x1", label, os);
     emit_adrp_add(out, "x0", fmt_label, os);
-    emit_call_printf(out, os);
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str("    sub sp, sp, #16\n");
+        out.push_str("    str x1, [sp]\n");
+        emit_call_printf(out, os);
+        out.push_str("    add sp, sp, #16\n");
+    } else {
+        emit_call_printf(out, os);
+    }
 }
 
 pub fn emit_say_str_lit(out: &mut String, label: &str, os: OperatingSystem) {
@@ -224,25 +230,46 @@ pub fn emit_say_str_lit(out: &mut String, label: &str, os: OperatingSystem) {
 pub fn emit_say_offset(
     out: &mut String,
     offset: i32,
-    stack_offset: i32,
+    _stack_offset: i32,
     fmt_label: &str,
     os: OperatingSystem,
 ) {
-    out.push_str(&format!("    ldr x1, [sp, #{}]\n", stack_offset - offset));
+    out.push_str(&format!("    ldr x1, [x29, #-{}]\n", offset));
     emit_adrp_add(out, "x0", fmt_label, os);
-    emit_call_printf(out, os);
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str("    sub sp, sp, #16\n");
+        out.push_str("    str x1, [sp]\n");
+        emit_call_printf(out, os);
+        out.push_str("    add sp, sp, #16\n");
+    } else {
+        emit_call_printf(out, os);
+    }
 }
 
 pub fn emit_say_num_const(out: &mut String, val: i64, fmt_label: &str, os: OperatingSystem) {
     out.push_str(&format!("    mov x1, #{}\n", val));
     emit_adrp_add(out, "x0", fmt_label, os);
-    emit_call_printf(out, os);
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str("    sub sp, sp, #16\n");
+        out.push_str("    str x1, [sp]\n");
+        emit_call_printf(out, os);
+        out.push_str("    add sp, sp, #16\n");
+    } else {
+        emit_call_printf(out, os);
+    }
 }
 
 pub fn emit_say_acc(out: &mut String, fmt_label: &str, os: OperatingSystem) {
     out.push_str("    mov x1, x0\n");
     emit_adrp_add(out, "x0", fmt_label, os);
-    emit_call_printf(out, os);
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str("    sub sp, sp, #16\n");
+        out.push_str("    str x1, [sp]\n");
+        emit_call_printf(out, os);
+        out.push_str("    add sp, sp, #16\n");
+    } else {
+        emit_call_printf(out, os);
+    }
 }
 
 pub fn emit_say_interpolated_pop_and_call(
@@ -255,7 +282,17 @@ pub fn emit_say_interpolated_pop_and_call(
         out.push_str(&format!("    ldr x{}, [sp], #16\n", i + 1));
     }
     emit_adrp_add(out, "x0", fmt_label, os);
-    emit_call_printf(out, os);
+    if matches!(os, OperatingSystem::MacOS) {
+        let stack_space = (count * 8).div_ceil(16) * 16;
+        out.push_str(&format!("    sub sp, sp, #{}\n", stack_space));
+        for i in 0..count {
+            out.push_str(&format!("    str x{}, [sp, #{}]\n", i + 1, i * 8));
+        }
+        emit_call_printf(out, os);
+        out.push_str(&format!("    add sp, sp, #{}\n", stack_space));
+    } else {
+        emit_call_printf(out, os);
+    }
 }
 
 pub fn emit_string_concat_call(out: &mut String) {

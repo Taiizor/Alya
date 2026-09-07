@@ -101,7 +101,14 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    cbz x0, .L_arm_ask_read\n");
     out.push_str("    mov x1, x0\n");
     emit_adrp_add(out, "x0", "alya_fmt_prompt", os);
-    out.push_str(&format!("    bl {}printf\n", p));
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str("    sub sp, sp, #16\n");
+        out.push_str("    str x1, [sp]\n");
+        out.push_str(&format!("    bl {}printf\n", p));
+        out.push_str("    add sp, sp, #16\n");
+    } else {
+        out.push_str(&format!("    bl {}printf\n", p));
+    }
     out.push_str("    mov x0, #0\n");
     out.push_str(&format!("    bl {}fflush\n", p));
     out.push_str(".L_arm_ask_read:\n");
