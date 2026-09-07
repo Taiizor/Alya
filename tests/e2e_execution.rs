@@ -1008,6 +1008,13 @@ say file_exists(path)
 let content = read_file(path)
 say content
 
+let del_ok = delete_file(path)
+say del_ok
+say file_exists(path)
+
+let del_missing = remove_file("target/non_existent_12345.txt")
+say del_missing
+
 let missing = read_file("target/non_existent_12345.txt")
 say "missing: [{missing}]"
 "#;
@@ -1020,6 +1027,9 @@ say "missing: [{missing}]"
                 "1\n",
                 "1\n",
                 "Hello Alya!\nSelf-hosting is coming.\n",
+                "1\n",
+                "0\n",
+                "0\n",
                 "missing: []\n",
             )
         );

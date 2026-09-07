@@ -722,6 +722,30 @@ pub fn emit_x86_runtime(out: &mut String) {
     out.push_str("    pop %ebp\n");
     out.push_str("    ret\n\n");
 
+    // fn_delete_file / fn_remove_file
+    out.push_str(".global fn_delete_file\n");
+    out.push_str("fn_delete_file:\n");
+    out.push_str(".global fn_remove_file\n");
+    out.push_str("fn_remove_file:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jz .L_x86_fdel_fail\n");
+    out.push_str("    push 8(%ebp)\n");
+    out.push_str("    call remove\n");
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jnz .L_x86_fdel_fail\n");
+    out.push_str("    mov $1, %eax\n");
+    out.push_str("    jmp .L_x86_fdel_end\n");
+    out.push_str(".L_x86_fdel_fail:\n");
+    out.push_str("    xor %eax, %eax\n");
+    out.push_str(".L_x86_fdel_end:\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
     // fn_write_file
     out.push_str("fn_write_file:\n");
     out.push_str("    push %ebp\n");

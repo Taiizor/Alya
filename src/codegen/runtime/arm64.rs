@@ -630,6 +630,29 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    ldp x29, x30, [sp], #32\n");
     out.push_str("    ret\n\n");
 
+    // fn_delete_file / fn_remove_file
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_delete_file\n");
+    out.push_str("fn_delete_file:\n");
+    out.push_str(".global fn_remove_file\n");
+    out.push_str("fn_remove_file:\n");
+    out.push_str("    stp x29, x30, [sp, #-32]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    str x19, [sp, #16]\n");
+    out.push_str("    mov x19, x0\n");
+    out.push_str("    cbz x19, .L_arm64_fdel_fail\n");
+    out.push_str("    mov x0, x19\n");
+    out.push_str(&format!("    bl {}remove\n", p));
+    out.push_str("    cbnz x0, .L_arm64_fdel_fail\n");
+    out.push_str("    mov x0, #1\n");
+    out.push_str("    b .L_arm64_fdel_end\n");
+    out.push_str(".L_arm64_fdel_fail:\n");
+    out.push_str("    mov x0, #0\n");
+    out.push_str(".L_arm64_fdel_end:\n");
+    out.push_str("    ldr x19, [sp, #16]\n");
+    out.push_str("    ldp x29, x30, [sp], #32\n");
+    out.push_str("    ret\n\n");
+
     // fn_write_file
     out.push_str(".align 2\n");
     out.push_str("fn_write_file:\n");

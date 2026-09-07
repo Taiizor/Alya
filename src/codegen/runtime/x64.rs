@@ -843,6 +843,47 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
 
+    // fn_delete_file / fn_remove_file
+    out.push_str(".global fn_delete_file\n");
+    out.push_str("fn_delete_file:\n");
+    out.push_str(".global fn_remove_file\n");
+    out.push_str("fn_remove_file:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rbx\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    sub $40, %rsp\n");
+        out.push_str("    mov %rcx, %rbx\n");
+    } else {
+        out.push_str("    sub $8, %rsp\n");
+        out.push_str("    mov %rdi, %rbx\n");
+    }
+    out.push_str("    test %rbx, %rbx\n");
+    out.push_str("    jz .L_x64_fdel_fail\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rbx, %rcx\n");
+        out.push_str("    call remove\n");
+    } else {
+        out.push_str("    mov %rbx, %rdi\n");
+        out.push_str(&format!("    call {}remove\n", p));
+    }
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jnz .L_x64_fdel_fail\n");
+    out.push_str("    mov $1, %rax\n");
+    out.push_str("    jmp .L_x64_fdel_end\n");
+    out.push_str(".L_x64_fdel_fail:\n");
+    out.push_str("    xor %rax, %rax\n");
+    out.push_str(".L_x64_fdel_end:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    add $40, %rsp\n");
+    } else {
+        out.push_str("    add $8, %rsp\n");
+    }
+    out.push_str("    pop %rbx\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
     // fn_write_file
     out.push_str("fn_write_file:\n");
     out.push_str("    push %rbp\n");
