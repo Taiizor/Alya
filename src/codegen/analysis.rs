@@ -74,6 +74,19 @@ pub fn find_call_arg<'a>(stmt: &'a Stmt, func_name: &str, param_idx: usize) -> O
             }
             None
         }
+        Stmt::TryCatch { try_block, catch_block, .. } => {
+            for s in try_block {
+                if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+                    return Some(arg);
+                }
+            }
+            for s in catch_block {
+                if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+                    return Some(arg);
+                }
+            }
+            None
+        }
         _ => None,
     }
 }

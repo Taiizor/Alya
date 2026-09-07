@@ -23,6 +23,7 @@ impl Parser {
                 Ok(Stmt::Continue)
             }
             TokenType::When => self.parse_when(),
+            TokenType::Try => self.parse_try_catch(),
             TokenType::Identifier(_) => {
                 // Could be assignment or function call
                 let ident = match &self.current_token().token_type {
@@ -332,4 +333,42 @@ impl Parser {
             _ => Err(format!("Empty 'when' statement at line {}, column {}", self.current_token().line, self.current_token().column)),
         }
     }
+
+    fn parse_try_catch(&mut self) -> Result<Stmt, String> {
+        self.advance(); // skip 'try'
+        self.skip_newlines();
+
+        let mut try_block = Vec::new();
+        while !matches!(self.current_token().token_type, TokenType::Catch | TokenType::Eof) {
+            try_block.push(self.parse_statement()?);
+            self.skip_newlines();
+        }
+
+        self.expect(TokenType::Catch)?;
+
+        // Optional catch variable: `catch err` or `catch`
+        let catch_var = if let TokenType::Identifier(name) = &self.current_token().token_type {
+            let name = name.clone();
+            self.advance();
+            Some(name)
+        } else {
+            None
+        };
+        self.skip_newlines();
+
+        let mut catch_block = Vec::new();
+        while !matches!(self.current_token().token_type, TokenType::End | TokenType::Eof) {
+            catch_block.push(self.parse_statement()?);
+            self.skip_newlines();
+        }
+
+        self.expect(TokenType::End)?;
+
+        Ok(Stmt::TryCatch {
+            try_block,
+            catch_var,
+            catch_block,
+        })
+    }
 }
+

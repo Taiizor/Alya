@@ -35,4 +35,9 @@ pub enum Stmt {
     Break,
     Continue,
     Expr(Expr),
+    TryCatch {
+        try_block: Vec<Stmt>,
+        catch_var: Option<String>,
+        catch_block: Vec<Stmt>,
+    },
 }

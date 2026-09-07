@@ -9,9 +9,29 @@ pub fn emit_runtime(out: &mut String, arch: Architecture, os: OperatingSystem) {
         Architecture::ARM64 | Architecture::X64 => {
             out.push_str("alya_str_idx:\n");
             out.push_str("    .quad 0\n");
+            out.push_str("alya_catch_idx:\n");
+            out.push_str("    .quad 0\n");
+            out.push_str("alya_catch_stack_handler:\n");
+            out.push_str("    .space 1024\n");
+            out.push_str("alya_catch_stack_sp:\n");
+            out.push_str("    .space 1024\n");
+            out.push_str("alya_catch_stack_bp:\n");
+            out.push_str("    .space 1024\n");
+            out.push_str("alya_err_msg:\n");
+            out.push_str("    .quad 0\n");
         }
         Architecture::X86 => {
             out.push_str("alya_str_idx:\n");
+            out.push_str("    .long 0\n");
+            out.push_str("alya_catch_idx:\n");
+            out.push_str("    .long 0\n");
+            out.push_str("alya_catch_stack_handler:\n");
+            out.push_str("    .space 512\n");
+            out.push_str("alya_catch_stack_sp:\n");
+            out.push_str("    .space 512\n");
+            out.push_str("alya_catch_stack_bp:\n");
+            out.push_str("    .space 512\n");
+            out.push_str("alya_err_msg:\n");
             out.push_str("    .long 0\n");
         }
     }
@@ -21,6 +41,8 @@ pub fn emit_runtime(out: &mut String, arch: Architecture, os: OperatingSystem) {
     out.push_str("    .string \"%s\"\n");
     out.push_str("alya_fmt_div_zero:\n");
     out.push_str("    .string \"Runtime error: division by zero\\n\"\n");
+    out.push_str("alya_str_div_zero:\n");
+    out.push_str("    .string \"division by zero\"\n");
     out.push_str(".text\n");
 
     match arch {
@@ -152,6 +174,29 @@ pub fn emit_runtime(out: &mut String, arch: Architecture, os: OperatingSystem) {
 
             // alya_error_div_zero
             out.push_str("alya_error_div_zero:\n");
+            out.push_str("    adrp x9, alya_catch_idx\n");
+            out.push_str("    add x9, x9, :lo12:alya_catch_idx\n");
+            out.push_str("    ldr x10, [x9]\n");
+            out.push_str("    cbz x10, .L_arm_fatal_div_zero\n");
+            out.push_str("    sub x10, x10, #1\n");
+            out.push_str("    str x10, [x9]\n");
+            out.push_str("    adrp x11, alya_str_div_zero\n");
+            out.push_str("    add x11, x11, :lo12:alya_str_div_zero\n");
+            out.push_str("    adrp x12, alya_err_msg\n");
+            out.push_str("    add x12, x12, :lo12:alya_err_msg\n");
+            out.push_str("    str x11, [x12]\n");
+            out.push_str("    adrp x11, alya_catch_stack_sp\n");
+            out.push_str("    add x11, x11, :lo12:alya_catch_stack_sp\n");
+            out.push_str("    ldr x13, [x11, x10, lsl #3]\n");
+            out.push_str("    mov sp, x13\n");
+            out.push_str("    adrp x11, alya_catch_stack_bp\n");
+            out.push_str("    add x11, x11, :lo12:alya_catch_stack_bp\n");
+            out.push_str("    ldr x29, [x11, x10, lsl #3]\n");
+            out.push_str("    adrp x11, alya_catch_stack_handler\n");
+            out.push_str("    add x11, x11, :lo12:alya_catch_stack_handler\n");
+            out.push_str("    ldr x14, [x11, x10, lsl #3]\n");
+            out.push_str("    br x14\n");
+            out.push_str(".L_arm_fatal_div_zero:\n");
             out.push_str("    mov x19, sp\n");
             out.push_str("    and x19, x19, #~15\n");
             out.push_str("    mov sp, x19\n");
@@ -366,6 +411,21 @@ pub fn emit_runtime(out: &mut String, arch: Architecture, os: OperatingSystem) {
 
             // alya_error_div_zero
             out.push_str("alya_error_div_zero:\n");
+            out.push_str("    mov alya_catch_idx(%rip), %r8\n");
+            out.push_str("    test %r8, %r8\n");
+            out.push_str("    jz .L_x64_fatal_div_zero\n");
+            out.push_str("    dec %r8\n");
+            out.push_str("    mov %r8, alya_catch_idx(%rip)\n");
+            out.push_str("    lea alya_str_div_zero(%rip), %rax\n");
+            out.push_str("    mov %rax, alya_err_msg(%rip)\n");
+            out.push_str("    lea alya_catch_stack_sp(%rip), %r9\n");
+            out.push_str("    mov (%r9, %r8, 8), %rsp\n");
+            out.push_str("    lea alya_catch_stack_bp(%rip), %r9\n");
+            out.push_str("    mov (%r9, %r8, 8), %rbp\n");
+            out.push_str("    lea alya_catch_stack_handler(%rip), %r9\n");
+            out.push_str("    mov (%r9, %r8, 8), %r10\n");
+            out.push_str("    jmp *%r10\n");
+            out.push_str(".L_x64_fatal_div_zero:\n");
             out.push_str("    and $-16, %rsp\n");
             if matches!(os, OperatingSystem::Windows) {
                 out.push_str("    sub $32, %rsp\n");
@@ -549,6 +609,21 @@ pub fn emit_runtime(out: &mut String, arch: Architecture, os: OperatingSystem) {
 
             // alya_error_div_zero
             out.push_str("alya_error_div_zero:\n");
+            out.push_str("    mov alya_catch_idx, %ecx\n");
+            out.push_str("    test %ecx, %ecx\n");
+            out.push_str("    jz .L_x86_fatal_div_zero\n");
+            out.push_str("    dec %ecx\n");
+            out.push_str("    mov %ecx, alya_catch_idx\n");
+            out.push_str("    mov $alya_str_div_zero, %eax\n");
+            out.push_str("    mov %eax, alya_err_msg\n");
+            out.push_str("    mov $alya_catch_stack_sp, %edx\n");
+            out.push_str("    mov (%edx, %ecx, 4), %esp\n");
+            out.push_str("    mov $alya_catch_stack_bp, %edx\n");
+            out.push_str("    mov (%edx, %ecx, 4), %ebp\n");
+            out.push_str("    mov $alya_catch_stack_handler, %edx\n");
+            out.push_str("    mov (%edx, %ecx, 4), %eax\n");
+            out.push_str("    jmp *%eax\n");
+            out.push_str(".L_x86_fatal_div_zero:\n");
             out.push_str("    and $-16, %esp\n");
             out.push_str("    push $alya_fmt_div_zero\n");
             out.push_str("    call printf\n");

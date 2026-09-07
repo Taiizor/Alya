@@ -294,4 +294,59 @@ say "Hello, {name} from {city}!"
     }
 }
 
+#[test]
+fn test_e2e_try_catch_basic() {
+    let code = r#"
+say "Before try"
+try
+    say "Inside try before error"
+    let x = 10 / 0
+    say "Should not print"
+catch
+    say "Caught error successfully"
+end
+say "After try"
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            "Before try\nInside try before error\nCaught error successfully\nAfter try\n"
+        );
+    }
+}
+
+#[test]
+fn test_e2e_try_catch_with_err_var() {
+    let code = r#"
+try
+    let a = 100 % 0
+catch err
+    say "Caught: " + err
+end
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(output, "Caught: division by zero\n");
+    }
+}
+
+#[test]
+fn test_e2e_try_catch_no_error() {
+    let code = r#"
+try
+    let x = 10 / 2
+    say x
+catch
+    say "Should not print"
+end
+say "Done"
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(output, "5\nDone\n");
+    }
+}
+
+
 

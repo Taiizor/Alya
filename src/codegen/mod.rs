@@ -222,6 +222,43 @@ impl CodeGen {
                 }
                 arch::emit_function_epilogue(&mut self.output, self.arch);
             }
+            Stmt::TryCatch { try_block, catch_var, catch_block } => {
+                let catch_label = self.ctx.next_label();
+                let end_label = self.ctx.next_label();
+                let saved_stack_offset = self.ctx.stack_offset;
+                let saved_variables = self.ctx.variables.clone();
+
+                arch::emit_try_begin(&mut self.output, self.arch, &catch_label);
+
+                for s in try_block {
+                    self.generate_statement(s);
+                }
+
+                let try_delta = self.ctx.stack_offset - saved_stack_offset;
+                arch::emit_try_end(&mut self.output, self.arch, &end_label, try_delta);
+
+                // At catch entry, runtime SP has been restored to saved_stack_offset.
+                self.ctx.stack_offset = saved_stack_offset;
+                self.ctx.variables = saved_variables.clone();
+                arch::emit_catch_begin(&mut self.output, self.arch, &catch_label);
+
+                if let Some(name) = catch_var {
+                    arch::emit_catch_load_err(&mut self.output, self.arch);
+                    arch::emit_allocate_var(&mut self.output, self.arch, &mut self.ctx.stack_offset);
+                    self.ctx.variables.insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
+                }
+
+                for s in catch_block {
+                    self.generate_statement(s);
+                }
+
+                let catch_delta = self.ctx.stack_offset - saved_stack_offset;
+                arch::emit_catch_end(&mut self.output, self.arch, catch_delta);
+
+                self.ctx.stack_offset = saved_stack_offset;
+                self.ctx.variables = saved_variables;
+                self.output.push_str(&format!("{}:\n", end_label));
+            }
             Stmt::Function { .. } => {}
         }
     }

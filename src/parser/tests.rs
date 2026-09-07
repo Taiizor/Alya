@@ -334,3 +334,41 @@ fn test_parse_ask_expression() {
         }
     );
 }
+
+#[test]
+fn test_parse_try_catch() {
+    let code = r#"
+try
+    let x = 10 / 0
+catch err
+    say err
+end
+
+try
+    say 42
+catch
+    say "error"
+end
+"#;
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 2);
+
+    match &program.statements[0] {
+        Stmt::TryCatch { try_block, catch_var, catch_block } => {
+            assert_eq!(try_block.len(), 1);
+            assert_eq!(catch_var.as_deref(), Some("err"));
+            assert_eq!(catch_block.len(), 1);
+        }
+        other => panic!("Expected TryCatch, got {:?}", other),
+    }
+
+    match &program.statements[1] {
+        Stmt::TryCatch { try_block, catch_var, catch_block } => {
+            assert_eq!(try_block.len(), 1);
+            assert_eq!(*catch_var, None);
+            assert_eq!(catch_block.len(), 1);
+        }
+        other => panic!("Expected TryCatch, got {:?}", other),
+    }
+}
+

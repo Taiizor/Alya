@@ -348,3 +348,38 @@ pub fn emit_string_concat_call(out: &mut String, stack_offset: i32, os: Operatin
         }
     }
 }
+
+pub fn emit_try_begin(out: &mut String, catch_label: &str) {
+    out.push_str("    mov alya_catch_idx(%rip), %r8\n");
+    out.push_str(&format!("    lea {}(%rip), %rax\n", catch_label));
+    out.push_str("    lea alya_catch_stack_handler(%rip), %r9\n");
+    out.push_str("    mov %rax, (%r9, %r8, 8)\n");
+    out.push_str("    lea alya_catch_stack_sp(%rip), %r9\n");
+    out.push_str("    mov %rsp, (%r9, %r8, 8)\n");
+    out.push_str("    lea alya_catch_stack_bp(%rip), %r9\n");
+    out.push_str("    mov %rbp, (%r9, %r8, 8)\n");
+    out.push_str("    incq alya_catch_idx(%rip)\n");
+}
+
+pub fn emit_try_end(out: &mut String, end_label: &str, stack_delta: i32) {
+    out.push_str("    decq alya_catch_idx(%rip)\n");
+    if stack_delta > 0 {
+        out.push_str(&format!("    add ${}, %rsp\n", stack_delta));
+    }
+    out.push_str(&format!("    jmp {}\n", end_label));
+}
+
+pub fn emit_catch_begin(out: &mut String, catch_label: &str) {
+    out.push_str(&format!("{}:\n", catch_label));
+}
+
+pub fn emit_catch_load_err(out: &mut String) {
+    out.push_str("    mov alya_err_msg(%rip), %rax\n");
+}
+
+pub fn emit_catch_end(out: &mut String, stack_delta: i32) {
+    if stack_delta > 0 {
+        out.push_str(&format!("    add ${}, %rsp\n", stack_delta));
+    }
+}
+

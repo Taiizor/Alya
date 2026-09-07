@@ -453,6 +453,8 @@ impl Lexer {
                         "break" => TokenType::Break,
                         "continue" => TokenType::Continue,
                         "ask" => TokenType::Ask,
+                        "try" => TokenType::Try,
+                        "catch" => TokenType::Catch,
                         "true" => TokenType::True,
                         "false" => TokenType::False,
                         "and" => TokenType::And,

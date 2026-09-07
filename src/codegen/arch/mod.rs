@@ -204,3 +204,44 @@ pub fn emit_string_concat_call(out: &mut String, arch: Architecture, stack_offse
         Architecture::X86 => x86::emit_string_concat_call(out),
     }
 }
+
+pub fn emit_try_begin(out: &mut String, arch: Architecture, catch_label: &str) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_try_begin(out, catch_label),
+        Architecture::X64 => x64::emit_try_begin(out, catch_label),
+        Architecture::X86 => x86::emit_try_begin(out, catch_label),
+    }
+}
+
+pub fn emit_try_end(out: &mut String, arch: Architecture, end_label: &str, stack_delta: i32) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_try_end(out, end_label, stack_delta),
+        Architecture::X64 => x64::emit_try_end(out, end_label, stack_delta),
+        Architecture::X86 => x86::emit_try_end(out, end_label, stack_delta),
+    }
+}
+
+pub fn emit_catch_begin(out: &mut String, arch: Architecture, catch_label: &str) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_catch_begin(out, catch_label),
+        Architecture::X64 => x64::emit_catch_begin(out, catch_label),
+        Architecture::X86 => x86::emit_catch_begin(out, catch_label),
+    }
+}
+
+pub fn emit_catch_load_err(out: &mut String, arch: Architecture) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_catch_load_err(out),
+        Architecture::X64 => x64::emit_catch_load_err(out),
+        Architecture::X86 => x86::emit_catch_load_err(out),
+    }
+}
+
+pub fn emit_catch_end(out: &mut String, arch: Architecture, stack_delta: i32) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_catch_end(out, stack_delta),
+        Architecture::X64 => x64::emit_catch_end(out, stack_delta),
+        Architecture::X86 => x86::emit_catch_end(out, stack_delta),
+    }
+}
+

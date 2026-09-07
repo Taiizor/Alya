@@ -199,3 +199,52 @@ pub fn emit_string_concat_call(out: &mut String) {
     out.push_str("    ldr x0, [sp], #16\n");
     out.push_str("    bl alya_concat\n");
 }
+
+pub fn emit_try_begin(out: &mut String, catch_label: &str) {
+    out.push_str("    adrp x9, alya_catch_idx\n");
+    out.push_str("    add x9, x9, :lo12:alya_catch_idx\n");
+    out.push_str("    ldr x10, [x9]\n");
+    out.push_str(&format!("    adrp x11, {}\n", catch_label));
+    out.push_str(&format!("    add x11, x11, :lo12:{}\n", catch_label));
+    out.push_str("    adrp x12, alya_catch_stack_handler\n");
+    out.push_str("    add x12, x12, :lo12:alya_catch_stack_handler\n");
+    out.push_str("    str x11, [x12, x10, lsl #3]\n");
+    out.push_str("    mov x13, sp\n");
+    out.push_str("    adrp x12, alya_catch_stack_sp\n");
+    out.push_str("    add x12, x12, :lo12:alya_catch_stack_sp\n");
+    out.push_str("    str x13, [x12, x10, lsl #3]\n");
+    out.push_str("    adrp x12, alya_catch_stack_bp\n");
+    out.push_str("    add x12, x12, :lo12:alya_catch_stack_bp\n");
+    out.push_str("    str x29, [x12, x10, lsl #3]\n");
+    out.push_str("    add x10, x10, #1\n");
+    out.push_str("    str x10, [x9]\n");
+}
+
+pub fn emit_try_end(out: &mut String, end_label: &str, stack_delta: i32) {
+    out.push_str("    adrp x9, alya_catch_idx\n");
+    out.push_str("    add x9, x9, :lo12:alya_catch_idx\n");
+    out.push_str("    ldr x10, [x9]\n");
+    out.push_str("    sub x10, x10, #1\n");
+    out.push_str("    str x10, [x9]\n");
+    if stack_delta > 0 {
+        out.push_str(&format!("    add sp, sp, #{}\n", stack_delta));
+    }
+    out.push_str(&format!("    b {}\n", end_label));
+}
+
+pub fn emit_catch_begin(out: &mut String, catch_label: &str) {
+    out.push_str(&format!("{}:\n", catch_label));
+}
+
+pub fn emit_catch_load_err(out: &mut String) {
+    out.push_str("    adrp x9, alya_err_msg\n");
+    out.push_str("    add x9, x9, :lo12:alya_err_msg\n");
+    out.push_str("    ldr x0, [x9]\n");
+}
+
+pub fn emit_catch_end(out: &mut String, stack_delta: i32) {
+    if stack_delta > 0 {
+        out.push_str(&format!("    add sp, sp, #{}\n", stack_delta));
+    }
+}
+

@@ -19,6 +19,9 @@ pub enum TokenType {
     Break,      // break
     Continue,   // continue
     Ask,        // ask (input)
+    Try,        // try
+    Catch,      // catch
+
 
     // Literals
     Number(f64),
@@ -90,6 +93,8 @@ impl std::fmt::Display for TokenType {
             TokenType::Break => write!(f, "'break'"),
             TokenType::Continue => write!(f, "'continue'"),
             TokenType::Ask => write!(f, "'ask'"),
+            TokenType::Try => write!(f, "'try'"),
+            TokenType::Catch => write!(f, "'catch'"),
             TokenType::Number(n) => write!(f, "number '{}'", n),
             TokenType::String(s) => write!(f, "\"{}\"", s),
             TokenType::Identifier(s) => write!(f, "identifier '{}'", s),
