@@ -307,3 +307,87 @@ say "Runner failed: " + str(r.failed)
         );
     }
 }
+
+#[test]
+fn test_e2e_os_stdlib() {
+    let code = r#"
+import "std/os"
+
+# 1. Environment variables
+say env_or("NON_EXISTENT_VAR_98765", "default_val")
+say has_env("NON_EXISTENT_VAR_98765")
+say has_env("PATH")
+
+# 2. CLI arguments helpers
+say arg_count()
+say arg_at(0, "none")
+say arg_at(1, "none")
+say arg_at(99, "out_of_bounds")
+say has_arg("--flag")
+say has_arg("--unknown")
+
+let c_args = cli_args()
+for arg in c_args
+    say "arg: " + arg
+end
+
+# 3. Platform & system
+say is_windows() + is_posix()
+if len(platform()) > 0
+    say "platform_ok"
+end
+if len(temp_dir()) > 0
+    say "temp_dir_ok"
+end
+if len(null_device()) > 0
+    say "null_device_ok"
+end
+if len(path_list_separator()) > 0
+    say "path_sep_ok"
+end
+
+# 4. Command execution
+let ret = exec("echo test > " + null_device())
+say ret
+"#;
+    if let Some((code, output)) = run_alya_code_with_args(code, &["--flag", "input.txt"]) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!(
+                "default_val\n",
+                "0\n",
+                "1\n",
+                "2\n",
+                "--flag\n",
+                "input.txt\n",
+                "out_of_bounds\n",
+                "1\n",
+                "0\n",
+                "arg: --flag\n",
+                "arg: input.txt\n",
+                "1\n",
+                "platform_ok\n",
+                "temp_dir_ok\n",
+                "null_device_ok\n",
+                "path_sep_ok\n",
+                "0\n",
+            )
+        );
+    }
+}
+
+#[test]
+fn test_e2e_os_exit_process() {
+    let code = r#"
+import "std/os"
+
+say "before_exit"
+exit_process(42)
+say "unreachable"
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 42);
+        assert_eq!(output, "before_exit\n");
+    }
+}

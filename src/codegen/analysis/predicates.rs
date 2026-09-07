@@ -23,6 +23,15 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "read_file"
                     | "get_env"
                     | "env"
+                    | "env_or"
+                    | "platform"
+                    | "temp_dir"
+                    | "home_dir"
+                    | "user_name"
+                    | "hostname"
+                    | "null_device"
+                    | "path_list_separator"
+                    | "arg_at"
                     | "str_from_ptr"
                     | "replace"
                     | "str_repeat"
@@ -99,6 +108,7 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                 name.as_str(),
                 "split"
                     | "args"
+                    | "cli_args"
                     | "keys"
                     | "values"
                     | "lines"
@@ -143,7 +153,11 @@ pub fn is_string_array(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
     match expr {
         Expr::Array(elems) => elems.first().is_some_and(|e| is_string_expr(e, vars)),
         Expr::Identifier(name) => vars.contains_key(&format!("arr_is_str:{}", name)),
-        Expr::Call { name, .. } if name == "split" || name == "args" || name == "lines" => true,
+        Expr::Call { name, .. }
+            if name == "split" || name == "args" || name == "cli_args" || name == "lines" =>
+        {
+            true
+        }
         _ => false,
     }
 }

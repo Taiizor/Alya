@@ -12,6 +12,7 @@ fn expr_is_definitely_array(expr: &Expr, known_arrays: &HashSet<String>) -> bool
                 name.as_str(),
                 "split"
                     | "args"
+                    | "cli_args"
                     | "keys"
                     | "values"
                     | "lines"

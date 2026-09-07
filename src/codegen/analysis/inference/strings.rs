@@ -23,6 +23,15 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
                     | "read_file"
                     | "get_env"
                     | "env"
+                    | "env_or"
+                    | "platform"
+                    | "temp_dir"
+                    | "home_dir"
+                    | "user_name"
+                    | "hostname"
+                    | "null_device"
+                    | "path_list_separator"
+                    | "arg_at"
                     | "str_from_ptr"
             ) {
                 return true;
@@ -54,7 +63,11 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
                     known_strings.contains(&format!("arr_is_str:{}", arr_name))
                         || known_strings.contains(arr_name)
                 }
-                Expr::Call { name, .. } if name == "split" || name == "args" => true,
+                Expr::Call { name, .. }
+                    if name == "split" || name == "args" || name == "cli_args" =>
+                {
+                    true
+                }
                 _ => expr_is_definitely_string(array, known_strings),
             }
         }
@@ -68,7 +81,7 @@ fn expr_is_string_array(expr: &Expr, known_strings: &HashSet<String>) -> bool {
             .first()
             .is_some_and(|e| expr_is_definitely_string(e, known_strings)),
         Expr::Identifier(name) => known_strings.contains(&format!("arr_is_str:{}", name)),
-        Expr::Call { name, .. } if name == "split" || name == "args" => true,
+        Expr::Call { name, .. } if name == "split" || name == "args" || name == "cli_args" => true,
         _ => false,
     }
 }

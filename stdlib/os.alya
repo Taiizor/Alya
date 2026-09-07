@@ -1,10 +1,161 @@
 # Alya Standard Library - OS Module
-# Provides operating system and environment interactions.
+# Provides operating system, environment, command execution, and CLI interactions.
+
+# --- Environment Variables ---
 
 function env(key)
     return get_env(key)
 end
 
+function env_or(key, default_val)
+    let val = get_env(key)
+    if len(val) == 0
+        return default_val
+    end
+    return val
+end
+
+function has_env(key)
+    if len(get_env(key)) > 0
+        return 1
+    end
+    return 0
+end
+
+# --- Command Execution & Process ---
+
 function exec(cmd)
     return system_exec(cmd)
 end
+
+function exit_process(code)
+    exit(code)
+end
+
+# --- Command Line Arguments ---
+
+function cli_args()
+    return args()
+end
+
+function arg_count()
+    let a = args()
+    return len(a)
+end
+
+function arg_at(index, default_val)
+    let a = args()
+    if index >= 0 and index < len(a)
+        return a[index]
+    end
+    return default_val
+end
+
+function has_arg(flag)
+    let a = args()
+    for arg in a
+        if arg == flag
+            return 1
+        end
+    end
+    return 0
+end
+
+# --- System & Platform Information ---
+
+function is_windows()
+    if get_env("OS") == "Windows_NT" or len(get_env("WINDIR")) > 0 or len(get_env("SystemRoot")) > 0
+        return 1
+    end
+    return 0
+end
+
+function is_posix()
+    if is_windows() == 1
+        return 0
+    end
+    return 1
+end
+
+function platform()
+    if is_windows() == 1
+        return "windows"
+    end
+    let cf = get_env("__CF_USER_TEXT_ENCODING")
+    let ostype = get_env("OSTYPE")
+    if len(cf) > 0 or ostype == "darwin"
+        return "macos"
+    end
+    return "linux"
+end
+
+function temp_dir()
+    if is_windows() == 1
+        let t = get_env("TEMP")
+        if len(t) > 0
+            return t
+        end
+        t = get_env("TMP")
+        if len(t) > 0
+            return t
+        end
+        return "C:/Windows/Temp"
+    end
+    let t = get_env("TMPDIR")
+    if len(t) > 0
+        return t
+    end
+    return "/tmp"
+end
+
+function home_dir()
+    if is_windows() == 1
+        let h = get_env("USERPROFILE")
+        if len(h) > 0
+            return h
+        end
+        let drive, p = get_env("HOMEDRIVE"), get_env("HOMEPATH")
+        if len(drive) > 0 and len(p) > 0
+            return drive + p
+        end
+        return ""
+    end
+    return get_env("HOME")
+end
+
+function user_name()
+    if is_windows() == 1
+        let u = get_env("USERNAME")
+        if len(u) > 0
+            return u
+        end
+    end
+    let u = get_env("USER")
+    if len(u) > 0
+        return u
+    end
+    return get_env("LOGNAME")
+end
+
+function hostname()
+    let h = get_env("COMPUTERNAME")
+    if len(h) > 0
+        return h
+    end
+    return get_env("HOSTNAME")
+end
+
+function null_device()
+    if is_windows() == 1
+        return "NUL"
+    end
+    return "/dev/null"
+end
+
+function path_list_separator()
+    if is_windows() == 1
+        return ";"
+    end
+    return ":"
+end
+
