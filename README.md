@@ -185,6 +185,12 @@ say greeting.trim().substring(0, 5) # "Hello"
 let csv = "apple,banana,cherry"
 let fruits = csv.split(",")         # ["apple", "banana", "cherry"]
 say fruits.join(" - ")              # "apple - banana - cherry"
+
+# Explicit & automatic string conversions
+let count = 42
+say "Total items: " + count          # Auto-converts number to string: "Total items: 42"
+say 100 + " percent completed"      # Auto-converts: "100 percent completed"
+say str(count)                      # Explicit string conversion: "42"
 ```
 
 ### 4. Interactive User Input
@@ -479,6 +485,19 @@ say is_alnum("Z")           # 1
 say is_space(" ")           # 1
 ```
 
+### 17. Self-Hosting Prototype (Compiler in Alya)
+
+Alya is expressive enough to implement compiler logic directly in Alya itself! Check out `examples/mini_compiler.alya` for a working compiler prototype written in Alya that compiles a subset of the language to native x64 assembly:
+
+```bash
+# Compile and run the mini-compiler
+alyac run examples/mini_compiler.alya
+
+# Link the generated assembly into a standalone binary
+gcc mini_output.s -o mini_program.exe
+./mini_program.exe
+```
+
 ---
 
 ## Platform & Architecture Matrix
@@ -504,7 +523,7 @@ Alya/
 │   ├── workflows/             # CI and Automated Release workflows
 │   ├── ISSUE_TEMPLATE/        # Bug report and Feature request forms
 │   └── PULL_REQUEST_TEMPLATE.md
-├── examples/                  # 26 rich example programs and modules
+├── examples/                  # 27 rich example programs and modules
 ├── src/
 │   ├── cli/                   # Argument parser, help, and commands
 │   ├── codegen/               # Assembly code generator (x86, x64, ARM64)

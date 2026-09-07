@@ -1114,3 +1114,80 @@ say m1
         );
     }
 }
+
+#[test]
+fn test_e2e_str_conversion_and_concat() {
+    let code = r#"
+let a = 12345
+say str(a)
+let b = -987
+say str(b)
+say str(0)
+say "Count: " + 42
+say 100 + " percent"
+let x = 50
+say "Val is {x}"
+say "item_" + 1 + "_part_" + 2
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!(
+                "12345\n",
+                "-987\n",
+                "0\n",
+                "Count: 42\n",
+                "100 percent\n",
+                "Val is 50\n",
+                "item_1_part_2\n",
+            )
+        );
+    }
+}
+
+#[test]
+fn test_e2e_map_string_values() {
+    let code = r#"
+let m = map()
+m["name"] = "Alya"
+m["version"] = "1.0"
+say m["name"]
+say m["version"]
+say "Language: " + m["name"]
+m["name"] = "Alya Lang"
+say m["name"]
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!("Alya\n", "1.0\n", "Language: Alya\n", "Alya Lang\n",)
+        );
+    }
+}
+
+#[test]
+fn test_e2e_parameter_type_propagation() {
+    let code = r#"
+function append_tag(tags, val)
+    tags.push(val)
+end
+
+function process(arr, dict, label)
+    append_tag(arr, label)
+    dict["tag"] = label
+end
+
+let items = ["init"]
+let data = map()
+process(items, data, "test_run")
+say items[0]
+say items[1]
+say data["tag"]
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(output, concat!("init\n", "test_run\n", "test_run\n",));
+    }
+}
