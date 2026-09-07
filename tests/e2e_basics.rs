@@ -210,3 +210,66 @@ say n
         assert_eq!(output, "0\n0\n10\n20\n100\n100\n100\nalpha\nbeta\n8\n24\n");
     }
 }
+
+#[test]
+fn test_e2e_when_enhanced() {
+    let code = r#"
+# 1. Multi-statement arm and optional then
+let x = 2
+let count = 0
+when x
+    is 1
+        say "one"
+        count += 10
+    is 2 then
+        say "two"
+        count += 20
+        count += 5
+    else
+        say "other"
+        count += 99
+end
+say count
+
+# 2. Multi-value and Range matching
+let status = 201
+when status
+    is 200, 201, 204 then say "Success"
+    is 400..499 then say "Client error"
+    is >= 500 then say "Server error"
+    else say "Unknown"
+end
+
+let score = 85
+when score
+    is 90..100
+        say "Grade: A"
+    is 80..89
+        say "Grade: B"
+    is < 60
+        say "Grade: F"
+    else
+        say "Grade: C"
+end
+
+# 3. Side-effect safety (evaluating expression only once)
+function get_val()
+    say "evaluating subject"
+    return 3
+end
+
+when get_val()
+    is 1 then say "one"
+    is 2 then say "two"
+    is 3 then say "three"
+    else say "none"
+end
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            "two\n25\nSuccess\nGrade: B\nevaluating subject\nthree\n"
+        );
+    }
+}

@@ -28,7 +28,7 @@ impl Parser {
                 self.advance();
                 Ok(vec![Stmt::Continue])
             }
-            TokenType::When => self.parse_when().map(|s| vec![s]),
+            TokenType::When => self.parse_when(),
             TokenType::Try => self.parse_try_catch().map(|s| vec![s]),
             TokenType::Throw => self.parse_throw().map(|s| vec![s]),
             TokenType::Identifier(_) => {

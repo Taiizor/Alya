@@ -2,6 +2,58 @@ use crate::ast::*;
 use crate::lexer::TokenType;
 use crate::parser::Parser;
 
+enum WhenPattern {
+    Exact(Expr),
+    Range(Expr, Expr),
+    Relational(BinaryOp, Expr),
+}
+
+fn build_pattern_condition(subject: &Expr, pattern: WhenPattern) -> Expr {
+    match pattern {
+        WhenPattern::Exact(expr) => Expr::Binary {
+            left: Box::new(subject.clone()),
+            op: BinaryOp::Equal,
+            right: Box::new(expr),
+        },
+        WhenPattern::Range(start, end) => {
+            let gte = Expr::Binary {
+                left: Box::new(subject.clone()),
+                op: BinaryOp::GreaterEqual,
+                right: Box::new(start),
+            };
+            let lte = Expr::Binary {
+                left: Box::new(subject.clone()),
+                op: BinaryOp::LessEqual,
+                right: Box::new(end),
+            };
+            Expr::Binary {
+                left: Box::new(gte),
+                op: BinaryOp::And,
+                right: Box::new(lte),
+            }
+        }
+        WhenPattern::Relational(op, expr) => Expr::Binary {
+            left: Box::new(subject.clone()),
+            op,
+            right: Box::new(expr),
+        },
+    }
+}
+
+fn build_when_condition(subject: &Expr, mut patterns: Vec<WhenPattern>) -> Expr {
+    let first = patterns.remove(0);
+    let mut cond = build_pattern_condition(subject, first);
+    for pat in patterns {
+        let next_cond = build_pattern_condition(subject, pat);
+        cond = Expr::Binary {
+            left: Box::new(cond),
+            op: BinaryOp::Or,
+            right: Box::new(next_cond),
+        };
+    }
+    cond
+}
+
 impl Parser {
     pub(super) fn parse_if(&mut self) -> Result<Stmt, String> {
         self.advance(); // skip 'if'
@@ -161,12 +213,26 @@ impl Parser {
         }
     }
 
-    pub(super) fn parse_when(&mut self) -> Result<Stmt, String> {
+    pub(super) fn parse_when(&mut self) -> Result<Vec<Stmt>, String> {
+        let when_line = self.current_token().line;
+        let when_col = self.current_token().column;
         self.advance(); // skip 'when'
-        let subject = self.parse_expression()?;
+        let raw_subject = self.parse_expression()?;
         self.skip_newlines();
 
-        let mut arms = Vec::new();
+        let (subject, init_stmt) = match &raw_subject {
+            Expr::Identifier(_) => (raw_subject, None),
+            _ => {
+                let temp_name = format!("__when_subj_{}", self.position);
+                let let_stmt = Stmt::Let {
+                    name: temp_name.clone(),
+                    value: raw_subject,
+                };
+                (Expr::Identifier(temp_name), Some(let_stmt))
+            }
+        };
+
+        let mut arms: Vec<(Vec<WhenPattern>, Vec<Stmt>)> = Vec::new();
         let mut else_block = None;
 
         while !matches!(
@@ -175,14 +241,63 @@ impl Parser {
         ) {
             if matches!(self.current_token().token_type, TokenType::Is) {
                 self.advance(); // skip 'is'
-                let pattern = self.parse_expression()?;
-                self.expect(TokenType::Then)?;
                 self.skip_newlines();
-                let stmts = self.parse_statement()?;
-                arms.push((pattern, stmts));
+
+                let mut patterns = Vec::new();
+                loop {
+                    let rel_op = match self.current_token().token_type {
+                        TokenType::Greater => Some(BinaryOp::Greater),
+                        TokenType::Less => Some(BinaryOp::Less),
+                        TokenType::GreaterEqual => Some(BinaryOp::GreaterEqual),
+                        TokenType::LessEqual => Some(BinaryOp::LessEqual),
+                        TokenType::NotEqual => Some(BinaryOp::NotEqual),
+                        TokenType::Equal => Some(BinaryOp::Equal),
+                        _ => None,
+                    };
+
+                    if let Some(op) = rel_op {
+                        self.advance();
+                        let expr = self.parse_expression()?;
+                        patterns.push(WhenPattern::Relational(op, expr));
+                    } else {
+                        let pattern_start = self.parse_expression()?;
+                        if matches!(self.current_token().token_type, TokenType::DotDot) {
+                            self.advance(); // skip '..'
+                            let pattern_end = self.parse_expression()?;
+                            patterns.push(WhenPattern::Range(pattern_start, pattern_end));
+                        } else {
+                            patterns.push(WhenPattern::Exact(pattern_start));
+                        }
+                    }
+
+                    if matches!(self.current_token().token_type, TokenType::Comma) {
+                        self.advance(); // skip ','
+                        self.skip_newlines();
+                    } else {
+                        break;
+                    }
+                }
+
+                // Optional 'then'
+                if matches!(self.current_token().token_type, TokenType::Then) {
+                    self.advance();
+                }
                 self.skip_newlines();
+
+                let mut arm_stmts = Vec::new();
+                while !matches!(
+                    self.current_token().token_type,
+                    TokenType::Is | TokenType::Else | TokenType::End | TokenType::Eof
+                ) {
+                    arm_stmts.extend(self.parse_statement()?);
+                    self.skip_newlines();
+                }
+                arms.push((patterns, arm_stmts));
             } else if matches!(self.current_token().token_type, TokenType::Else) {
                 self.advance(); // skip 'else'
+                if matches!(self.current_token().token_type, TokenType::Then) {
+                    self.advance();
+                }
                 self.skip_newlines();
                 let mut else_stmts = Vec::new();
                 while !matches!(
@@ -205,14 +320,17 @@ impl Parser {
 
         self.expect(TokenType::End)?;
 
+        if arms.is_empty() && else_block.is_none() {
+            return Err(format!(
+                "Empty 'when' statement at line {}, column {}",
+                when_line, when_col
+            ));
+        }
+
         // Desugar when into nested If statements
         let mut current_else = else_block;
-        for (pattern, stmts) in arms.into_iter().rev() {
-            let condition = Expr::Binary {
-                left: Box::new(subject.clone()),
-                op: BinaryOp::Equal,
-                right: Box::new(pattern),
-            };
+        for (patterns, stmts) in arms.into_iter().rev() {
+            let condition = build_when_condition(&subject, patterns);
             let if_stmt = Stmt::If {
                 condition,
                 then_block: stmts,
@@ -221,14 +339,14 @@ impl Parser {
             current_else = Some(vec![if_stmt]);
         }
 
-        match current_else {
-            Some(mut stmts) if !stmts.is_empty() => Ok(stmts.remove(0)),
-            _ => Err(format!(
-                "Empty 'when' statement at line {}, column {}",
-                self.current_token().line,
-                self.current_token().column
-            )),
+        let mut result = Vec::new();
+        if let Some(stmt) = init_stmt {
+            result.push(stmt);
         }
+        if let Some(stmts) = current_else {
+            result.extend(stmts);
+        }
+        Ok(result)
     }
 
     pub(super) fn parse_throw(&mut self) -> Result<Stmt, String> {

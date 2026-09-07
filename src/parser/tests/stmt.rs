@@ -385,3 +385,33 @@ throw
         other => panic!("Expected Stmt::Throw(None), got {:?}", other),
     }
 }
+
+#[test]
+fn test_parse_when_enhanced() {
+    let code = r#"
+when status
+    is 200, 201 then
+        say "OK"
+        let count = 1
+    is 400..499
+        say "Client Error"
+    is >= 500 then
+        say "Server Error"
+    else
+        say "Unknown"
+end
+"#;
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 1);
+    match &program.statements[0] {
+        Stmt::If {
+            condition: _,
+            then_block,
+            else_block,
+        } => {
+            assert_eq!(then_block.len(), 2);
+            assert!(else_block.is_some());
+        }
+        other => panic!("Expected Stmt::If from desugared when, got {:?}", other),
+    }
+}

@@ -294,7 +294,8 @@ Inline call: 2\n",
         ),
         "pattern_matching.alya" => Some(
             "=== HTTP Status Code Resolver ===\n\
-Status 200: OK\n\
+Success response received\n\
+Status 201: OK / Created\n\
 \n\
 === Priority Level Resolver ===\n\
 Priority 2: Medium\n",
