@@ -643,11 +643,11 @@ pub fn emit_array_push(out: &mut String, stack_offset: i32, os: OperatingSystem)
         out.push_str(&format!("    add ${}, %rsp\n", padding));
     } else {
         let misaligned = stack_offset % 16 != 0;
+        out.push_str("    mov %rax, %rsi\n");
+        out.push_str("    pop %rdi\n");
         if misaligned {
             out.push_str("    sub $8, %rsp\n");
         }
-        out.push_str("    mov %rax, %rsi\n");
-        out.push_str("    pop %rdi\n");
         out.push_str("    call alya_array_push\n");
         if misaligned {
             out.push_str("    add $8, %rsp\n");
