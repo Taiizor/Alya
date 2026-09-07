@@ -1,3 +1,3 @@
 pub mod args;
 
-pub use args::CliArgs;
+pub use args::{CliArgs, CommandKind};
