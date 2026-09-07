@@ -112,11 +112,12 @@ fn test_all_examples_execute_with_gcc() {
             .unwrap_or_else(|e| panic!("Parser failed for '{}': {}", example_name, e));
 
         let asm_code = codegen::generate(&ast, Architecture::X64, os);
-        let temp_asm = format!("temp_ex_test_{}.s", idx);
+        let pid = std::process::id();
+        let temp_asm = format!("temp_ex_test_{}_{}.s", pid, idx);
         let temp_exe = if cfg!(target_os = "windows") {
-            format!("temp_ex_test_{}.exe", idx)
+            format!("temp_ex_test_{}_{}.exe", pid, idx)
         } else {
-            format!("temp_ex_test_{}", idx)
+            format!("temp_ex_test_{}_{}", pid, idx)
         };
 
         fs::write(&temp_asm, &asm_code).expect("Failed to write asm");

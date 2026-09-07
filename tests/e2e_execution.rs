@@ -27,12 +27,13 @@ fn run_alya_code_with_input(source: &str, input: Option<&str>) -> Option<(i32, S
 
     let asm_code = codegen::generate(&ast, Architecture::X64, os);
 
+    let pid = std::process::id();
     let id = TEST_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
-    let asm_path = format!("temp_e2e_{}.s", id);
+    let asm_path = format!("temp_e2e_{}_{}.s", pid, id);
     let exe_path = if cfg!(target_os = "windows") {
-        format!("temp_e2e_{}.exe", id)
+        format!("temp_e2e_{}_{}.exe", pid, id)
     } else {
-        format!("temp_e2e_{}", id)
+        format!("temp_e2e_{}_{}", pid, id)
     };
 
     fs::write(&asm_path, asm_code).expect("Failed to write temp asm file");
