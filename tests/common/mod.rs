@@ -1,3 +1,5 @@
+pub mod expected;
+
 use alya::codegen::{self, Architecture, OperatingSystem};
 use alya::lexer::Lexer;
 use alya::parser::Parser;
