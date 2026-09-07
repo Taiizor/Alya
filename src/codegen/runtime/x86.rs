@@ -105,6 +105,68 @@ pub fn emit_x86_runtime(out: &mut String) {
     out.push_str("    pop %ebp\n");
     out.push_str("    ret\n\n");
 
+    // fn_sqrt
+    out.push_str("fn_sqrt:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    mov 8(%ebp), %ecx\n");
+    out.push_str("    test %ecx, %ecx\n");
+    out.push_str("    jle .L_x86_sqrt_zero\n");
+    out.push_str("    cmp $4, %ecx\n");
+    out.push_str("    jl .L_x86_sqrt_one\n");
+    out.push_str("    push %ebx\n");
+    out.push_str("    mov %ecx, %ebx\n");
+    out.push_str("    shr $1, %ebx\n");
+    out.push_str(".L_x86_sqrt_loop:\n");
+    out.push_str("    mov %ecx, %eax\n");
+    out.push_str("    xor %edx, %edx\n");
+    out.push_str("    div %ebx\n");
+    out.push_str("    add %ebx, %eax\n");
+    out.push_str("    shr $1, %eax\n");
+    out.push_str("    cmp %ebx, %eax\n");
+    out.push_str("    jge .L_x86_sqrt_done\n");
+    out.push_str("    mov %eax, %ebx\n");
+    out.push_str("    jmp .L_x86_sqrt_loop\n");
+    out.push_str(".L_x86_sqrt_done:\n");
+    out.push_str("    mov %ebx, %eax\n");
+    out.push_str("    pop %ebx\n");
+    out.push_str("    jmp .L_x86_sqrt_end\n");
+    out.push_str(".L_x86_sqrt_one:\n");
+    out.push_str("    mov $1, %eax\n");
+    out.push_str("    jmp .L_x86_sqrt_end\n");
+    out.push_str(".L_x86_sqrt_zero:\n");
+    out.push_str("    xor %eax, %eax\n");
+    out.push_str(".L_x86_sqrt_end:\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_pow
+    out.push_str("fn_pow:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    mov 8(%ebp), %ecx\n");
+    out.push_str("    mov 12(%ebp), %edx\n");
+    out.push_str("    test %edx, %edx\n");
+    out.push_str("    js .L_x86_pow_zero\n");
+    out.push_str("    mov $1, %eax\n");
+    out.push_str(".L_x86_pow_loop:\n");
+    out.push_str("    test %edx, %edx\n");
+    out.push_str("    jle .L_x86_pow_end\n");
+    out.push_str("    test $1, %edx\n");
+    out.push_str("    jz .L_x86_pow_even\n");
+    out.push_str("    imul %ecx, %eax\n");
+    out.push_str(".L_x86_pow_even:\n");
+    out.push_str("    imul %ecx, %ecx\n");
+    out.push_str("    shr $1, %edx\n");
+    out.push_str("    jmp .L_x86_pow_loop\n");
+    out.push_str(".L_x86_pow_zero:\n");
+    out.push_str("    xor %eax, %eax\n");
+    out.push_str(".L_x86_pow_end:\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
     // fn_exit
     out.push_str("fn_exit:\n");
     out.push_str("    push %ebp\n");

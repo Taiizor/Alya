@@ -69,7 +69,7 @@ fn collect_string_vars_from_stmts(stmts: &[Stmt], known_strings: &mut HashSet<St
                     collect_string_vars_from_stmts(else_stmts, known_strings);
                 }
             }
-            Stmt::While { body, .. } | Stmt::For { body, .. } => {
+            Stmt::While { body, .. } | Stmt::Repeat { body } | Stmt::For { body, .. } => {
                 collect_string_vars_from_stmts(body, known_strings);
             }
             Stmt::Function { body, .. } => {
@@ -142,7 +142,7 @@ pub fn find_call_arg<'a>(stmt: &'a Stmt, func_name: &str, param_idx: usize) -> O
             }
             None
         }
-        Stmt::For { body, .. } => {
+        Stmt::Repeat { body } | Stmt::For { body, .. } => {
             for s in body {
                 if let Some(arg) = find_call_arg(s, func_name, param_idx) {
                     return Some(arg);

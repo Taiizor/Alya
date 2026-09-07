@@ -88,6 +88,54 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    csel x0, x0, x1, ge\n");
     out.push_str("    ret\n\n");
 
+    // fn_sqrt
+    out.push_str("fn_sqrt:\n");
+    out.push_str("    cmp x0, #0\n");
+    out.push_str("    b.le .L_arm64_sqrt_zero\n");
+    out.push_str("    cmp x0, #4\n");
+    out.push_str("    b.lt .L_arm64_sqrt_one\n");
+    out.push_str("    mov x9, x0\n");
+    out.push_str("    lsr x10, x9, #1\n");
+    out.push_str(".L_arm64_sqrt_loop:\n");
+    out.push_str("    sdiv x11, x9, x10\n");
+    out.push_str("    add x11, x10, x11\n");
+    out.push_str("    lsr x11, x11, #1\n");
+    out.push_str("    cmp x11, x10\n");
+    out.push_str("    b.ge .L_arm64_sqrt_done\n");
+    out.push_str("    mov x10, x11\n");
+    out.push_str("    b .L_arm64_sqrt_loop\n");
+    out.push_str(".L_arm64_sqrt_done:\n");
+    out.push_str("    mov x0, x10\n");
+    out.push_str("    ret\n");
+    out.push_str(".L_arm64_sqrt_one:\n");
+    out.push_str("    mov x0, #1\n");
+    out.push_str("    ret\n");
+    out.push_str(".L_arm64_sqrt_zero:\n");
+    out.push_str("    mov x0, #0\n");
+    out.push_str("    ret\n\n");
+
+    // fn_pow
+    out.push_str("fn_pow:\n");
+    out.push_str("    cmp x1, #0\n");
+    out.push_str("    b.lt .L_arm64_pow_zero\n");
+    out.push_str("    mov x9, x0\n");
+    out.push_str("    mov x10, x1\n");
+    out.push_str("    mov x0, #1\n");
+    out.push_str(".L_arm64_pow_loop:\n");
+    out.push_str("    cmp x10, #0\n");
+    out.push_str("    b.le .L_arm64_pow_end\n");
+    out.push_str("    tst x10, #1\n");
+    out.push_str("    b.eq .L_arm64_pow_even\n");
+    out.push_str("    mul x0, x0, x9\n");
+    out.push_str(".L_arm64_pow_even:\n");
+    out.push_str("    mul x9, x9, x9\n");
+    out.push_str("    lsr x10, x10, #1\n");
+    out.push_str("    b .L_arm64_pow_loop\n");
+    out.push_str(".L_arm64_pow_zero:\n");
+    out.push_str("    mov x0, #0\n");
+    out.push_str(".L_arm64_pow_end:\n");
+    out.push_str("    ret\n\n");
+
     // fn_exit
     out.push_str("fn_exit:\n");
     out.push_str(&format!("    b {}exit\n\n", p));

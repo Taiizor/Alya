@@ -13,11 +13,11 @@ while count < 4
     say "Count: {count}"
 end
 
-say "\n=== Loop with Early Break ==="
+say "\n=== Repeat Loop with Early Break ==="
 let n = 1
-while n <= 10
+repeat
     if n > 3
-        say "Breaking loop at n = {n}"
+        say "Breaking repeat loop at n = {n}"
         break
     end
     say "Processing item {n}"

@@ -11,6 +11,7 @@ impl Parser {
             TokenType::Let => self.parse_let(),
             TokenType::If => self.parse_if(),
             TokenType::While => self.parse_while(),
+            TokenType::Repeat => self.parse_repeat(),
             TokenType::For => self.parse_for(),
             TokenType::Function => self.parse_function(),
             TokenType::Return => self.parse_return(),
@@ -204,6 +205,24 @@ impl Parser {
         self.expect(TokenType::End)?;
 
         Ok(Stmt::While { condition, body })
+    }
+
+    fn parse_repeat(&mut self) -> Result<Stmt, String> {
+        self.advance(); // skip 'repeat'
+        self.skip_newlines();
+
+        let mut body = Vec::new();
+        while !matches!(
+            self.current_token().token_type,
+            TokenType::End | TokenType::Eof
+        ) {
+            body.push(self.parse_statement()?);
+            self.skip_newlines();
+        }
+
+        self.expect(TokenType::End)?;
+
+        Ok(Stmt::Repeat { body })
     }
 
     fn parse_for(&mut self) -> Result<Stmt, String> {

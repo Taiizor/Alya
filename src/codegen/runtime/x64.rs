@@ -126,6 +126,75 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
 
+    // fn_sqrt
+    out.push_str("fn_sqrt:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rcx, %r8\n");
+    } else {
+        out.push_str("    mov %rdi, %r8\n");
+    }
+    out.push_str("    test %r8, %r8\n");
+    out.push_str("    jle .L_x64_sqrt_zero\n");
+    out.push_str("    cmp $4, %r8\n");
+    out.push_str("    jl .L_x64_sqrt_one\n");
+    out.push_str("    mov %r8, %r9\n");
+    out.push_str("    shr $1, %r9\n");
+    out.push_str(".L_x64_sqrt_loop:\n");
+    out.push_str("    mov %r8, %rax\n");
+    out.push_str("    xor %rdx, %rdx\n");
+    out.push_str("    div %r9\n");
+    out.push_str("    add %r9, %rax\n");
+    out.push_str("    shr $1, %rax\n");
+    out.push_str("    cmp %r9, %rax\n");
+    out.push_str("    jge .L_x64_sqrt_done\n");
+    out.push_str("    mov %rax, %r9\n");
+    out.push_str("    jmp .L_x64_sqrt_loop\n");
+    out.push_str(".L_x64_sqrt_done:\n");
+    out.push_str("    mov %r9, %rax\n");
+    out.push_str("    jmp .L_x64_sqrt_end\n");
+    out.push_str(".L_x64_sqrt_one:\n");
+    out.push_str("    mov $1, %rax\n");
+    out.push_str("    jmp .L_x64_sqrt_end\n");
+    out.push_str(".L_x64_sqrt_zero:\n");
+    out.push_str("    xor %rax, %rax\n");
+    out.push_str(".L_x64_sqrt_end:\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_pow
+    out.push_str("fn_pow:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rcx, %r8\n");
+        out.push_str("    mov %rdx, %r9\n");
+    } else {
+        out.push_str("    mov %rdi, %r8\n");
+        out.push_str("    mov %rsi, %r9\n");
+    }
+    out.push_str("    test %r9, %r9\n");
+    out.push_str("    js .L_x64_pow_zero\n");
+    out.push_str("    mov $1, %rax\n");
+    out.push_str(".L_x64_pow_loop:\n");
+    out.push_str("    test %r9, %r9\n");
+    out.push_str("    jle .L_x64_pow_end\n");
+    out.push_str("    test $1, %r9\n");
+    out.push_str("    jz .L_x64_pow_even\n");
+    out.push_str("    imul %r8, %rax\n");
+    out.push_str(".L_x64_pow_even:\n");
+    out.push_str("    imul %r8, %r8\n");
+    out.push_str("    shr $1, %r9\n");
+    out.push_str("    jmp .L_x64_pow_loop\n");
+    out.push_str(".L_x64_pow_zero:\n");
+    out.push_str("    xor %rax, %rax\n");
+    out.push_str(".L_x64_pow_end:\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
     let p = if matches!(os, OperatingSystem::MacOS) {
         "_"
     } else {

@@ -175,6 +175,27 @@ end
 }
 
 #[test]
+fn test_parse_repeat_loop() {
+    let code = r#"
+repeat
+    count += 1
+    if count >= 3
+        break
+    end
+end
+"#;
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 1);
+
+    match &program.statements[0] {
+        Stmt::Repeat { body } => {
+            assert_eq!(body.len(), 2);
+        }
+        other => panic!("Expected Repeat loop, got {:?}", other),
+    }
+}
+
+#[test]
 fn test_parse_for_loop() {
     let code = r#"
 for i in 1..10

@@ -14,3 +14,11 @@ let lower = min(15, 42)
 let higher = max(15, 42)
 say "Min: {lower}"
 say "Max: {higher}"
+
+# 4. sqrt(num) - returns integer square root
+let root = sqrt(64)
+say "Square root of 64: {root}"
+
+# 5. pow(base, exp) - returns integer exponentiation
+let power = pow(2, 10)
+say "2 to the power of 10: {power}"

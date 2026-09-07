@@ -20,6 +20,9 @@ pub enum Stmt {
         condition: Expr,
         body: Vec<Stmt>,
     },
+    Repeat {
+        body: Vec<Stmt>,
+    },
     For {
         var: String,
         start: Expr,

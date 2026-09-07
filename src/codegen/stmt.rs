@@ -111,6 +111,23 @@ impl CodeGen {
 
                 self.ctx.pop_loop();
             }
+            Stmt::Repeat { body } => {
+                let start_label = self.ctx.next_label();
+                let end_label = self.ctx.next_label();
+
+                self.ctx.push_loop(start_label.clone(), end_label.clone());
+
+                self.output.push_str(&format!("{}:\n", start_label));
+
+                for s in body {
+                    self.generate_statement(s);
+                }
+
+                arch::emit_jump(&mut self.output, self.arch, &start_label);
+                self.output.push_str(&format!("{}:\n", end_label));
+
+                self.ctx.pop_loop();
+            }
             Stmt::For {
                 var,
                 start,

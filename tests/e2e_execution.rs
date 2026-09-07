@@ -366,3 +366,38 @@ say "Done"
         assert_eq!(output, "5\nDone\n");
     }
 }
+
+#[test]
+fn test_e2e_repeat_loop() {
+    let code = r#"
+let loops = 0
+repeat
+    loops += 1
+    if loops >= 3
+        break
+    end
+end
+say loops
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(output, "3\n");
+    }
+}
+
+#[test]
+fn test_e2e_sqrt_and_pow() {
+    let code = r#"
+say sqrt(16)
+say sqrt(25)
+say sqrt(1)
+say sqrt(0)
+say pow(2, 8)
+say pow(5, 3)
+say pow(10, 0)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(output, "4\n5\n1\n0\n256\n125\n1\n");
+    }
+}
