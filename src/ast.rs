@@ -18,6 +18,7 @@ pub enum Expr {
         name: String,
         args: Vec<Expr>,
     },
+    InterpolatedString(Vec<Expr>),
 }
 
 #[derive(Debug, Clone)]

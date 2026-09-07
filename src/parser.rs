@@ -85,6 +85,7 @@ impl Parser {
                 self.advance();
                 Ok(Stmt::Continue)
             }
+            TokenType::When => self.parse_when(),
             TokenType::Identifier(_) => {
                 // Could be assignment or function call
                 let ident = match &self.current_token().token_type {
@@ -281,6 +282,65 @@ impl Parser {
         }
     }
 
+    fn parse_when(&mut self) -> Result<Stmt, String> {
+        self.advance(); // skip 'when'
+        let subject = self.parse_expression()?;
+        self.skip_newlines();
+
+        let mut arms = Vec::new();
+        let mut else_block = None;
+
+        while !matches!(self.current_token().token_type, TokenType::End | TokenType::Eof) {
+            if matches!(self.current_token().token_type, TokenType::Is) {
+                self.advance(); // skip 'is'
+                let pattern = self.parse_expression()?;
+                self.expect(TokenType::Then)?;
+                self.skip_newlines();
+                let stmt = self.parse_statement()?;
+                arms.push((pattern, stmt));
+                self.skip_newlines();
+            } else if matches!(self.current_token().token_type, TokenType::Else) {
+                self.advance(); // skip 'else'
+                self.skip_newlines();
+                let mut else_stmts = Vec::new();
+                while !matches!(self.current_token().token_type, TokenType::End | TokenType::Eof) {
+                    else_stmts.push(self.parse_statement()?);
+                    self.skip_newlines();
+                }
+                else_block = Some(else_stmts);
+                break;
+            } else {
+                return Err(format!(
+                    "Expected 'is' or 'else' in 'when' block at line {}",
+                    self.current_token().line
+                ));
+            }
+        }
+
+        self.expect(TokenType::End)?;
+
+        // Desugar when into nested If statements
+        let mut current_else = else_block;
+        for (pattern, stmt) in arms.into_iter().rev() {
+            let condition = Expr::Binary {
+                left: Box::new(subject.clone()),
+                op: BinaryOp::Equal,
+                right: Box::new(pattern),
+            };
+            let if_stmt = Stmt::If {
+                condition,
+                then_block: vec![stmt],
+                else_block: current_else,
+            };
+            current_else = Some(vec![if_stmt]);
+        }
+
+        match current_else {
+            Some(mut stmts) if !stmts.is_empty() => Ok(stmts.remove(0)),
+            _ => Err("Empty 'when' statement".to_string()),
+        }
+    }
+
     fn parse_expression(&mut self) -> Result<Expr, String> {
         self.parse_or()
     }
@@ -414,6 +474,11 @@ impl Parser {
             TokenType::String(s) => {
                 let string = s.clone();
                 self.advance();
+                if string.contains('{') && string.contains('}') {
+                    if let Some(parts) = parse_interpolated_string(&string) {
+                        return Ok(Expr::InterpolatedString(parts));
+                    }
+                }
                 Ok(Expr::String(string))
             }
             TokenType::True => {
@@ -460,5 +525,55 @@ impl Parser {
                 self.current_token().column
             )),
         }
+    }
+}
+
+fn parse_interpolated_string(s: &str) -> Option<Vec<Expr>> {
+    let mut parts = Vec::new();
+    let mut current_lit = String::new();
+    let mut chars = s.chars().peekable();
+    let mut has_interpolation = false;
+
+    while let Some(ch) = chars.next() {
+        if ch == '{' {
+            let mut var_name = String::new();
+            let mut found_close = false;
+            while let Some(&next_ch) = chars.peek() {
+                if next_ch == '}' {
+                    chars.next();
+                    found_close = true;
+                    break;
+                } else if next_ch.is_alphanumeric() || next_ch == '_' {
+                    var_name.push(next_ch);
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+
+            if found_close && !var_name.is_empty() {
+                has_interpolation = true;
+                if !current_lit.is_empty() {
+                    parts.push(Expr::String(current_lit.clone()));
+                    current_lit.clear();
+                }
+                parts.push(Expr::Identifier(var_name));
+            } else {
+                current_lit.push('{');
+                current_lit.push_str(&var_name);
+            }
+        } else {
+            current_lit.push(ch);
+        }
+    }
+
+    if !current_lit.is_empty() {
+        parts.push(Expr::String(current_lit));
+    }
+
+    if has_interpolation {
+        Some(parts)
+    } else {
+        None
     }
 }

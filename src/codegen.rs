@@ -19,6 +19,7 @@ pub enum OperatingSystem {
 enum VarType {
     Number(i32),      // Stack offset for numeric variables
     StringLabel(String), // String label for string variables
+    StringOffset(i32), // Stack offset for string pointer variables
 }
 
 struct CodeGen {
@@ -93,13 +94,31 @@ impl CodeGen {
     }
 
     fn generate_program(&mut self, program: &Program) {
-        self.emit_header();
+        let mut functions = Vec::new();
+        let mut top_level = Vec::new();
 
         for stmt in &program.statements {
+            match stmt {
+                Stmt::Function { .. } => functions.push(stmt),
+                _ => top_level.push(stmt),
+            }
+        }
+
+        self.emit_header();
+
+        for stmt in top_level {
             self.generate_statement(stmt);
         }
 
         self.emit_footer();
+
+        for func in functions {
+            if let Stmt::Function { name, params, body } = func {
+                self.generate_function(name, params, body, program);
+            }
+        }
+
+        self.emit_runtime();
     }
 
     fn emit_header(&mut self) {
@@ -167,7 +186,7 @@ impl CodeGen {
             Stmt::Let { name, value } => {
                 match value {
                     Expr::String(s) => {
-                        // For string variables, create a label and store the label name
+                        // For string literals, create a label and store the label name
                         let label = self.next_string_label();
                         self.emit(".section .rodata");
                         self.emit(&format!("{}:", label));
@@ -176,14 +195,14 @@ impl CodeGen {
                         self.variables.insert(name.clone(), VarType::StringLabel(label));
                     }
                     _ => {
-                        // For numeric expressions, evaluate and store on stack
+                        let is_str = self.is_string_expr(value);
                         self.generate_expression(value);
-                        
+
                         // Allocate space on stack for the variable
                         match self.arch {
                             Architecture::ARM64 => {
-                                self.stack_offset += 8;
-                                self.emit(&format!("    str x0, [sp, #-{}]!", 8));
+                                self.stack_offset += 16;
+                                self.emit("    str x0, [sp, #-16]!");
                             }
                             Architecture::X64 => {
                                 self.stack_offset += 8;
@@ -194,20 +213,24 @@ impl CodeGen {
                                 self.emit("    push %eax");
                             }
                         }
-                        
+
                         // Store the variable location
-                        self.variables.insert(name.clone(), VarType::Number(self.stack_offset));
+                        if is_str {
+                            self.variables.insert(name.clone(), VarType::StringOffset(self.stack_offset));
+                        } else {
+                            self.variables.insert(name.clone(), VarType::Number(self.stack_offset));
+                        }
                     }
                 }
             }
             Stmt::Assign { name, value } => {
                 // Evaluate the new value
                 self.generate_expression(value);
-                
+
                 // Get variable location from symbol table
                 if let Some(var_type) = self.variables.get(name) {
                     match var_type {
-                        VarType::Number(offset) => {
+                        VarType::Number(offset) | VarType::StringOffset(offset) => {
                             // Store the new value at the variable's location
                             let offset = *offset;
                             match self.arch {
@@ -223,7 +246,7 @@ impl CodeGen {
                             }
                         }
                         VarType::StringLabel(_) => {
-                            // String reassignment not supported yet
+                            // String literal reassignment not supported
                         }
                     }
                 }
@@ -474,9 +497,29 @@ impl CodeGen {
                     }
                 }
             }
-            _ => {
-                // Other statements not yet implemented
+            Stmt::Return(opt_expr) => {
+                if let Some(expr) = opt_expr {
+                    self.generate_expression(expr);
+                }
+                match self.arch {
+                    Architecture::ARM64 => {
+                        self.emit("    mov sp, x29");
+                        self.emit("    ldp x29, x30, [sp], #16");
+                        self.emit("    ret");
+                    }
+                    Architecture::X64 => {
+                        self.emit("    mov %rbp, %rsp");
+                        self.emit("    pop %rbp");
+                        self.emit("    ret");
+                    }
+                    Architecture::X86 => {
+                        self.emit("    mov %ebp, %esp");
+                        self.emit("    pop %ebp");
+                        self.emit("    ret");
+                    }
+                }
             }
+            Stmt::Function { .. } => {}
         }
     }
 
@@ -517,6 +560,92 @@ impl CodeGen {
                 }
                 self.emit("");
             }
+            Expr::InterpolatedString(parts) => {
+                let mut format_str = String::new();
+                let mut exprs = Vec::new();
+                for part in parts {
+                    match part {
+                        Expr::String(s) => {
+                            format_str.push_str(&escape_string(s).replace('%', "%%"));
+                        }
+                        _ => {
+                            if self.is_string_expr(part) {
+                                format_str.push_str("%s");
+                            } else {
+                                format_str.push_str("%ld");
+                            }
+                            exprs.push(part);
+                        }
+                    }
+                }
+                format_str.push_str("\\n");
+
+                let fmt_label = self.next_string_label();
+                self.emit(".section .rodata");
+                self.emit(&format!("{}:", fmt_label));
+                self.emit(&format!("    .string \"{}\"", format_str));
+                self.emit(".text");
+
+                match self.arch {
+                    Architecture::X86 => {
+                        for expr in exprs.iter().rev() {
+                            self.generate_expression(expr);
+                            self.emit("    push %eax");
+                        }
+                        self.emit(&format!("    push ${}", fmt_label));
+                        self.emit_call_printf();
+                        self.emit(&format!("    add ${}, %esp", (exprs.len() + 1) * 4));
+                    }
+                    Architecture::X64 => {
+                        for expr in &exprs {
+                            self.generate_expression(expr);
+                            self.emit("    push %rax");
+                        }
+                        if matches!(self.os, OperatingSystem::Windows) {
+                            for i in (0..exprs.len()).rev() {
+                                let reg = match i {
+                                    0 => "%rdx",
+                                    1 => "%r8",
+                                    2 => "%r9",
+                                    _ => "%rdx",
+                                };
+                                self.emit(&format!("    pop {}", reg));
+                            }
+                            self.emit(&format!("    lea {}(%rip), %rcx", fmt_label));
+                            self.emit("    xor %rax, %rax");
+                            self.emit_call_printf();
+                        } else {
+                            for i in (0..exprs.len()).rev() {
+                                let reg = match i {
+                                    0 => "%rsi",
+                                    1 => "%rdx",
+                                    2 => "%rcx",
+                                    3 => "%r8",
+                                    4 => "%r9",
+                                    _ => "%rsi",
+                                };
+                                self.emit(&format!("    pop {}", reg));
+                            }
+                            self.emit(&format!("    lea {}(%rip), %rdi", fmt_label));
+                            self.emit("    xor %rax, %rax");
+                            self.emit_call_printf();
+                        }
+                    }
+                    Architecture::ARM64 => {
+                        for expr in &exprs {
+                            self.generate_expression(expr);
+                            self.emit("    str x0, [sp, #-16]!");
+                        }
+                        for i in (0..exprs.len()).rev() {
+                            self.emit(&format!("    ldr x{}, [sp], #16", i + 1));
+                        }
+                        self.emit(&format!("    adrp x0, {}@PAGE", fmt_label));
+                        self.emit(&format!("    add x0, x0, {}@PAGEOFF", fmt_label));
+                        self.emit_call_printf();
+                    }
+                }
+                self.emit("");
+            }
             Expr::Identifier(name) => {
                 // Check if this is a string or numeric variable
                 if let Some(var_type) = self.variables.get(name).cloned() {
@@ -552,6 +681,42 @@ impl CodeGen {
                                 }
                                 Architecture::X86 => {
                                     self.emit(&format!("    push ${}", label));
+                                    self.emit(&format!("    push ${}", fmt_label));
+                                    self.emit_call_printf();
+                                    self.emit("    add $8, %esp");
+                                }
+                            }
+                            self.emit("");
+                        }
+                        VarType::StringOffset(offset) => {
+                            let fmt_label = self.next_string_label();
+                            self.emit(".section .rodata");
+                            self.emit(&format!("{}:", fmt_label));
+                            self.emit("    .string \"%s\\n\"");
+                            self.emit(".text");
+                            
+                            match self.arch {
+                                Architecture::ARM64 => {
+                                    self.emit(&format!("    ldr x1, [sp, #{}]", self.stack_offset - offset));
+                                    self.emit(&format!("    adrp x0, {}@PAGE", fmt_label));
+                                    self.emit(&format!("    add x0, x0, {}@PAGEOFF", fmt_label));
+                                    self.emit_call_printf();
+                                }
+                                Architecture::X64 => {
+                                    if matches!(self.os, OperatingSystem::Windows) {
+                                        self.emit(&format!("    mov -{}(%rbp), %rdx", offset));
+                                        self.emit(&format!("    lea {}(%rip), %rcx", fmt_label));
+                                        self.emit("    xor %rax, %rax");
+                                        self.emit_call_printf();
+                                    } else {
+                                        self.emit(&format!("    mov -{}(%rbp), %rsi", offset));
+                                        self.emit(&format!("    lea {}(%rip), %rdi", fmt_label));
+                                        self.emit("    xor %rax, %rax");
+                                        self.emit_call_printf();
+                                    }
+                                }
+                                Architecture::X86 => {
+                                    self.emit(&format!("    push -{}(%ebp)", offset));
                                     self.emit(&format!("    push ${}", fmt_label));
                                     self.emit_call_printf();
                                     self.emit("    add $8, %esp");
@@ -645,12 +810,17 @@ impl CodeGen {
             }
             _ => {
                 // For complex expressions, evaluate and print result
+                let is_str = self.is_string_expr(expr);
                 self.generate_expression(expr);
                 
                 let fmt_label = self.next_string_label();
                 self.emit(".section .rodata");
                 self.emit(&format!("{}:", fmt_label));
-                self.emit("    .string \"%ld\\n\"");
+                if is_str {
+                    self.emit("    .string \"%s\\n\"");
+                } else {
+                    self.emit("    .string \"%ld\\n\"");
+                }
                 self.emit(".text");
 
                 match self.arch {
@@ -702,12 +872,31 @@ impl CodeGen {
                     }
                 }
             }
+            Expr::String(s) => {
+                let label = self.next_string_label();
+                self.emit(".section .rodata");
+                self.emit(&format!("{}:", label));
+                self.emit(&format!("    .string \"{}\"", escape_string(s)));
+                self.emit(".text");
+
+                match self.arch {
+                    Architecture::ARM64 => {
+                        self.emit(&format!("    adrp x0, {}@PAGE", label));
+                        self.emit(&format!("    add x0, x0, {}@PAGEOFF", label));
+                    }
+                    Architecture::X64 => {
+                        self.emit(&format!("    lea {}(%rip), %rax", label));
+                    }
+                    Architecture::X86 => {
+                        self.emit(&format!("    mov ${}, %eax", label));
+                    }
+                }
+            }
             Expr::Identifier(name) => {
                 // Load variable from stack
-                if let Some(var_type) = self.variables.get(name) {
+                if let Some(var_type) = self.variables.get(name).cloned() {
                     match var_type {
-                        VarType::Number(offset) => {
-                            let offset = *offset;
+                        VarType::Number(offset) | VarType::StringOffset(offset) => {
                             match self.arch {
                                 Architecture::ARM64 => {
                                     self.emit(&format!("    ldr x0, [sp, #{}]", self.stack_offset - offset));
@@ -720,14 +909,29 @@ impl CodeGen {
                                 }
                             }
                         }
-                        VarType::StringLabel(_) => {
-                            // String identifiers are handled specially in generate_say
-                            // This shouldn't be reached in normal expression evaluation
+                        VarType::StringLabel(label) => {
+                            match self.arch {
+                                Architecture::ARM64 => {
+                                    self.emit(&format!("    adrp x0, {}@PAGE", label));
+                                    self.emit(&format!("    add x0, x0, {}@PAGEOFF", label));
+                                }
+                                Architecture::X64 => {
+                                    self.emit(&format!("    lea {}(%rip), %rax", label));
+                                }
+                                Architecture::X86 => {
+                                    self.emit(&format!("    mov ${}, %eax", label));
+                                }
+                            }
                         }
                     }
                 }
             }
             Expr::Binary { left, op, right } => {
+                if matches!(op, BinaryOp::Add) && (self.is_string_expr(left) || self.is_string_expr(right)) {
+                    self.generate_string_concat(left, right);
+                    return;
+                }
+
                 // Evaluate left side
                 self.generate_expression(left);
                 
@@ -916,8 +1120,421 @@ impl CodeGen {
                     },
                 }
             }
-            _ => {
-                // Other expressions not yet implemented
+            Expr::Call { name, args } => {
+                match self.arch {
+                    Architecture::X86 => {
+                        for arg in args.iter().rev() {
+                            self.generate_expression(arg);
+                            self.emit("    push %eax");
+                        }
+                        self.emit(&format!("    call fn_{}", name));
+                        if !args.is_empty() {
+                            self.emit(&format!("    add ${}, %esp", args.len() * 4));
+                        }
+                    }
+                    Architecture::X64 => {
+                        for arg in args {
+                            self.generate_expression(arg);
+                            self.emit("    push %rax");
+                        }
+                        if matches!(self.os, OperatingSystem::Windows) {
+                            for i in (0..args.len()).rev() {
+                                let reg = match i {
+                                    0 => "%rcx",
+                                    1 => "%rdx",
+                                    2 => "%r8",
+                                    3 => "%r9",
+                                    _ => "%rcx",
+                                };
+                                self.emit(&format!("    pop {}", reg));
+                            }
+                            let padding = if self.stack_offset % 16 == 0 { 32 } else { 40 };
+                            self.emit(&format!("    sub ${}, %rsp", padding));
+                            self.emit(&format!("    call fn_{}", name));
+                            self.emit(&format!("    add ${}, %rsp", padding));
+                        } else {
+                            for i in (0..args.len()).rev() {
+                                let reg = match i {
+                                    0 => "%rdi",
+                                    1 => "%rsi",
+                                    2 => "%rdx",
+                                    3 => "%rcx",
+                                    4 => "%r8",
+                                    5 => "%r9",
+                                    _ => "%rdi",
+                                };
+                                self.emit(&format!("    pop {}", reg));
+                            }
+                            let misaligned = self.stack_offset % 16 != 0;
+                            if misaligned {
+                                self.emit("    sub $8, %rsp");
+                            }
+                            self.emit(&format!("    call fn_{}", name));
+                            if misaligned {
+                                self.emit("    add $8, %rsp");
+                            }
+                        }
+                    }
+                    Architecture::ARM64 => {
+                        for arg in args {
+                            self.generate_expression(arg);
+                            self.emit("    str x0, [sp, #-16]!");
+                        }
+                        for i in (0..args.len()).rev() {
+                            self.emit(&format!("    ldr x{}, [sp], #16", i));
+                        }
+                        self.emit(&format!("    bl fn_{}", name));
+                    }
+                }
+            }
+            Expr::InterpolatedString(parts) => {
+                if parts.is_empty() {
+                    self.generate_expression(&Expr::String(String::new()));
+                } else {
+                    let mut iter = parts.iter();
+                    let mut acc = iter.next().unwrap().clone();
+                    for next in iter {
+                        acc = Expr::Binary {
+                            left: Box::new(acc),
+                            op: BinaryOp::Add,
+                            right: Box::new(next.clone()),
+                        };
+                    }
+                    self.generate_expression(&acc);
+                }
+            }
+        }
+    }
+
+    fn is_string_expr(&self, expr: &Expr) -> bool {
+        match expr {
+            Expr::String(_) => true,
+            Expr::InterpolatedString(_) => true,
+            Expr::Identifier(name) => {
+                if let Some(var_type) = self.variables.get(name) {
+                    matches!(var_type, VarType::StringLabel(_) | VarType::StringOffset(_))
+                } else {
+                    false
+                }
+            }
+            Expr::Binary { left, op: BinaryOp::Add, right } => {
+                self.is_string_expr(left) || self.is_string_expr(right)
+            }
+            _ => false,
+        }
+    }
+
+    fn generate_string_concat(&mut self, left: &Expr, right: &Expr) {
+        self.generate_expression(left);
+        match self.arch {
+            Architecture::ARM64 => self.emit("    str x0, [sp, #-16]!"),
+            Architecture::X64 => self.emit("    push %rax"),
+            Architecture::X86 => self.emit("    push %eax"),
+        }
+
+        self.generate_expression(right);
+
+        match self.arch {
+            Architecture::ARM64 => {
+                self.emit("    mov x1, x0");
+                self.emit("    ldr x0, [sp], #16");
+                self.emit("    bl alya_concat");
+            }
+            Architecture::X64 => {
+                if matches!(self.os, OperatingSystem::Windows) {
+                    self.emit("    mov %rax, %rdx");
+                    self.emit("    pop %rcx");
+                    let padding = if self.stack_offset % 16 == 0 { 32 } else { 40 };
+                    self.emit(&format!("    sub ${}, %rsp", padding));
+                    self.emit("    call alya_concat");
+                    self.emit(&format!("    add ${}, %rsp", padding));
+                } else {
+                    self.emit("    mov %rax, %rsi");
+                    self.emit("    pop %rdi");
+                    let misaligned = self.stack_offset % 16 != 0;
+                    if misaligned {
+                        self.emit("    sub $8, %rsp");
+                    }
+                    self.emit("    call alya_concat");
+                    if misaligned {
+                        self.emit("    add $8, %rsp");
+                    }
+                }
+            }
+            Architecture::X86 => {
+                self.emit("    mov %eax, %edx");
+                self.emit("    pop %eax");
+                self.emit("    push %edx");
+                self.emit("    push %eax");
+                self.emit("    call alya_concat");
+                self.emit("    add $8, %esp");
+            }
+        }
+    }
+
+    fn generate_function(&mut self, name: &str, params: &[String], body: &[Stmt], program: &Program) {
+        let saved_vars = self.variables.clone();
+        let saved_stack_offset = self.stack_offset;
+        let saved_loop_stack = std::mem::take(&mut self.loop_stack);
+
+        self.stack_offset = 0;
+        self.variables.clear();
+
+        self.emit("");
+        self.emit(&format!(".global fn_{}", name));
+        self.emit(&format!("fn_{}:", name));
+
+        match self.arch {
+            Architecture::ARM64 => {
+                self.emit("    stp x29, x30, [sp, #-16]!");
+                self.emit("    mov x29, sp");
+            }
+            Architecture::X64 => {
+                self.emit("    push %rbp");
+                self.emit("    mov %rsp, %rbp");
+            }
+            Architecture::X86 => {
+                self.emit("    push %ebp");
+                self.emit("    mov %esp, %ebp");
+            }
+        }
+
+        for (i, param) in params.iter().enumerate() {
+            match self.arch {
+                Architecture::ARM64 => {
+                    self.stack_offset += 16;
+                    self.emit(&format!("    str x{}, [sp, #-16]!", i));
+                }
+                Architecture::X64 => {
+                    self.stack_offset += 8;
+                    if matches!(self.os, OperatingSystem::Windows) {
+                        let reg = match i {
+                            0 => "%rcx",
+                            1 => "%rdx",
+                            2 => "%r8",
+                            3 => "%r9",
+                            _ => "%rcx",
+                        };
+                        self.emit(&format!("    push {}", reg));
+                    } else {
+                        let reg = match i {
+                            0 => "%rdi",
+                            1 => "%rsi",
+                            2 => "%rdx",
+                            3 => "%rcx",
+                            4 => "%r8",
+                            5 => "%r9",
+                            _ => "%rdi",
+                        };
+                        self.emit(&format!("    push {}", reg));
+                    }
+                }
+                Architecture::X86 => {
+                    self.stack_offset += 4;
+                    let src_offset = 8 + i * 4;
+                    self.emit(&format!("    push {}(%ebp)", src_offset));
+                }
+            }
+
+            let is_str = program.statements.iter().any(|s| {
+                if let Some(arg) = find_call_arg(s, name, i) {
+                    matches!(arg, Expr::String(_) | Expr::InterpolatedString(_))
+                } else {
+                    false
+                }
+            });
+
+            if is_str {
+                self.variables.insert(param.clone(), VarType::StringOffset(self.stack_offset));
+            } else {
+                self.variables.insert(param.clone(), VarType::Number(self.stack_offset));
+            }
+        }
+
+        for stmt in body {
+            self.generate_statement(stmt);
+        }
+
+        match self.arch {
+            Architecture::ARM64 => {
+                self.emit("    mov sp, x29");
+                self.emit("    ldp x29, x30, [sp], #16");
+                self.emit("    ret");
+            }
+            Architecture::X64 => {
+                self.emit("    mov %rbp, %rsp");
+                self.emit("    pop %rbp");
+                self.emit("    ret");
+            }
+            Architecture::X86 => {
+                self.emit("    mov %ebp, %esp");
+                self.emit("    pop %ebp");
+                self.emit("    ret");
+            }
+        }
+
+        self.variables = saved_vars;
+        self.stack_offset = saved_stack_offset;
+        self.loop_stack = saved_loop_stack;
+    }
+
+    fn emit_runtime(&mut self) {
+        self.emit("");
+        self.emit(".section .bss");
+        self.emit(".align 16");
+        self.emit("alya_str_buf:");
+        self.emit("    .space 65536");
+        match self.arch {
+            Architecture::ARM64 | Architecture::X64 => {
+                self.emit("alya_str_idx:");
+                self.emit("    .quad 0");
+            }
+            Architecture::X86 => {
+                self.emit("alya_str_idx:");
+                self.emit("    .long 0");
+            }
+        }
+        self.emit("");
+        self.emit(".text");
+        match self.arch {
+            Architecture::ARM64 => {
+                self.emit(".align 2");
+                self.emit("alya_concat:");
+                self.emit("    stp x29, x30, [sp, #-16]!");
+                self.emit("    mov x29, sp");
+                self.emit("    stp x19, x20, [sp, #-16]!");
+                self.emit("    stp x21, x22, [sp, #-16]!");
+                self.emit("    adrp x19, alya_str_buf");
+                self.emit("    add x19, x19, :lo12:alya_str_buf");
+                self.emit("    adrp x20, alya_str_idx");
+                self.emit("    add x20, x20, :lo12:alya_str_idx");
+                self.emit("    ldr x21, [x20]");
+                self.emit("    cmp x21, #48000");
+                self.emit("    b.lt .L_arm_concat_ok");
+                self.emit("    mov x21, #0");
+                self.emit(".L_arm_concat_ok:");
+                self.emit("    add x22, x19, x21");
+                self.emit(".L_arm_copy1:");
+                self.emit("    ldrb w2, [x0], #1");
+                self.emit("    cbz w2, .L_arm_copy2_start");
+                self.emit("    strb w2, [x22], #1");
+                self.emit("    b .L_arm_copy1");
+                self.emit(".L_arm_copy2_start:");
+                self.emit(".L_arm_copy2:");
+                self.emit("    ldrb w2, [x1], #1");
+                self.emit("    cbz w2, .L_arm_concat_end");
+                self.emit("    strb w2, [x22], #1");
+                self.emit("    b .L_arm_copy2");
+                self.emit(".L_arm_concat_end:");
+                self.emit("    strb wzr, [x22], #1");
+                self.emit("    sub x2, x22, x19");
+                self.emit("    add x2, x2, #7");
+                self.emit("    and x2, x2, #~7");
+                self.emit("    str x2, [x20]");
+                self.emit("    add x0, x19, x21");
+                self.emit("    ldp x21, x22, [sp], #16");
+                self.emit("    ldp x19, x20, [sp], #16");
+                self.emit("    ldp x29, x30, [sp], #16");
+                self.emit("    ret");
+            }
+            Architecture::X64 => {
+                self.emit("alya_concat:");
+                self.emit("    push %rsi");
+                self.emit("    push %rdi");
+                self.emit("    push %rbx");
+                if matches!(self.os, OperatingSystem::Windows) {
+                    self.emit("    mov %rcx, %rsi");
+                    self.emit("    mov %rdx, %r10");
+                } else {
+                    self.emit("    mov %rsi, %r10");
+                    self.emit("    mov %rdi, %rsi");
+                }
+                self.emit("    lea alya_str_buf(%rip), %r8");
+                self.emit("    mov alya_str_idx(%rip), %rbx");
+                self.emit("    cmp $48000, %rbx");
+                self.emit("    jl .L_x64_concat_ok");
+                self.emit("    xor %rbx, %rbx");
+                self.emit(".L_x64_concat_ok:");
+                self.emit("    lea (%r8, %rbx), %rdi");
+                self.emit("    mov %rdi, %rax");
+                self.emit(".L_x64_copy1:");
+                self.emit("    movb (%rsi), %cl");
+                self.emit("    test %cl, %cl");
+                self.emit("    jz .L_x64_copy2_start");
+                self.emit("    movb %cl, (%rdi)");
+                self.emit("    inc %rsi");
+                self.emit("    inc %rdi");
+                self.emit("    jmp .L_x64_copy1");
+                self.emit(".L_x64_copy2_start:");
+                self.emit("    mov %r10, %rsi");
+                self.emit(".L_x64_copy2:");
+                self.emit("    movb (%rsi), %cl");
+                self.emit("    test %cl, %cl");
+                self.emit("    jz .L_x64_concat_end");
+                self.emit("    movb %cl, (%rdi)");
+                self.emit("    inc %rsi");
+                self.emit("    inc %rdi");
+                self.emit("    jmp .L_x64_copy2");
+                self.emit(".L_x64_concat_end:");
+                self.emit("    movb $0, (%rdi)");
+                self.emit("    inc %rdi");
+                self.emit("    sub %r8, %rdi");
+                self.emit("    add $7, %rdi");
+                self.emit("    and $-8, %rdi");
+                self.emit("    mov %rdi, alya_str_idx(%rip)");
+                self.emit("    pop %rbx");
+                self.emit("    pop %rdi");
+                self.emit("    pop %rsi");
+                self.emit("    ret");
+            }
+            Architecture::X86 => {
+                self.emit("alya_concat:");
+                self.emit("    push %ebp");
+                self.emit("    mov %esp, %ebp");
+                self.emit("    push %esi");
+                self.emit("    push %edi");
+                self.emit("    push %ebx");
+                self.emit("    mov 8(%ebp), %esi");
+                self.emit("    mov 12(%ebp), %edx");
+                self.emit("    mov $alya_str_buf, %ecx");
+                self.emit("    mov alya_str_idx, %ebx");
+                self.emit("    cmp $48000, %ebx");
+                self.emit("    jl .L_x86_concat_ok");
+                self.emit("    xor %ebx, %ebx");
+                self.emit(".L_x86_concat_ok:");
+                self.emit("    lea (%ecx, %ebx), %edi");
+                self.emit("    mov %edi, %eax");
+                self.emit(".L_x86_copy1:");
+                self.emit("    movb (%esi), %bl");
+                self.emit("    test %bl, %bl");
+                self.emit("    jz .L_x86_copy2_start");
+                self.emit("    movb %bl, (%edi)");
+                self.emit("    inc %esi");
+                self.emit("    inc %edi");
+                self.emit("    jmp .L_x86_copy1");
+                self.emit(".L_x86_copy2_start:");
+                self.emit("    mov %edx, %esi");
+                self.emit(".L_x86_copy2:");
+                self.emit("    movb (%esi), %bl");
+                self.emit("    test %bl, %bl");
+                self.emit("    jz .L_x86_concat_end");
+                self.emit("    movb %bl, (%edi)");
+                self.emit("    inc %esi");
+                self.emit("    inc %edi");
+                self.emit("    jmp .L_x86_copy2");
+                self.emit(".L_x86_concat_end:");
+                self.emit("    movb $0, (%edi)");
+                self.emit("    inc %edi");
+                self.emit("    sub %ecx, %edi");
+                self.emit("    add $3, %edi");
+                self.emit("    and $-4, %edi");
+                self.emit("    mov %edi, alya_str_idx");
+                self.emit("    pop %ebx");
+                self.emit("    pop %edi");
+                self.emit("    pop %esi");
+                self.emit("    mov %ebp, %esp");
+                self.emit("    pop %ebp");
+                self.emit("    ret");
             }
         }
     }
@@ -929,6 +1546,67 @@ fn escape_string(s: &str) -> String {
         .replace('\n', "\\n")
         .replace('\t', "\\t")
         .replace('\r', "\\r")
+}
+
+fn find_call_arg<'a>(stmt: &'a Stmt, func_name: &str, param_idx: usize) -> Option<&'a Expr> {
+    match stmt {
+        Stmt::Expr(expr) | Stmt::Say(expr) => find_call_arg_in_expr(expr, func_name, param_idx),
+        Stmt::Let { value, .. } | Stmt::Assign { value, .. } => {
+            find_call_arg_in_expr(value, func_name, param_idx)
+        }
+        Stmt::If { condition, then_block, else_block } => {
+            if let Some(arg) = find_call_arg_in_expr(condition, func_name, param_idx) {
+                return Some(arg);
+            }
+            for s in then_block {
+                if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+                    return Some(arg);
+                }
+            }
+            if let Some(else_stmts) = else_block {
+                for s in else_stmts {
+                    if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+                        return Some(arg);
+                    }
+                }
+            }
+            None
+        }
+        Stmt::While { condition, body } => {
+            if let Some(arg) = find_call_arg_in_expr(condition, func_name, param_idx) {
+                return Some(arg);
+            }
+            for s in body {
+                if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+                    return Some(arg);
+                }
+            }
+            None
+        }
+        Stmt::For { body, .. } => {
+            for s in body {
+                if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+                    return Some(arg);
+                }
+            }
+            None
+        }
+        _ => None,
+    }
+}
+
+fn find_call_arg_in_expr<'a>(expr: &'a Expr, func_name: &str, param_idx: usize) -> Option<&'a Expr> {
+    match expr {
+        Expr::Call { name, args } if name == func_name => {
+            args.get(param_idx)
+        }
+        Expr::Binary { left, right, .. } => {
+            find_call_arg_in_expr(left, func_name, param_idx)
+                .or_else(|| find_call_arg_in_expr(right, func_name, param_idx))
+        }
+        Expr::Unary { expr, .. } => find_call_arg_in_expr(expr, func_name, param_idx),
+        _ => None,
+    }
 }
 
 pub fn generate(program: &Program, arch: Architecture, os: OperatingSystem) -> String {
