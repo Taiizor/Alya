@@ -24,7 +24,8 @@ pub fn parse_error_location(msg: &str) -> (String, Option<usize>, Option<usize>)
                 let after_line = &rest[line_digits_len..];
 
                 if let Some(col_rest) = after_line.strip_prefix(", column ") {
-                    let col_digits_len = col_rest.chars().take_while(|c| c.is_ascii_digit()).count();
+                    let col_digits_len =
+                        col_rest.chars().take_while(|c| c.is_ascii_digit()).count();
                     if col_digits_len > 0 {
                         if let Ok(col_num) = col_rest[..col_digits_len].parse::<usize>() {
                             let suffix = &col_rest[col_digits_len..];

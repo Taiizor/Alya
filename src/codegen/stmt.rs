@@ -1,44 +1,58 @@
+use super::CodeGen;
 use crate::ast::{Expr, Stmt};
 use crate::codegen::analysis::{escape_string, is_string_expr};
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
-use super::CodeGen;
 
 impl CodeGen {
     pub(crate) fn generate_statement(&mut self, stmt: &Stmt) {
         match stmt {
             Stmt::Say(expr) => self.generate_say(expr),
-            Stmt::Let { name, value } => {
-                match value {
-                    Expr::String(s) => {
-                        let label = self.ctx.next_string_label();
-                        self.output.push_str(".section .rodata\n");
-                        self.output.push_str(&format!("{}:\n", label));
-                        self.output.push_str(&format!("    .string \"{}\"\n", escape_string(s)));
-                        self.output.push_str(".text\n");
-                        self.ctx.variables.insert(name.clone(), VarType::StringLabel(label));
-                    }
-                    _ => {
-                        let is_str = is_string_expr(value, &self.ctx.variables);
-                        self.generate_expression(value);
+            Stmt::Let { name, value } => match value {
+                Expr::String(s) => {
+                    let label = self.ctx.next_string_label();
+                    self.output.push_str(".section .rodata\n");
+                    self.output.push_str(&format!("{}:\n", label));
+                    self.output
+                        .push_str(&format!("    .string \"{}\"\n", escape_string(s)));
+                    self.output.push_str(".text\n");
+                    self.ctx
+                        .variables
+                        .insert(name.clone(), VarType::StringLabel(label));
+                }
+                _ => {
+                    let is_str = is_string_expr(value, &self.ctx.variables);
+                    self.generate_expression(value);
 
-                        arch::emit_allocate_var(&mut self.output, self.arch, &mut self.ctx.stack_offset);
+                    arch::emit_allocate_var(
+                        &mut self.output,
+                        self.arch,
+                        &mut self.ctx.stack_offset,
+                    );
 
-                        if is_str {
-                            self.ctx.variables.insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
-                        } else {
-                            self.ctx.variables.insert(name.clone(), VarType::Number(self.ctx.stack_offset));
-                        }
+                    if is_str {
+                        self.ctx
+                            .variables
+                            .insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
+                    } else {
+                        self.ctx
+                            .variables
+                            .insert(name.clone(), VarType::Number(self.ctx.stack_offset));
                     }
                 }
-            }
+            },
             Stmt::Assign { name, value } => {
                 self.generate_expression(value);
 
                 if let Some(var_type) = self.ctx.variables.get(name).cloned() {
                     match var_type {
                         VarType::Number(offset) | VarType::StringOffset(offset) => {
-                            arch::emit_store_var(&mut self.output, self.arch, offset, self.ctx.stack_offset);
+                            arch::emit_store_var(
+                                &mut self.output,
+                                self.arch,
+                                offset,
+                                self.ctx.stack_offset,
+                            );
                         }
                         VarType::StringLabel(_) => {}
                     }
@@ -47,13 +61,21 @@ impl CodeGen {
             Stmt::Expr(expr) => {
                 self.generate_expression(expr);
             }
-            Stmt::If { condition, then_block, else_block } => {
+            Stmt::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
                 let else_label = self.ctx.next_label();
                 let end_label = self.ctx.next_label();
 
                 self.generate_expression(condition);
 
-                let target_label = if else_block.is_some() { &else_label } else { &end_label };
+                let target_label = if else_block.is_some() {
+                    &else_label
+                } else {
+                    &end_label
+                };
                 arch::emit_jump_if_zero(&mut self.output, self.arch, target_label);
 
                 for s in then_block {
@@ -90,18 +112,34 @@ impl CodeGen {
 
                 self.ctx.pop_loop();
             }
-            Stmt::For { var, start, end, body } => {
+            Stmt::For {
+                var,
+                start,
+                end,
+                body,
+            } => {
                 self.generate_expression(start);
 
                 let var_offset = match self.ctx.variables.get(var) {
                     Some(VarType::Number(offset)) => {
                         let off = *offset;
-                        arch::emit_store_var(&mut self.output, self.arch, off, self.ctx.stack_offset);
+                        arch::emit_store_var(
+                            &mut self.output,
+                            self.arch,
+                            off,
+                            self.ctx.stack_offset,
+                        );
                         off
                     }
                     _ => {
-                        arch::emit_allocate_var(&mut self.output, self.arch, &mut self.ctx.stack_offset);
-                        self.ctx.variables.insert(var.clone(), VarType::Number(self.ctx.stack_offset));
+                        arch::emit_allocate_var(
+                            &mut self.output,
+                            self.arch,
+                            &mut self.ctx.stack_offset,
+                        );
+                        self.ctx
+                            .variables
+                            .insert(var.clone(), VarType::Number(self.ctx.stack_offset));
                         self.ctx.stack_offset
                     }
                 };
@@ -113,7 +151,12 @@ impl CodeGen {
                 self.ctx.push_loop(step_label.clone(), end_label.clone());
 
                 self.output.push_str(&format!("{}:\n", start_label));
-                arch::emit_load_var(&mut self.output, self.arch, var_offset, self.ctx.stack_offset);
+                arch::emit_load_var(
+                    &mut self.output,
+                    self.arch,
+                    var_offset,
+                    self.ctx.stack_offset,
+                );
                 arch::emit_push_temp(&mut self.output, self.arch);
 
                 self.generate_expression(end);
@@ -124,7 +167,13 @@ impl CodeGen {
                 }
 
                 self.output.push_str(&format!("{}:\n", step_label));
-                arch::emit_increment_var(&mut self.output, self.arch, var_offset, self.ctx.stack_offset, &start_label);
+                arch::emit_increment_var(
+                    &mut self.output,
+                    self.arch,
+                    var_offset,
+                    self.ctx.stack_offset,
+                    &start_label,
+                );
                 self.output.push_str(&format!("{}:\n", end_label));
 
                 self.ctx.pop_loop();
@@ -145,7 +194,11 @@ impl CodeGen {
                 }
                 arch::emit_function_epilogue(&mut self.output, self.arch);
             }
-            Stmt::TryCatch { try_block, catch_var, catch_block } => {
+            Stmt::TryCatch {
+                try_block,
+                catch_var,
+                catch_block,
+            } => {
                 let catch_label = self.ctx.next_label();
                 let end_label = self.ctx.next_label();
                 let saved_stack_offset = self.ctx.stack_offset;
@@ -167,8 +220,14 @@ impl CodeGen {
 
                 if let Some(name) = catch_var {
                     arch::emit_catch_load_err(&mut self.output, self.arch);
-                    arch::emit_allocate_var(&mut self.output, self.arch, &mut self.ctx.stack_offset);
-                    self.ctx.variables.insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
+                    arch::emit_allocate_var(
+                        &mut self.output,
+                        self.arch,
+                        &mut self.ctx.stack_offset,
+                    );
+                    self.ctx
+                        .variables
+                        .insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
                 }
 
                 for s in catch_block {

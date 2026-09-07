@@ -1,0 +1,100 @@
+name: 🐛 Bug Report
+description: Report an issue or unexpected behavior in the Alya compiler
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue! Please provide as much detail as possible to help us diagnose and resolve the bug quickly.
+
+  - type: input
+    id: version
+    attributes:
+      label: Alya Compiler Version
+      description: What version of Alya are you using? (run `alyac --version`)
+      placeholder: "e.g. 0.0.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What OS are you running the compiler on?
+      options:
+        - Windows
+        - Linux
+        - macOS
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: arch
+    attributes:
+      label: Target Architecture
+      description: Target CPU architecture being compiled for
+      options:
+        - x64 (x86_64)
+        - x86 (i686 / 32-bit)
+        - ARM64 (aarch64)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Minimal Reproducible Example
+      description: Provide the smallest `.alya` source code snippet that reproduces the issue.
+      render: alya
+      placeholder: |
+        # Minimal Alya code that fails
+        let x = 10
+        say x
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command Executed
+      description: What exact command did you run?
+      placeholder: "alyac run program.alya"
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior & Error Output
+      description: Include compiler error output, panic stack traces, or assembly mismatch.
+      render: shell
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have checked that this issue has not already been reported.
+          required: true
+        - label: I have provided a minimal reproducible example.
+          required: true

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/Taiizor/Alya/discussions
+    about: Ask questions, discuss design ideas, or show off your Alya programs!
+  - name: Security Vulnerabilities
+    url: https://github.com/Taiizor/Alya/security/policy
+    about: Please report security vulnerabilities privately according to our security policy.

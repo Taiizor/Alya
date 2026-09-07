@@ -1,27 +1,26 @@
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     // Keywords
-    Say,        // say (like print)
-    Let,        // let (variable declaration)
-    If,         // if
-    Else,       // else
-    Elif,       // elif
-    While,      // while
-    For,        // for
-    In,         // in
-    Function,   // function
-    End,        // end
-    Return,     // return
-    When,       // when (pattern matching)
-    Is,         // is
-    Then,       // then
-    Repeat,     // repeat (infinite loop)
-    Break,      // break
-    Continue,   // continue
-    Ask,        // ask (input)
-    Try,        // try
-    Catch,      // catch
-
+    Say,      // say (like print)
+    Let,      // let (variable declaration)
+    If,       // if
+    Else,     // else
+    Elif,     // elif
+    While,    // while
+    For,      // for
+    In,       // in
+    Function, // function
+    End,      // end
+    Return,   // return
+    When,     // when (pattern matching)
+    Is,       // is
+    Then,     // then
+    Repeat,   // repeat (infinite loop)
+    Break,    // break
+    Continue, // continue
+    Ask,      // ask (input)
+    Try,      // try
+    Catch,    // catch
 
     // Literals
     Number(f64),
@@ -164,4 +163,3 @@ impl std::fmt::Display for TokenType {
         }
     }
 }
-

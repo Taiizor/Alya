@@ -14,9 +14,11 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                 false
             }
         }
-        Expr::Binary { left, op: BinaryOp::Add, right } => {
-            is_string_expr(left, vars) || is_string_expr(right, vars)
-        }
+        Expr::Binary {
+            left,
+            op: BinaryOp::Add,
+            right,
+        } => is_string_expr(left, vars) || is_string_expr(right, vars),
         _ => false,
     }
 }
@@ -37,7 +39,11 @@ pub fn find_call_arg<'a>(stmt: &'a Stmt, func_name: &str, param_idx: usize) -> O
         Stmt::Let { value, .. } | Stmt::Assign { value, .. } => {
             find_call_arg_in_expr(value, func_name, param_idx)
         }
-        Stmt::If { condition, then_block, else_block } => {
+        Stmt::If {
+            condition,
+            then_block,
+            else_block,
+        } => {
             if let Some(arg) = find_call_arg_in_expr(condition, func_name, param_idx) {
                 return Some(arg);
             }
@@ -74,7 +80,11 @@ pub fn find_call_arg<'a>(stmt: &'a Stmt, func_name: &str, param_idx: usize) -> O
             }
             None
         }
-        Stmt::TryCatch { try_block, catch_block, .. } => {
+        Stmt::TryCatch {
+            try_block,
+            catch_block,
+            ..
+        } => {
             for s in try_block {
                 if let Some(arg) = find_call_arg(s, func_name, param_idx) {
                     return Some(arg);
@@ -91,13 +101,15 @@ pub fn find_call_arg<'a>(stmt: &'a Stmt, func_name: &str, param_idx: usize) -> O
     }
 }
 
-fn find_call_arg_in_expr<'a>(expr: &'a Expr, func_name: &str, param_idx: usize) -> Option<&'a Expr> {
+fn find_call_arg_in_expr<'a>(
+    expr: &'a Expr,
+    func_name: &str,
+    param_idx: usize,
+) -> Option<&'a Expr> {
     match expr {
         Expr::Call { name, args } if name == func_name => args.get(param_idx),
-        Expr::Binary { left, right, .. } => {
-            find_call_arg_in_expr(left, func_name, param_idx)
-                .or_else(|| find_call_arg_in_expr(right, func_name, param_idx))
-        }
+        Expr::Binary { left, right, .. } => find_call_arg_in_expr(left, func_name, param_idx)
+            .or_else(|| find_call_arg_in_expr(right, func_name, param_idx)),
         Expr::Unary { expr, .. } => find_call_arg_in_expr(expr, func_name, param_idx),
         _ => None,
     }

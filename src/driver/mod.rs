@@ -12,23 +12,28 @@ pub fn run(args: CliArgs) -> Result<(), String> {
 
     // 1. Lexical Analysis
     let mut lexer = Lexer::new(&source);
-    let tokens = lexer.tokenize()
+    let tokens = lexer
+        .tokenize()
         .map_err(|e| crate::diagnostics::render_error(&args.input_file, &source, &e))?;
 
     if args.command == CommandKind::EmitTokens {
         println!("{:<12} {:<30}", "POSITION", "TOKEN");
         println!("{:-<12} {:-<30}", "", "");
         for t in &tokens {
-            println!("{:<12} {:?}", format!("{}:{}", t.line, t.column), t.token_type);
+            println!(
+                "{:<12} {:?}",
+                format!("{}:{}", t.line, t.column),
+                t.token_type
+            );
         }
         return Ok(());
     }
 
     // 2. Syntactic Analysis (Parsing)
     let mut parser = Parser::new(tokens);
-    let ast = parser.parse()
+    let ast = parser
+        .parse()
         .map_err(|e| crate::diagnostics::render_error(&args.input_file, &source, &e))?;
-
 
     if args.command == CommandKind::EmitAst {
         println!("{:#?}", ast);
@@ -47,7 +52,9 @@ pub fn run(args: CliArgs) -> Result<(), String> {
         if matches!(args.arch, Architecture::ARM64) {
             eprintln!("Warning: ARM64 assembly generation is not supported on Windows MinGW/GCC.");
             eprintln!("         Windows GCC can only assemble x64 and x86 code.");
-            eprintln!("         The generated ARM64 assembly is valid but requires an ARM64 assembler.");
+            eprintln!(
+                "         The generated ARM64 assembly is valid but requires an ARM64 assembler."
+            );
             eprintln!();
         }
         if matches!(args.arch, Architecture::X86) {
@@ -77,7 +84,10 @@ pub fn run(args: CliArgs) -> Result<(), String> {
         });
         (temp_asm, Some(exe_name))
     } else {
-        let asm_name = args.output_file.clone().unwrap_or_else(|| format!("{}.s", default_stem));
+        let asm_name = args
+            .output_file
+            .clone()
+            .unwrap_or_else(|| format!("{}.s", default_stem));
         (asm_name, None)
     };
 

@@ -112,7 +112,13 @@ impl Parser {
 
         let name = match &self.current_token().token_type {
             TokenType::Identifier(s) => s.clone(),
-            _ => return Err(format!("Expected identifier after 'let' at line {}, column {}", self.current_token().line, self.current_token().column)),
+            _ => {
+                return Err(format!(
+                    "Expected identifier after 'let' at line {}, column {}",
+                    self.current_token().line,
+                    self.current_token().column
+                ))
+            }
         };
         self.advance();
 
@@ -136,7 +142,8 @@ impl Parser {
             self.skip_newlines();
         }
 
-        let (else_block, is_chained) = if matches!(self.current_token().token_type, TokenType::Elif) {
+        let (else_block, is_chained) = if matches!(self.current_token().token_type, TokenType::Elif)
+        {
             let else_if = self.parse_if()?;
             (Some(vec![else_if]), true)
         } else if matches!(self.current_token().token_type, TokenType::Else) {
@@ -149,7 +156,10 @@ impl Parser {
             } else {
                 self.skip_newlines();
                 let mut else_stmts = Vec::new();
-                while !matches!(self.current_token().token_type, TokenType::End | TokenType::Eof) {
+                while !matches!(
+                    self.current_token().token_type,
+                    TokenType::End | TokenType::Eof
+                ) {
                     else_stmts.push(self.parse_statement()?);
                     self.skip_newlines();
                 }
@@ -161,7 +171,11 @@ impl Parser {
 
         if !is_chained {
             if !matches!(self.current_token().token_type, TokenType::End) {
-                return Err(format!("Expected 'end' at line {}, column {}", self.current_token().line, self.current_token().column));
+                return Err(format!(
+                    "Expected 'end' at line {}, column {}",
+                    self.current_token().line,
+                    self.current_token().column
+                ));
             }
             self.advance();
         }
@@ -179,7 +193,10 @@ impl Parser {
         self.skip_newlines();
 
         let mut body = Vec::new();
-        while !matches!(self.current_token().token_type, TokenType::End | TokenType::Eof) {
+        while !matches!(
+            self.current_token().token_type,
+            TokenType::End | TokenType::Eof
+        ) {
             body.push(self.parse_statement()?);
             self.skip_newlines();
         }
@@ -194,7 +211,13 @@ impl Parser {
 
         let var = match &self.current_token().token_type {
             TokenType::Identifier(s) => s.clone(),
-            _ => return Err(format!("Expected identifier after 'for' at line {}, column {}", self.current_token().line, self.current_token().column)),
+            _ => {
+                return Err(format!(
+                    "Expected identifier after 'for' at line {}, column {}",
+                    self.current_token().line,
+                    self.current_token().column
+                ))
+            }
         };
         self.advance();
 
@@ -206,7 +229,10 @@ impl Parser {
         self.skip_newlines();
 
         let mut body = Vec::new();
-        while !matches!(self.current_token().token_type, TokenType::End | TokenType::Eof) {
+        while !matches!(
+            self.current_token().token_type,
+            TokenType::End | TokenType::Eof
+        ) {
             body.push(self.parse_statement()?);
             self.skip_newlines();
         }
@@ -226,7 +252,13 @@ impl Parser {
 
         let name = match &self.current_token().token_type {
             TokenType::Identifier(s) => s.clone(),
-            _ => return Err(format!("Expected function name at line {}, column {}", self.current_token().line, self.current_token().column)),
+            _ => {
+                return Err(format!(
+                    "Expected function name at line {}, column {}",
+                    self.current_token().line,
+                    self.current_token().column
+                ))
+            }
         };
         self.advance();
 
@@ -242,7 +274,11 @@ impl Parser {
                     self.advance();
                 }
             } else {
-                return Err(format!("Expected parameter name at line {}, column {}", self.current_token().line, self.current_token().column));
+                return Err(format!(
+                    "Expected parameter name at line {}, column {}",
+                    self.current_token().line,
+                    self.current_token().column
+                ));
             }
         }
 
@@ -250,7 +286,10 @@ impl Parser {
         self.skip_newlines();
 
         let mut body = Vec::new();
-        while !matches!(self.current_token().token_type, TokenType::End | TokenType::Eof) {
+        while !matches!(
+            self.current_token().token_type,
+            TokenType::End | TokenType::Eof
+        ) {
             body.push(self.parse_statement()?);
             self.skip_newlines();
         }
@@ -282,7 +321,10 @@ impl Parser {
         let mut arms = Vec::new();
         let mut else_block = None;
 
-        while !matches!(self.current_token().token_type, TokenType::End | TokenType::Eof) {
+        while !matches!(
+            self.current_token().token_type,
+            TokenType::End | TokenType::Eof
+        ) {
             if matches!(self.current_token().token_type, TokenType::Is) {
                 self.advance(); // skip 'is'
                 let pattern = self.parse_expression()?;
@@ -295,7 +337,10 @@ impl Parser {
                 self.advance(); // skip 'else'
                 self.skip_newlines();
                 let mut else_stmts = Vec::new();
-                while !matches!(self.current_token().token_type, TokenType::End | TokenType::Eof) {
+                while !matches!(
+                    self.current_token().token_type,
+                    TokenType::End | TokenType::Eof
+                ) {
                     else_stmts.push(self.parse_statement()?);
                     self.skip_newlines();
                 }
@@ -330,7 +375,11 @@ impl Parser {
 
         match current_else {
             Some(mut stmts) if !stmts.is_empty() => Ok(stmts.remove(0)),
-            _ => Err(format!("Empty 'when' statement at line {}, column {}", self.current_token().line, self.current_token().column)),
+            _ => Err(format!(
+                "Empty 'when' statement at line {}, column {}",
+                self.current_token().line,
+                self.current_token().column
+            )),
         }
     }
 
@@ -339,7 +388,10 @@ impl Parser {
         self.skip_newlines();
 
         let mut try_block = Vec::new();
-        while !matches!(self.current_token().token_type, TokenType::Catch | TokenType::Eof) {
+        while !matches!(
+            self.current_token().token_type,
+            TokenType::Catch | TokenType::Eof
+        ) {
             try_block.push(self.parse_statement()?);
             self.skip_newlines();
         }
@@ -357,7 +409,10 @@ impl Parser {
         self.skip_newlines();
 
         let mut catch_block = Vec::new();
-        while !matches!(self.current_token().token_type, TokenType::End | TokenType::Eof) {
+        while !matches!(
+            self.current_token().token_type,
+            TokenType::End | TokenType::Eof
+        ) {
             catch_block.push(self.parse_statement()?);
             self.skip_newlines();
         }
@@ -371,4 +426,3 @@ impl Parser {
         })
     }
 }
-

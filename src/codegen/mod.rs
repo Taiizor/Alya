@@ -60,19 +60,35 @@ impl CodeGen {
         runtime::emit_runtime(&mut self.output, self.arch, self.os);
     }
 
-    fn generate_function(&mut self, name: &str, params: &[String], body: &[Stmt], program: &Program) {
+    fn generate_function(
+        &mut self,
+        name: &str,
+        params: &[String],
+        body: &[Stmt],
+        program: &Program,
+    ) {
         let saved = self.ctx.enter_function();
 
         arch::emit_function_prologue(&mut self.output, self.arch, name);
 
         for (i, param) in params.iter().enumerate() {
-            arch::emit_function_param_push(&mut self.output, self.arch, i, &mut self.ctx.stack_offset, self.os);
+            arch::emit_function_param_push(
+                &mut self.output,
+                self.arch,
+                i,
+                &mut self.ctx.stack_offset,
+                self.os,
+            );
 
             let is_str = infer_param_is_string(name, i, program);
             if is_str {
-                self.ctx.variables.insert(param.clone(), VarType::StringOffset(self.ctx.stack_offset));
+                self.ctx
+                    .variables
+                    .insert(param.clone(), VarType::StringOffset(self.ctx.stack_offset));
             } else {
-                self.ctx.variables.insert(param.clone(), VarType::Number(self.ctx.stack_offset));
+                self.ctx
+                    .variables
+                    .insert(param.clone(), VarType::Number(self.ctx.stack_offset));
             }
         }
 

@@ -163,7 +163,12 @@ pub fn emit_function_epilogue(out: &mut String) {
     out.push_str("    ret\n");
 }
 
-pub fn emit_function_param_push(out: &mut String, param_idx: usize, stack_offset: &mut i32, os: OperatingSystem) {
+pub fn emit_function_param_push(
+    out: &mut String,
+    param_idx: usize,
+    stack_offset: &mut i32,
+    os: OperatingSystem,
+) {
     *stack_offset += 8;
     let reg = if matches!(os, OperatingSystem::Windows) {
         match param_idx {
@@ -187,7 +192,13 @@ pub fn emit_function_param_push(out: &mut String, param_idx: usize, stack_offset
     out.push_str(&format!("    push {}\n", reg));
 }
 
-pub fn emit_function_call(out: &mut String, name: &str, args_count: usize, stack_offset: i32, os: OperatingSystem) {
+pub fn emit_function_call(
+    out: &mut String,
+    name: &str,
+    args_count: usize,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
     if matches!(os, OperatingSystem::Windows) {
         for i in (0..args_count).rev() {
             let reg = match i {
@@ -227,7 +238,13 @@ pub fn emit_function_call(out: &mut String, name: &str, args_count: usize, stack
     }
 }
 
-pub fn emit_say_str(out: &mut String, label: &str, fmt_label: &str, stack_offset: i32, os: OperatingSystem) {
+pub fn emit_say_str(
+    out: &mut String,
+    label: &str,
+    fmt_label: &str,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
     if matches!(os, OperatingSystem::Windows) {
         out.push_str(&format!("    lea {}(%rip), %rcx\n", fmt_label));
         out.push_str(&format!("    lea {}(%rip), %rdx\n", label));
@@ -253,7 +270,13 @@ pub fn emit_say_str_lit(out: &mut String, label: &str, stack_offset: i32, os: Op
     }
 }
 
-pub fn emit_say_offset(out: &mut String, offset: i32, fmt_label: &str, stack_offset: i32, os: OperatingSystem) {
+pub fn emit_say_offset(
+    out: &mut String,
+    offset: i32,
+    fmt_label: &str,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
     if matches!(os, OperatingSystem::Windows) {
         out.push_str(&format!("    mov -{}(%rbp), %rdx\n", offset));
         out.push_str(&format!("    lea {}(%rip), %rcx\n", fmt_label));
@@ -267,7 +290,13 @@ pub fn emit_say_offset(out: &mut String, offset: i32, fmt_label: &str, stack_off
     }
 }
 
-pub fn emit_say_num_const(out: &mut String, val: i64, fmt_label: &str, stack_offset: i32, os: OperatingSystem) {
+pub fn emit_say_num_const(
+    out: &mut String,
+    val: i64,
+    fmt_label: &str,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
     if matches!(os, OperatingSystem::Windows) {
         out.push_str(&format!("    lea {}(%rip), %rcx\n", fmt_label));
         out.push_str(&format!("    mov ${}, %rdx\n", val));
@@ -295,7 +324,13 @@ pub fn emit_say_acc(out: &mut String, fmt_label: &str, stack_offset: i32, os: Op
     }
 }
 
-pub fn emit_say_interpolated_pop_and_call(out: &mut String, fmt_label: &str, count: usize, stack_offset: i32, os: OperatingSystem) {
+pub fn emit_say_interpolated_pop_and_call(
+    out: &mut String,
+    fmt_label: &str,
+    count: usize,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
     if matches!(os, OperatingSystem::Windows) {
         for i in (0..count).rev() {
             let reg = match i {
@@ -382,4 +417,3 @@ pub fn emit_catch_end(out: &mut String, stack_delta: i32) {
         out.push_str(&format!("    add ${}, %rsp\n", stack_delta));
     }
 }
-

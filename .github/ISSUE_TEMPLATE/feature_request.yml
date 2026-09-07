@@ -1,0 +1,53 @@
+name: 💡 Feature Request
+description: Suggest a new idea, language feature, or optimization for Alya
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting an idea to make Alya better! Please describe your proposal clearly.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: A clear and concise description of the problem or limitation you encountered.
+      placeholder: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed Solution / Feature
+      description: Describe the solution you'd like to see added to Alya.
+    validations:
+      required: true
+
+  - type: textarea
+    id: syntax-example
+    attributes:
+      label: Example Alya Syntax / Code
+      description: How would this feature look and feel in `.alya` code?
+      render: alya
+      placeholder: |
+        # Proposed syntax example
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative solutions or features you've considered?
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any other context, references, or screenshots about the feature request here.
+    validations:
+      required: false

@@ -1,6 +1,6 @@
-use crate::ast::{BinaryOp, Expr, Program, Stmt};
-use super::target::{Architecture, OperatingSystem};
 use super::generate;
+use super::target::{Architecture, OperatingSystem};
+use crate::ast::{BinaryOp, Expr, Program, Stmt};
 
 fn simple_program(stmt: Stmt) -> Program {
     Program {
@@ -79,13 +79,11 @@ fn test_codegen_let_and_binary_op() {
 #[test]
 fn test_codegen_function_definition() {
     let program = Program {
-        statements: vec![
-            Stmt::Function {
-                name: "my_func".into(),
-                params: vec!["a".into()],
-                body: vec![Stmt::Return(Some(Expr::Identifier("a".into())))],
-            },
-        ],
+        statements: vec![Stmt::Function {
+            name: "my_func".into(),
+            params: vec!["a".into()],
+            body: vec![Stmt::Return(Some(Expr::Identifier("a".into())))],
+        }],
     };
 
     let asm = generate(&program, Architecture::X64, OperatingSystem::Windows);

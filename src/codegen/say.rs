@@ -1,9 +1,9 @@
+use super::CodeGen;
 use crate::ast::{BinaryOp, Expr};
 use crate::codegen::analysis::{escape_string, is_string_expr};
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
 use crate::codegen::target::Architecture;
-use super::CodeGen;
 
 impl CodeGen {
     pub(crate) fn generate_say(&mut self, expr: &Expr) {
@@ -12,10 +12,17 @@ impl CodeGen {
                 let label = self.ctx.next_string_label();
                 self.output.push_str(".section .rodata\n");
                 self.output.push_str(&format!("{}:\n", label));
-                self.output.push_str(&format!("    .string \"{}\\n\"\n", escape_string(s)));
+                self.output
+                    .push_str(&format!("    .string \"{}\\n\"\n", escape_string(s)));
                 self.output.push_str(".text\n");
 
-                arch::emit_say_str_lit(&mut self.output, self.arch, &label, self.ctx.stack_offset, self.os);
+                arch::emit_say_str_lit(
+                    &mut self.output,
+                    self.arch,
+                    &label,
+                    self.ctx.stack_offset,
+                    self.os,
+                );
                 self.output.push('\n');
             }
             Expr::InterpolatedString(parts) => {
@@ -42,7 +49,8 @@ impl CodeGen {
                 let fmt_label = self.ctx.next_string_label();
                 self.output.push_str(".section .rodata\n");
                 self.output.push_str(&format!("{}:\n", fmt_label));
-                self.output.push_str(&format!("    .string \"{}\"\n", format_str));
+                self.output
+                    .push_str(&format!("    .string \"{}\"\n", format_str));
                 self.output.push_str(".text\n");
 
                 match self.arch {
@@ -60,12 +68,20 @@ impl CodeGen {
                     }
                 }
 
-                arch::emit_say_interpolated(&mut self.output, self.arch, &fmt_label, exprs.len(), self.ctx.stack_offset, self.os);
+                arch::emit_say_interpolated(
+                    &mut self.output,
+                    self.arch,
+                    &fmt_label,
+                    exprs.len(),
+                    self.ctx.stack_offset,
+                    self.os,
+                );
                 self.output.push('\n');
             }
             Expr::Binary { left, op, right } => {
                 if matches!(op, BinaryOp::Add)
-                    && (is_string_expr(left, &self.ctx.variables) || is_string_expr(right, &self.ctx.variables))
+                    && (is_string_expr(left, &self.ctx.variables)
+                        || is_string_expr(right, &self.ctx.variables))
                 {
                     self.generate_string_concat(left, right);
                     let fmt_label = self.ctx.next_string_label();
@@ -74,7 +90,13 @@ impl CodeGen {
                     self.output.push_str("    .string \"%s\\n\"\n");
                     self.output.push_str(".text\n");
 
-                    arch::emit_say_acc(&mut self.output, self.arch, &fmt_label, self.ctx.stack_offset, self.os);
+                    arch::emit_say_acc(
+                        &mut self.output,
+                        self.arch,
+                        &fmt_label,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
                     self.output.push('\n');
                     return;
                 }
@@ -86,7 +108,13 @@ impl CodeGen {
                 self.output.push_str("    .string \"%ld\\n\"\n");
                 self.output.push_str(".text\n");
 
-                arch::emit_say_acc(&mut self.output, self.arch, &fmt_label, self.ctx.stack_offset, self.os);
+                arch::emit_say_acc(
+                    &mut self.output,
+                    self.arch,
+                    &fmt_label,
+                    self.ctx.stack_offset,
+                    self.os,
+                );
                 self.output.push('\n');
             }
             Expr::Identifier(name) => {
@@ -99,7 +127,14 @@ impl CodeGen {
                             self.output.push_str("    .string \"%s\\n\"\n");
                             self.output.push_str(".text\n");
 
-                            arch::emit_say_str(&mut self.output, self.arch, &label, &fmt_label, self.ctx.stack_offset, self.os);
+                            arch::emit_say_str(
+                                &mut self.output,
+                                self.arch,
+                                &label,
+                                &fmt_label,
+                                self.ctx.stack_offset,
+                                self.os,
+                            );
                             self.output.push('\n');
                         }
                         VarType::StringOffset(offset) => {
@@ -109,7 +144,14 @@ impl CodeGen {
                             self.output.push_str("    .string \"%s\\n\"\n");
                             self.output.push_str(".text\n");
 
-                            arch::emit_say_offset(&mut self.output, self.arch, offset, self.ctx.stack_offset, &fmt_label, self.os);
+                            arch::emit_say_offset(
+                                &mut self.output,
+                                self.arch,
+                                offset,
+                                self.ctx.stack_offset,
+                                &fmt_label,
+                                self.os,
+                            );
                             self.output.push('\n');
                         }
                         VarType::Number(offset) => {
@@ -119,7 +161,14 @@ impl CodeGen {
                             self.output.push_str("    .string \"%ld\\n\"\n");
                             self.output.push_str(".text\n");
 
-                            arch::emit_say_offset(&mut self.output, self.arch, offset, self.ctx.stack_offset, &fmt_label, self.os);
+                            arch::emit_say_offset(
+                                &mut self.output,
+                                self.arch,
+                                offset,
+                                self.ctx.stack_offset,
+                                &fmt_label,
+                                self.os,
+                            );
                             self.output.push('\n');
                         }
                     }
@@ -132,7 +181,14 @@ impl CodeGen {
                 self.output.push_str("    .string \"%ld\\n\"\n");
                 self.output.push_str(".text\n");
 
-                arch::emit_say_num_const(&mut self.output, self.arch, *n as i64, &fmt_label, self.ctx.stack_offset, self.os);
+                arch::emit_say_num_const(
+                    &mut self.output,
+                    self.arch,
+                    *n as i64,
+                    &fmt_label,
+                    self.ctx.stack_offset,
+                    self.os,
+                );
                 self.output.push('\n');
             }
             _ => {
@@ -149,7 +205,13 @@ impl CodeGen {
                 }
                 self.output.push_str(".text\n");
 
-                arch::emit_say_acc(&mut self.output, self.arch, &fmt_label, self.ctx.stack_offset, self.os);
+                arch::emit_say_acc(
+                    &mut self.output,
+                    self.arch,
+                    &fmt_label,
+                    self.ctx.stack_offset,
+                    self.os,
+                );
                 self.output.push('\n');
             }
         }

@@ -1,9 +1,9 @@
-use std::fs;
-use std::process::Command;
-use std::sync::atomic::{AtomicU64, Ordering};
 use alya::codegen::{self, Architecture, OperatingSystem};
 use alya::lexer::Lexer;
 use alya::parser::Parser;
+use std::fs;
+use std::process::Command;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 static TEST_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
 
@@ -48,7 +48,10 @@ fn run_alya_code_with_input(source: &str, input: Option<&str>) -> Option<(i32, S
 
     if !gcc_out.status.success() {
         let _ = fs::remove_file(&exe_path);
-        panic!("GCC compilation error:\n{}", String::from_utf8_lossy(&gcc_out.stderr));
+        panic!(
+            "GCC compilation error:\n{}",
+            String::from_utf8_lossy(&gcc_out.stderr)
+        );
     }
 
     let run_cmd = if cfg!(target_os = "windows") {
@@ -71,7 +74,9 @@ fn run_alya_code_with_input(source: &str, input: Option<&str>) -> Option<(i32, S
         }
     }
 
-    let prog_out = child.wait_with_output().expect("Failed to wait on child process");
+    let prog_out = child
+        .wait_with_output()
+        .expect("Failed to wait on child process");
     let _ = fs::remove_file(&exe_path);
 
     let code = prog_out.status.code().unwrap_or(-1);
@@ -347,6 +352,3 @@ say "Done"
         assert_eq!(output, "5\nDone\n");
     }
 }
-
-
-

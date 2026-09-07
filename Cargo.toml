@@ -2,9 +2,17 @@
 name = "alya"
 version = "0.0.1"
 edition = "2021"
-authors = ["Taiizor"]
-description = "Alya - A simple, easy-to-learn programming language"
+rust-version = "1.75"
+authors = ["Taiizor <taiizor@vegalya.com>"]
+description = "A simple, intuitive, and modern multi-platform compiled programming language"
 license = "MIT"
+readme = "README.md"
+homepage = "https://github.com/Taiizor/Alya"
+repository = "https://github.com/Taiizor/Alya"
+documentation = "https://github.com/Taiizor/Alya#readme"
+keywords = ["alya", "compiler", "programming-language", "codegen", "assembly"]
+categories = ["compilers", "development-tools"]
+exclude = [".github/", "tests/", "temp_*", "*.s"]
 
 [dependencies]
 

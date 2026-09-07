@@ -47,9 +47,15 @@ fn test_tokenize_identifiers() {
     let tokens = lexer.tokenize().expect("Tokenization failed");
 
     assert_eq!(tokens[0].token_type, TokenType::Identifier("my_var".into()));
-    assert_eq!(tokens[1].token_type, TokenType::Identifier("totalCount".into()));
+    assert_eq!(
+        tokens[1].token_type,
+        TokenType::Identifier("totalCount".into())
+    );
     assert_eq!(tokens[2].token_type, TokenType::Identifier("x1".into()));
-    assert_eq!(tokens[3].token_type, TokenType::Identifier("_private".into()));
+    assert_eq!(
+        tokens[3].token_type,
+        TokenType::Identifier("_private".into())
+    );
 }
 
 #[test]
@@ -87,8 +93,14 @@ fn test_tokenize_strings_and_escapes() {
     let mut lexer = Lexer::new(source);
     let tokens = lexer.tokenize().expect("Tokenization failed");
 
-    assert_eq!(tokens[0].token_type, TokenType::String("Hello, World!".into()));
-    assert_eq!(tokens[1].token_type, TokenType::String("Line1\nLine2\t\"quote\"".into()));
+    assert_eq!(
+        tokens[0].token_type,
+        TokenType::String("Hello, World!".into())
+    );
+    assert_eq!(
+        tokens[1].token_type,
+        TokenType::String("Line1\nLine2\t\"quote\"".into())
+    );
 }
 
 #[test]
@@ -98,13 +110,16 @@ fn test_tokenize_comments() {
     let tokens = lexer.tokenize().expect("Tokenization failed");
 
     let types: Vec<_> = tokens.into_iter().map(|t| t.token_type).collect();
-    assert_eq!(types, vec![
-        TokenType::Newline,
-        TokenType::Say,
-        TokenType::Number(42.0),
-        TokenType::Newline,
-        TokenType::Eof,
-    ]);
+    assert_eq!(
+        types,
+        vec![
+            TokenType::Newline,
+            TokenType::Say,
+            TokenType::Number(42.0),
+            TokenType::Newline,
+            TokenType::Eof,
+        ]
+    );
 }
 
 #[test]
@@ -123,15 +138,18 @@ fn test_tokenize_slash_and_multiline_comments() {
     let tokens = lexer.tokenize().expect("Tokenization failed");
 
     let types: Vec<_> = tokens.into_iter().map(|t| t.token_type).collect();
-    assert_eq!(types, vec![
-        TokenType::Newline,
-        TokenType::Say,
-        TokenType::Number(10.0),
-        TokenType::Plus,
-        TokenType::Number(20.0),
-        TokenType::Newline,
-        TokenType::Eof,
-    ]);
+    assert_eq!(
+        types,
+        vec![
+            TokenType::Newline,
+            TokenType::Say,
+            TokenType::Number(10.0),
+            TokenType::Plus,
+            TokenType::Number(20.0),
+            TokenType::Newline,
+            TokenType::Eof,
+        ]
+    );
 }
 
 #[test]
@@ -141,15 +159,18 @@ fn test_tokenize_compound_and_logical_operators() {
     let tokens = lexer.tokenize().expect("Tokenization failed");
 
     let types: Vec<_> = tokens.into_iter().map(|t| t.token_type).collect();
-    assert_eq!(types, vec![
-        TokenType::PlusAssign,
-        TokenType::MinusAssign,
-        TokenType::MultiplyAssign,
-        TokenType::DivideAssign,
-        TokenType::And,
-        TokenType::Or,
-        TokenType::Not,
-        TokenType::Elif,
-        TokenType::Eof,
-    ]);
+    assert_eq!(
+        types,
+        vec![
+            TokenType::PlusAssign,
+            TokenType::MinusAssign,
+            TokenType::MultiplyAssign,
+            TokenType::DivideAssign,
+            TokenType::And,
+            TokenType::Or,
+            TokenType::Not,
+            TokenType::Elif,
+            TokenType::Eof,
+        ]
+    );
 }

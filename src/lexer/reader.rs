@@ -10,7 +10,8 @@ impl Lexer {
         while let Some(ch) = self.current_char() {
             if ch.is_ascii_digit() {
                 self.advance();
-            } else if ch == '.' && !has_dot && self.peek_char().is_some_and(|c| c.is_ascii_digit()) {
+            } else if ch == '.' && !has_dot && self.peek_char().is_some_and(|c| c.is_ascii_digit())
+            {
                 has_dot = true;
                 self.advance();
             } else {
@@ -19,9 +20,12 @@ impl Lexer {
         }
 
         let num_str: String = self.input[start_pos..self.position].iter().collect();
-        num_str
-            .parse::<f64>()
-            .map_err(|_| format!("Invalid number '{}' at line {}, column {}", num_str, start_line, start_col))
+        num_str.parse::<f64>().map_err(|_| {
+            format!(
+                "Invalid number '{}' at line {}, column {}",
+                num_str, start_line, start_col
+            )
+        })
     }
 
     pub(crate) fn read_string(&mut self) -> Result<String, String> {
@@ -45,7 +49,12 @@ impl Lexer {
                     Some('{') => result.push('{'),
                     Some('}') => result.push('}'),
                     Some(c) => result.push(c),
-                    None => return Err(format!("Unexpected end of string at line {}, column {}", self.line, self.column)),
+                    None => {
+                        return Err(format!(
+                            "Unexpected end of string at line {}, column {}",
+                            self.line, self.column
+                        ))
+                    }
                 }
                 self.advance();
             } else {
@@ -54,7 +63,10 @@ impl Lexer {
             }
         }
 
-        Err(format!("Unterminated string starting at line {}, column {}", start_line, start_col))
+        Err(format!(
+            "Unterminated string starting at line {}, column {}",
+            start_line, start_col
+        ))
     }
 
     pub(crate) fn read_identifier(&mut self) -> String {

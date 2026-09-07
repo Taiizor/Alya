@@ -64,7 +64,12 @@ impl Diagnostic {
                 out.push_str(&format!("{:>width$} |\n", "", width = width));
 
                 let display_line = line_str.replace('\t', "    ");
-                out.push_str(&format!(" {:>width$} | {}\n", line, display_line, width = width));
+                out.push_str(&format!(
+                    " {:>width$} | {}\n",
+                    line,
+                    display_line,
+                    width = width
+                ));
 
                 if let Some(column) = self.column {
                     let mut visual_col = 0;
@@ -87,7 +92,9 @@ impl Diagnostic {
 
                     let token_len = remaining
                         .chars()
-                        .take_while(|c| c.is_alphanumeric() || *c == '_' || "+-*/%=<>!&|".contains(*c))
+                        .take_while(|c| {
+                            c.is_alphanumeric() || *c == '_' || "+-*/%=<>!&|".contains(*c)
+                        })
                         .count()
                         .max(1);
 

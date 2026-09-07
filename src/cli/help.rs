@@ -8,7 +8,10 @@ pub fn print_version() {
 }
 
 pub fn print_usage() {
-    println!("Alya Programming Language Compiler (alyac) v{}", env!("CARGO_PKG_VERSION"));
+    println!(
+        "Alya Programming Language Compiler (alyac) v{}",
+        env!("CARGO_PKG_VERSION")
+    );
     println!("A modern, simple, compiled programming language.\n");
     println!("USAGE:");
     println!("  alyac <COMMAND> <file> [OPTIONS]");

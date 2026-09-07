@@ -42,7 +42,9 @@ impl Parser {
     }
 
     pub(super) fn expect(&mut self, expected: TokenType) -> Result<(), String> {
-        if std::mem::discriminant(&self.current_token().token_type) != std::mem::discriminant(&expected) {
+        if std::mem::discriminant(&self.current_token().token_type)
+            != std::mem::discriminant(&expected)
+        {
             return Err(format!(
                 "Expected {}, found {} at line {}, column {}",
                 expected,
@@ -54,7 +56,6 @@ impl Parser {
         self.advance();
         Ok(())
     }
-
 
     pub(super) fn skip_newlines(&mut self) {
         while matches!(self.current_token().token_type, TokenType::Newline) {

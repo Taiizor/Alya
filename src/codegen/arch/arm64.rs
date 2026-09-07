@@ -119,9 +119,15 @@ pub fn emit_compare_and_jump_if_greater(out: &mut String, label: &str) {
 }
 
 pub fn emit_increment_var(out: &mut String, var_offset: i32, stack_offset: i32, start_label: &str) {
-    out.push_str(&format!("    ldr x0, [sp, #{}]\n", stack_offset - var_offset));
+    out.push_str(&format!(
+        "    ldr x0, [sp, #{}]\n",
+        stack_offset - var_offset
+    ));
     out.push_str("    add x0, x0, #1\n");
-    out.push_str(&format!("    str x0, [sp, #{}]\n", stack_offset - var_offset));
+    out.push_str(&format!(
+        "    str x0, [sp, #{}]\n",
+        stack_offset - var_offset
+    ));
     out.push_str(&format!("    b {}\n", start_label));
 }
 
@@ -247,4 +253,3 @@ pub fn emit_catch_end(out: &mut String, stack_delta: i32) {
         out.push_str(&format!("    add sp, sp, #{}\n", stack_delta));
     }
 }
-

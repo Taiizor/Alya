@@ -2,12 +2,14 @@ use super::*;
 
 #[test]
 fn test_parse_error_location() {
-    let (msg, line, col) = parse_error_location("Expected identifier after 'let' at line 3, column 5");
+    let (msg, line, col) =
+        parse_error_location("Expected identifier after 'let' at line 3, column 5");
     assert_eq!(msg, "Expected identifier after 'let'");
     assert_eq!(line, Some(3));
     assert_eq!(col, Some(5));
 
-    let (msg, line, col) = parse_error_location("Unexpected character '&' at line 5, column 10. Did you mean '&&'?");
+    let (msg, line, col) =
+        parse_error_location("Unexpected character '&' at line 5, column 10. Did you mean '&&'?");
     assert_eq!(msg, "Unexpected character '&'. Did you mean '&&'?");
     assert_eq!(line, Some(5));
     assert_eq!(col, Some(10));
@@ -26,8 +28,7 @@ fn test_parse_error_location() {
 #[test]
 fn test_render_diagnostic() {
     let source = "let a = 10\nlet = 20\nsay a\n";
-    let diag = Diagnostic::new("test.alya", "Expected identifier after 'let'")
-        .with_location(2, 5);
+    let diag = Diagnostic::new("test.alya", "Expected identifier after 'let'").with_location(2, 5);
 
     let rendered = diag.render(source);
     assert!(rendered.contains("error: Expected identifier after 'let'"));

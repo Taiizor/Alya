@@ -1,7 +1,7 @@
-use std::fs;
+use alya::codegen::{self, Architecture, OperatingSystem};
 use alya::lexer::Lexer;
 use alya::parser::Parser;
-use alya::codegen::{self, Architecture, OperatingSystem};
+use std::fs;
 
 #[test]
 fn test_all_examples_compile_to_assembly() {
@@ -19,7 +19,6 @@ fn test_all_examples_compile_to_assembly() {
     examples.sort();
     assert!(!examples.is_empty(), "No .alya files found in examples/");
 
-
     for example_name in examples {
         let path = format!("examples/{}", example_name);
         let source = fs::read_to_string(&path)
@@ -27,32 +26,54 @@ fn test_all_examples_compile_to_assembly() {
 
         // 1. Lexer
         let mut lexer = Lexer::new(&source);
-        let tokens = lexer.tokenize()
+        let tokens = lexer
+            .tokenize()
             .unwrap_or_else(|e| panic!("Lexer failed for '{}': {}", example_name, e));
 
         // 2. Parser
         let mut parser = Parser::new(tokens);
-        let ast = parser.parse()
+        let ast = parser
+            .parse()
             .unwrap_or_else(|e| panic!("Parser failed for '{}': {}", example_name, e));
 
         // 3. Codegen for x64
         let x64_asm = codegen::generate(&ast, Architecture::X64, OperatingSystem::Windows);
-        assert!(!x64_asm.is_empty(), "Empty x64 assembly generated for '{}'", example_name);
-        assert!(x64_asm.contains(".global main"), "Missing main entry in x64 for '{}'", example_name);
+        assert!(
+            !x64_asm.is_empty(),
+            "Empty x64 assembly generated for '{}'",
+            example_name
+        );
+        assert!(
+            x64_asm.contains(".global main"),
+            "Missing main entry in x64 for '{}'",
+            example_name
+        );
 
         // 4. Codegen for x86
         let x86_asm = codegen::generate(&ast, Architecture::X86, OperatingSystem::Linux);
-        assert!(!x86_asm.is_empty(), "Empty x86 assembly generated for '{}'", example_name);
+        assert!(
+            !x86_asm.is_empty(),
+            "Empty x86 assembly generated for '{}'",
+            example_name
+        );
 
         // 5. Codegen for arm64
         let arm64_asm = codegen::generate(&ast, Architecture::ARM64, OperatingSystem::Linux);
-        assert!(!arm64_asm.is_empty(), "Empty arm64 assembly generated for '{}'", example_name);
+        assert!(
+            !arm64_asm.is_empty(),
+            "Empty arm64 assembly generated for '{}'",
+            example_name
+        );
     }
 }
 
 #[test]
 fn test_all_examples_execute_with_gcc() {
-    if std::process::Command::new("gcc").arg("--version").output().is_err() {
+    if std::process::Command::new("gcc")
+        .arg("--version")
+        .output()
+        .is_err()
+    {
         eprintln!("Skipping GCC execution: GCC not found in PATH.");
         return;
     }
@@ -82,10 +103,12 @@ fn test_all_examples_execute_with_gcc() {
             .unwrap_or_else(|e| panic!("Failed to read example file '{}': {}", path, e));
 
         let mut lexer = Lexer::new(&source);
-        let tokens = lexer.tokenize()
+        let tokens = lexer
+            .tokenize()
             .unwrap_or_else(|e| panic!("Lexer failed for '{}': {}", example_name, e));
         let mut parser = Parser::new(tokens);
-        let ast = parser.parse()
+        let ast = parser
+            .parse()
             .unwrap_or_else(|e| panic!("Parser failed for '{}': {}", example_name, e));
 
         let asm_code = codegen::generate(&ast, Architecture::X64, os);
@@ -105,7 +128,11 @@ fn test_all_examples_execute_with_gcc() {
         }
         let gcc_status = gcc.status().expect("Failed to run gcc");
         let _ = fs::remove_file(&temp_asm);
-        assert!(gcc_status.success(), "GCC failed to compile '{}'", example_name);
+        assert!(
+            gcc_status.success(),
+            "GCC failed to compile '{}'",
+            example_name
+        );
 
         let run_cmd = if cfg!(target_os = "windows") {
             format!(".\\{}", temp_exe)
@@ -137,4 +164,3 @@ fn test_all_examples_execute_with_gcc() {
         );
     }
 }
-

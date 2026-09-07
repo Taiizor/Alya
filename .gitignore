@@ -1,9 +1,45 @@
+# Rust build artifacts
 /target/
-/Cargo.lock
-*.s
+**/*.rs.bk
+*.bk
+
+# Executables & binary artifacts
 *.exe
+*.out
+*.app
 program
 program.exe
-output.s
+output
+output.exe
+
+# Assembly and compiler intermediate files
+*.s
 *.o
+*.a
+*.so
+*.dylib
+*.dll
+*.pdb
+*.ilk
+output.s
+temp_*.s
+temp_*.exe
+temp_*
+
+# IDEs & Editor configurations
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Operating System files
 .DS_Store
+Thumbs.db
+desktop.ini
+
+# Test and coverage artifacts
+*.lcov
+coverage/

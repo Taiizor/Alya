@@ -243,4 +243,3 @@ pub fn emit_catch_end(out: &mut String, stack_delta: i32) {
         out.push_str(&format!("    add ${}, %esp\n", stack_delta));
     }
 }
-

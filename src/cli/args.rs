@@ -141,7 +141,12 @@ impl CliArgs {
                             "x64" => Architecture::X64,
                             "x86" => Architecture::X86,
                             "arm64" => Architecture::ARM64,
-                            other => return Err(format!("Error: Unknown architecture '{}'. Supported: x64, x86, arm64", other)),
+                            other => {
+                                return Err(format!(
+                                    "Error: Unknown architecture '{}'. Supported: x64, x86, arm64",
+                                    other
+                                ))
+                            }
                         };
                         i += 1;
                     } else {
@@ -154,7 +159,12 @@ impl CliArgs {
                             "linux" => OperatingSystem::Linux,
                             "windows" => OperatingSystem::Windows,
                             "macos" => OperatingSystem::MacOS,
-                            other => return Err(format!("Error: Unknown OS '{}'. Supported: linux, windows, macos", other)),
+                            other => {
+                                return Err(format!(
+                                    "Error: Unknown OS '{}'. Supported: linux, windows, macos",
+                                    other
+                                ))
+                            }
                         };
                         i += 1;
                     } else {
@@ -163,7 +173,10 @@ impl CliArgs {
                 }
                 arg if !arg.starts_with('-') => {
                     if let Some(existing) = &input_file {
-                        return Err(format!("Error: Unexpected multiple input files: '{}' and '{}'", existing, arg));
+                        return Err(format!(
+                            "Error: Unexpected multiple input files: '{}' and '{}'",
+                            existing, arg
+                        ));
                     } else {
                         input_file = Some(arg.to_string());
                     }
@@ -199,4 +212,3 @@ impl CliArgs {
         crate::cli::help::print_usage();
     }
 }
-

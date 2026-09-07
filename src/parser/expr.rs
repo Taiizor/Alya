@@ -163,7 +163,10 @@ impl Parser {
                 } else if matches!(self.current_token().token_type, TokenType::String(_)) {
                     args.push(self.parse_primary()?);
                 }
-                Ok(Expr::Call { name: "ask".into(), args })
+                Ok(Expr::Call {
+                    name: "ask".into(),
+                    args,
+                })
             }
             TokenType::Identifier(name) => {
                 let ident = name.clone();

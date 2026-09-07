@@ -18,9 +18,7 @@ pub fn compile_with_gcc(
         gcc_args.push("-no-pie");
     }
 
-    let gcc_result = Command::new("gcc")
-        .args(&gcc_args)
-        .output();
+    let gcc_result = Command::new("gcc").args(&gcc_args).output();
 
     let _ = fs::remove_file(asm_file);
 
@@ -56,7 +54,9 @@ pub fn execute_binary(exe_file: &str, delete_after: bool) -> Result<(), String> 
         .spawn()
         .map_err(|e| format!("Error: Failed to execute '{}': {}", run_path, e))?;
 
-    let status = child.wait().map_err(|e| format!("Execution error: {}", e))?;
+    let status = child
+        .wait()
+        .map_err(|e| format!("Execution error: {}", e))?;
 
     if delete_after {
         let _ = fs::remove_file(exe_file);

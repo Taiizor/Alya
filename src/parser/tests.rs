@@ -1,6 +1,6 @@
+use super::Parser;
 use crate::ast::{BinaryOp, Expr, Stmt, UnaryOp};
 use crate::lexer::Lexer;
-use super::Parser;
 
 fn parse_code(code: &str) -> Result<crate::ast::Program, String> {
     let mut lexer = Lexer::new(code);
@@ -19,7 +19,11 @@ fn test_parse_binary_precedence() {
             assert_eq!(**left, Expr::Number(1.0));
             assert_eq!(*op, BinaryOp::Add);
             match &**right {
-                Expr::Binary { left: rleft, op: rop, right: rright } => {
+                Expr::Binary {
+                    left: rleft,
+                    op: rop,
+                    right: rright,
+                } => {
                     assert_eq!(**rleft, Expr::Number(2.0));
                     assert_eq!(*rop, BinaryOp::Multiply);
                     assert_eq!(**rright, Expr::Number(3.0));
@@ -40,7 +44,11 @@ fn test_parse_parentheses_precedence() {
             assert_eq!(*op, BinaryOp::Multiply);
             assert_eq!(**right, Expr::Number(3.0));
             match &**left {
-                Expr::Binary { left: lleft, op: lop, right: lright } => {
+                Expr::Binary {
+                    left: lleft,
+                    op: lop,
+                    right: lright,
+                } => {
                     assert_eq!(**lleft, Expr::Number(1.0));
                     assert_eq!(*lop, BinaryOp::Add);
                     assert_eq!(**lright, Expr::Number(2.0));
@@ -113,7 +121,11 @@ end
     assert_eq!(program.statements.len(), 1);
 
     match &program.statements[0] {
-        Stmt::If { condition, then_block, else_block } => {
+        Stmt::If {
+            condition,
+            then_block,
+            else_block,
+        } => {
             assert_eq!(
                 *condition,
                 Expr::Binary {
@@ -126,7 +138,10 @@ end
             assert_eq!(then_block[0], Stmt::Say(Expr::String("positive".into())));
             let else_stmts = else_block.as_ref().expect("Expected else block");
             assert_eq!(else_stmts.len(), 1);
-            assert_eq!(else_stmts[0], Stmt::Say(Expr::String("non-positive".into())));
+            assert_eq!(
+                else_stmts[0],
+                Stmt::Say(Expr::String("non-positive".into()))
+            );
         }
         other => panic!("Expected If statement, got {:?}", other),
     }
@@ -170,7 +185,12 @@ end
     assert_eq!(program.statements.len(), 1);
 
     match &program.statements[0] {
-        Stmt::For { var, start, end, body } => {
+        Stmt::For {
+            var,
+            start,
+            end,
+            body,
+        } => {
             assert_eq!(var, "i");
             assert_eq!(*start, Expr::Number(1.0));
             assert_eq!(*end, Expr::Number(10.0));
@@ -294,7 +314,11 @@ end
     assert_eq!(program.statements.len(), 1);
 
     match &program.statements[0] {
-        Stmt::If { condition, then_block: _, else_block } => {
+        Stmt::If {
+            condition,
+            then_block: _,
+            else_block,
+        } => {
             assert_eq!(
                 *condition,
                 Expr::Binary {
@@ -354,7 +378,11 @@ end
     assert_eq!(program.statements.len(), 2);
 
     match &program.statements[0] {
-        Stmt::TryCatch { try_block, catch_var, catch_block } => {
+        Stmt::TryCatch {
+            try_block,
+            catch_var,
+            catch_block,
+        } => {
             assert_eq!(try_block.len(), 1);
             assert_eq!(catch_var.as_deref(), Some("err"));
             assert_eq!(catch_block.len(), 1);
@@ -363,7 +391,11 @@ end
     }
 
     match &program.statements[1] {
-        Stmt::TryCatch { try_block, catch_var, catch_block } => {
+        Stmt::TryCatch {
+            try_block,
+            catch_var,
+            catch_block,
+        } => {
             assert_eq!(try_block.len(), 1);
             assert_eq!(*catch_var, None);
             assert_eq!(catch_block.len(), 1);
@@ -371,4 +403,3 @@ end
         other => panic!("Expected TryCatch, got {:?}", other),
     }
 }
-

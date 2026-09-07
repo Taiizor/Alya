@@ -1,9 +1,9 @@
+use super::CodeGen;
 use crate::ast::{BinaryOp, Expr};
 use crate::codegen::analysis::{escape_string, is_string_expr};
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
 use crate::codegen::target::Architecture;
-use super::CodeGen;
 
 impl CodeGen {
     pub(crate) fn generate_expression(&mut self, expr: &Expr) {
@@ -15,7 +15,8 @@ impl CodeGen {
                 let label = self.ctx.next_string_label();
                 self.output.push_str(".section .rodata\n");
                 self.output.push_str(&format!("{}:\n", label));
-                self.output.push_str(&format!("    .string \"{}\"\n", escape_string(s)));
+                self.output
+                    .push_str(&format!("    .string \"{}\"\n", escape_string(s)));
                 self.output.push_str(".text\n");
 
                 arch::emit_load_str_label(&mut self.output, self.arch, &label);
@@ -24,7 +25,12 @@ impl CodeGen {
                 if let Some(var_type) = self.ctx.variables.get(name).cloned() {
                     match var_type {
                         VarType::Number(offset) | VarType::StringOffset(offset) => {
-                            arch::emit_load_var(&mut self.output, self.arch, offset, self.ctx.stack_offset);
+                            arch::emit_load_var(
+                                &mut self.output,
+                                self.arch,
+                                offset,
+                                self.ctx.stack_offset,
+                            );
                         }
                         VarType::StringLabel(label) => {
                             arch::emit_load_str_label(&mut self.output, self.arch, &label);
@@ -34,7 +40,8 @@ impl CodeGen {
             }
             Expr::Binary { left, op, right } => {
                 if matches!(op, BinaryOp::Add)
-                    && (is_string_expr(left, &self.ctx.variables) || is_string_expr(right, &self.ctx.variables))
+                    && (is_string_expr(left, &self.ctx.variables)
+                        || is_string_expr(right, &self.ctx.variables))
                 {
                     self.generate_string_concat(left, right);
                     return;
@@ -65,7 +72,14 @@ impl CodeGen {
                         }
                     }
                 }
-                arch::emit_function_call(&mut self.output, self.arch, name, args.len(), self.ctx.stack_offset, self.os);
+                arch::emit_function_call(
+                    &mut self.output,
+                    self.arch,
+                    name,
+                    args.len(),
+                    self.ctx.stack_offset,
+                    self.os,
+                );
             }
             Expr::InterpolatedString(parts) => {
                 if parts.is_empty() {

@@ -109,9 +109,17 @@ pub fn emit_compare_and_jump_if_greater(out: &mut String, arch: Architecture, la
     }
 }
 
-pub fn emit_increment_var(out: &mut String, arch: Architecture, var_offset: i32, stack_offset: i32, start_label: &str) {
+pub fn emit_increment_var(
+    out: &mut String,
+    arch: Architecture,
+    var_offset: i32,
+    stack_offset: i32,
+    start_label: &str,
+) {
     match arch {
-        Architecture::ARM64 => arm64::emit_increment_var(out, var_offset, stack_offset, start_label),
+        Architecture::ARM64 => {
+            arm64::emit_increment_var(out, var_offset, stack_offset, start_label)
+        }
         Architecture::X64 => x64::emit_increment_var(out, var_offset, start_label),
         Architecture::X86 => x86::emit_increment_var(out, var_offset, start_label),
     }
@@ -133,7 +141,13 @@ pub fn emit_function_epilogue(out: &mut String, arch: Architecture) {
     }
 }
 
-pub fn emit_function_param_push(out: &mut String, arch: Architecture, param_idx: usize, stack_offset: &mut i32, os: OperatingSystem) {
+pub fn emit_function_param_push(
+    out: &mut String,
+    arch: Architecture,
+    param_idx: usize,
+    stack_offset: &mut i32,
+    os: OperatingSystem,
+) {
     match arch {
         Architecture::ARM64 => arm64::emit_function_param_push(out, param_idx, stack_offset),
         Architecture::X64 => x64::emit_function_param_push(out, param_idx, stack_offset, os),
@@ -141,7 +155,14 @@ pub fn emit_function_param_push(out: &mut String, arch: Architecture, param_idx:
     }
 }
 
-pub fn emit_function_call(out: &mut String, arch: Architecture, name: &str, args_count: usize, stack_offset: i32, os: OperatingSystem) {
+pub fn emit_function_call(
+    out: &mut String,
+    arch: Architecture,
+    name: &str,
+    args_count: usize,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
     match arch {
         Architecture::ARM64 => arm64::emit_function_call(out, name, args_count),
         Architecture::X64 => x64::emit_function_call(out, name, args_count, stack_offset, os),
@@ -149,7 +170,14 @@ pub fn emit_function_call(out: &mut String, arch: Architecture, name: &str, args
     }
 }
 
-pub fn emit_say_str(out: &mut String, arch: Architecture, label: &str, fmt_label: &str, stack_offset: i32, os: OperatingSystem) {
+pub fn emit_say_str(
+    out: &mut String,
+    arch: Architecture,
+    label: &str,
+    fmt_label: &str,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
     match arch {
         Architecture::ARM64 => arm64::emit_say_str(out, label, fmt_label),
         Architecture::X64 => x64::emit_say_str(out, label, fmt_label, stack_offset, os),
@@ -157,7 +185,13 @@ pub fn emit_say_str(out: &mut String, arch: Architecture, label: &str, fmt_label
     }
 }
 
-pub fn emit_say_str_lit(out: &mut String, arch: Architecture, label: &str, stack_offset: i32, os: OperatingSystem) {
+pub fn emit_say_str_lit(
+    out: &mut String,
+    arch: Architecture,
+    label: &str,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
     match arch {
         Architecture::ARM64 => arm64::emit_say_str_lit(out, label),
         Architecture::X64 => x64::emit_say_str_lit(out, label, stack_offset, os),
@@ -165,7 +199,14 @@ pub fn emit_say_str_lit(out: &mut String, arch: Architecture, label: &str, stack
     }
 }
 
-pub fn emit_say_offset(out: &mut String, arch: Architecture, offset: i32, stack_offset: i32, fmt_label: &str, os: OperatingSystem) {
+pub fn emit_say_offset(
+    out: &mut String,
+    arch: Architecture,
+    offset: i32,
+    stack_offset: i32,
+    fmt_label: &str,
+    os: OperatingSystem,
+) {
     match arch {
         Architecture::ARM64 => arm64::emit_say_offset(out, offset, stack_offset, fmt_label),
         Architecture::X64 => x64::emit_say_offset(out, offset, fmt_label, stack_offset, os),
@@ -173,7 +214,14 @@ pub fn emit_say_offset(out: &mut String, arch: Architecture, offset: i32, stack_
     }
 }
 
-pub fn emit_say_num_const(out: &mut String, arch: Architecture, val: i64, fmt_label: &str, stack_offset: i32, os: OperatingSystem) {
+pub fn emit_say_num_const(
+    out: &mut String,
+    arch: Architecture,
+    val: i64,
+    fmt_label: &str,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
     match arch {
         Architecture::ARM64 => arm64::emit_say_num_const(out, val, fmt_label),
         Architecture::X64 => x64::emit_say_num_const(out, val, fmt_label, stack_offset, os),
@@ -181,7 +229,13 @@ pub fn emit_say_num_const(out: &mut String, arch: Architecture, val: i64, fmt_la
     }
 }
 
-pub fn emit_say_acc(out: &mut String, arch: Architecture, fmt_label: &str, stack_offset: i32, os: OperatingSystem) {
+pub fn emit_say_acc(
+    out: &mut String,
+    arch: Architecture,
+    fmt_label: &str,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
     match arch {
         Architecture::ARM64 => arm64::emit_say_acc(out, fmt_label),
         Architecture::X64 => x64::emit_say_acc(out, fmt_label, stack_offset, os),
@@ -189,15 +243,29 @@ pub fn emit_say_acc(out: &mut String, arch: Architecture, fmt_label: &str, stack
     }
 }
 
-pub fn emit_say_interpolated(out: &mut String, arch: Architecture, fmt_label: &str, count: usize, stack_offset: i32, os: OperatingSystem) {
+pub fn emit_say_interpolated(
+    out: &mut String,
+    arch: Architecture,
+    fmt_label: &str,
+    count: usize,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
     match arch {
         Architecture::ARM64 => arm64::emit_say_interpolated_pop_and_call(out, fmt_label, count),
-        Architecture::X64 => x64::emit_say_interpolated_pop_and_call(out, fmt_label, count, stack_offset, os),
+        Architecture::X64 => {
+            x64::emit_say_interpolated_pop_and_call(out, fmt_label, count, stack_offset, os)
+        }
         Architecture::X86 => x86::emit_say_interpolated_call(out, fmt_label, count),
     }
 }
 
-pub fn emit_string_concat_call(out: &mut String, arch: Architecture, stack_offset: i32, os: OperatingSystem) {
+pub fn emit_string_concat_call(
+    out: &mut String,
+    arch: Architecture,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
     match arch {
         Architecture::ARM64 => arm64::emit_string_concat_call(out),
         Architecture::X64 => x64::emit_string_concat_call(out, stack_offset, os),
@@ -244,4 +312,3 @@ pub fn emit_catch_end(out: &mut String, arch: Architecture, stack_delta: i32) {
         Architecture::X86 => x86::emit_catch_end(out, stack_delta),
     }
 }
-

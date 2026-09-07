@@ -52,8 +52,17 @@ fn test_target_arch_and_os() {
 #[test]
 fn test_help_and_version() {
     assert_eq!(CliArgs::parse_from(&to_args(&["alyac"])), Ok(None));
-    assert_eq!(CliArgs::parse_from(&to_args(&["alyac", "--help"])), Ok(None));
+    assert_eq!(
+        CliArgs::parse_from(&to_args(&["alyac", "--help"])),
+        Ok(None)
+    );
     assert_eq!(CliArgs::parse_from(&to_args(&["alyac", "help"])), Ok(None));
-    assert_eq!(CliArgs::parse_from(&to_args(&["alyac", "--version"])), Ok(None));
-    assert_eq!(CliArgs::parse_from(&to_args(&["alyac", "version"])), Ok(None));
+    assert_eq!(
+        CliArgs::parse_from(&to_args(&["alyac", "--version"])),
+        Ok(None)
+    );
+    assert_eq!(
+        CliArgs::parse_from(&to_args(&["alyac", "version"])),
+        Ok(None)
+    );
 }
