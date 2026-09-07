@@ -399,13 +399,20 @@ pub fn emit_say_float(out: &mut String, fmt_label: &str, os: OperatingSystem) {
 pub fn emit_say_interpolated_pop_and_call(
     out: &mut String,
     fmt_label: &str,
-    count: usize,
+    is_floats: &[bool],
     os: OperatingSystem,
 ) {
+    let count = is_floats.len();
     for i in (0..count).rev() {
         out.push_str(&format!("    ldr x{}, [sp], #16\n", i + 1));
-        if i < 8 {
-            out.push_str(&format!("    fmov d{}, x{}\n", i, i + 1));
+    }
+    if !matches!(os, OperatingSystem::MacOS) {
+        let mut d_idx = 0;
+        for (i, &is_flt) in is_floats.iter().enumerate() {
+            if is_flt && d_idx < 8 {
+                out.push_str(&format!("    fmov d{}, x{}\n", d_idx, i + 1));
+                d_idx += 1;
+            }
         }
     }
     emit_adrp_add(out, "x0", fmt_label, os);

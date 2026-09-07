@@ -457,10 +457,11 @@ pub fn emit_say_float(out: &mut String, fmt_label: &str, stack_offset: i32, os: 
 pub fn emit_say_interpolated_pop_and_call(
     out: &mut String,
     fmt_label: &str,
-    count: usize,
+    is_floats: &[bool],
     stack_offset: i32,
     os: OperatingSystem,
 ) {
+    let count = is_floats.len();
     if matches!(os, OperatingSystem::Windows) {
         for i in (0..count).rev() {
             let reg = match i {
@@ -481,27 +482,42 @@ pub fn emit_say_interpolated_pop_and_call(
         out.push_str("    xor %rax, %rax\n");
         emit_call_printf(out, stack_offset, os);
     } else {
+        let mut int_reg_indices = Vec::with_capacity(count);
+        let mut sse_reg_indices = Vec::with_capacity(count);
+        let mut int_count = 0;
+        let mut sse_count = 0;
+        for &is_flt in is_floats {
+            if is_flt {
+                int_reg_indices.push(None);
+                sse_reg_indices.push(Some(sse_count));
+                sse_count += 1;
+            } else {
+                int_reg_indices.push(Some(int_count));
+                sse_reg_indices.push(None);
+                int_count += 1;
+            }
+        }
+
         for i in (0..count).rev() {
-            let reg = match i {
-                0 => "%rsi",
-                1 => "%rdx",
-                2 => "%rcx",
-                3 => "%r8",
-                4 => "%r9",
-                _ => "%rsi",
-            };
-            out.push_str(&format!("    pop {}\n", reg));
-            match i {
-                0 => out.push_str("    movq %rsi, %xmm0\n"),
-                1 => out.push_str("    movq %rdx, %xmm1\n"),
-                2 => out.push_str("    movq %rcx, %xmm2\n"),
-                3 => out.push_str("    movq %r8, %xmm3\n"),
-                4 => out.push_str("    movq %r9, %xmm4\n"),
-                _ => {}
+            out.push_str("    pop %rax\n");
+            if let Some(s_idx) = sse_reg_indices[i] {
+                if s_idx < 8 {
+                    out.push_str(&format!("    movq %rax, %xmm{}\n", s_idx));
+                }
+            } else if let Some(i_idx) = int_reg_indices[i] {
+                let reg = match i_idx {
+                    0 => "%rsi",
+                    1 => "%rdx",
+                    2 => "%rcx",
+                    3 => "%r8",
+                    4 => "%r9",
+                    _ => "%rsi",
+                };
+                out.push_str(&format!("    mov %rax, {}\n", reg));
             }
         }
         out.push_str(&format!("    lea {}(%rip), %rdi\n", fmt_label));
-        out.push_str(&format!("    mov ${}, %al\n", count));
+        out.push_str(&format!("    mov ${}, %al\n", sse_count));
         emit_call_printf(out, stack_offset, os);
     }
 }

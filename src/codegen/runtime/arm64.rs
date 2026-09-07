@@ -260,7 +260,14 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     emit_adrp_add(out, "x0", "alya_fmt_arr_elem", os);
     out.push_str("    add x22, x21, #1\n");
     out.push_str("    ldr x1, [x19, x22, lsl #3]\n");
-    out.push_str(&format!("    bl {}printf\n", p));
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str("    sub sp, sp, #16\n");
+        out.push_str("    str x1, [sp]\n");
+        out.push_str(&format!("    bl {}printf\n", p));
+        out.push_str("    add sp, sp, #16\n");
+    } else {
+        out.push_str(&format!("    bl {}printf\n", p));
+    }
     out.push_str("    add x21, x21, #1\n");
     out.push_str("    b .L_arm64_arr_loop\n");
     out.push_str(".L_arm64_arr_close_call:\n");
@@ -304,7 +311,14 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    ldr x21, [x20, #8]\n");
     emit_adrp_add(out, "x0", "alya_fmt_struct_open", os);
     out.push_str("    ldr x1, [x20]\n");
-    out.push_str(&format!("    bl {}printf\n", p));
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str("    sub sp, sp, #16\n");
+        out.push_str("    str x1, [sp]\n");
+        out.push_str(&format!("    bl {}printf\n", p));
+        out.push_str("    add sp, sp, #16\n");
+    } else {
+        out.push_str(&format!("    bl {}printf\n", p));
+    }
     out.push_str("    mov x22, #0\n");
     out.push_str(".L_arm64_struct_loop:\n");
     out.push_str("    cmp x22, x21\n");
@@ -318,7 +332,15 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    ldr x1, [x20, x23, lsl #3]\n");
     out.push_str("    add x23, x22, #1\n");
     out.push_str("    ldr x2, [x19, x23, lsl #3]\n");
-    out.push_str(&format!("    bl {}printf\n", p));
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str("    sub sp, sp, #16\n");
+        out.push_str("    str x1, [sp]\n");
+        out.push_str("    str x2, [sp, #8]\n");
+        out.push_str(&format!("    bl {}printf\n", p));
+        out.push_str("    add sp, sp, #16\n");
+    } else {
+        out.push_str(&format!("    bl {}printf\n", p));
+    }
     out.push_str("    add x22, x22, #1\n");
     out.push_str("    b .L_arm64_struct_loop\n");
     out.push_str(".L_arm64_struct_close:\n");

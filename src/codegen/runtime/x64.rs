@@ -457,7 +457,6 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    push %r13\n");
     out.push_str("    push %r14\n");
     out.push_str("    push %r15\n");
-    out.push_str("    push %rbx\n");
     if matches!(os, OperatingSystem::Windows) {
         out.push_str("    sub $32, %rsp\n");
         out.push_str("    mov %rcx, %r12\n");
@@ -530,7 +529,6 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
         out.push_str(&format!("    call {}printf\n", p));
         out.push_str(".L_x64_struct_exit:\n");
     }
-    out.push_str("    pop %rbx\n");
     out.push_str("    pop %r15\n");
     out.push_str("    pop %r14\n");
     out.push_str("    pop %r13\n");

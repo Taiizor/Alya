@@ -301,16 +301,18 @@ pub fn emit_say_interpolated(
     out: &mut String,
     arch: Architecture,
     fmt_label: &str,
-    count: usize,
+    is_floats: &[bool],
     stack_offset: i32,
     os: OperatingSystem,
 ) {
     match arch {
-        Architecture::ARM64 => arm64::emit_say_interpolated_pop_and_call(out, fmt_label, count, os),
-        Architecture::X64 => {
-            x64::emit_say_interpolated_pop_and_call(out, fmt_label, count, stack_offset, os)
+        Architecture::ARM64 => {
+            arm64::emit_say_interpolated_pop_and_call(out, fmt_label, is_floats, os)
         }
-        Architecture::X86 => x86::emit_say_interpolated_call(out, fmt_label, count),
+        Architecture::X64 => {
+            x64::emit_say_interpolated_pop_and_call(out, fmt_label, is_floats, stack_offset, os)
+        }
+        Architecture::X86 => x86::emit_say_interpolated_call(out, fmt_label, is_floats.len()),
     }
 }
 

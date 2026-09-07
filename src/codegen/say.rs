@@ -27,6 +27,7 @@ impl CodeGen {
             Expr::InterpolatedString(parts) => {
                 let mut format_str = String::new();
                 let mut exprs = Vec::new();
+                let mut is_floats = Vec::new();
 
                 for part in parts {
                     match part {
@@ -34,14 +35,16 @@ impl CodeGen {
                             format_str.push_str(&escape_string(s).replace('%', "%%"));
                         }
                         _ => {
+                            let is_flt = is_float_expr(part, &self.ctx.variables);
                             if is_string_expr(part, &self.ctx.variables) {
                                 format_str.push_str("%s");
-                            } else if is_float_expr(part, &self.ctx.variables) {
+                            } else if is_flt {
                                 format_str.push_str("%g");
                             } else {
                                 format_str.push_str("%ld");
                             }
                             exprs.push(part);
+                            is_floats.push(is_flt);
                         }
                     }
                 }
@@ -72,7 +75,7 @@ impl CodeGen {
                     &mut self.output,
                     self.arch,
                     &fmt_label,
-                    exprs.len(),
+                    &is_floats,
                     self.ctx.stack_offset,
                     self.os,
                 );
