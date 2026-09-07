@@ -39,7 +39,7 @@ impl CliArgs {
     pub fn parse_from(args: &[String]) -> Result<Option<Self>, String> {
         if args.len() < 2 {
             Self::print_usage();
-            return Err("Error: No arguments provided.".to_string());
+            return Ok(None);
         }
 
         let first = args[1].as_str();
@@ -283,6 +283,7 @@ mod tests {
 
     #[test]
     fn test_help_and_version() {
+        assert_eq!(CliArgs::parse_from(&to_args(&["alyac"])), Ok(None));
         assert_eq!(CliArgs::parse_from(&to_args(&["alyac", "--help"])), Ok(None));
         assert_eq!(CliArgs::parse_from(&to_args(&["alyac", "help"])), Ok(None));
         assert_eq!(CliArgs::parse_from(&to_args(&["alyac", "--version"])), Ok(None));
