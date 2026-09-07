@@ -107,4 +107,16 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %ebp\n");
     out.push_str("    ret\n\n");
 
+    // fn_target_os
+    out.push_str(".global fn_target_os\n");
+    out.push_str("fn_target_os:\n");
+    out.push_str("    mov $alya_str_target_os, %eax\n");
+    out.push_str("    ret\n\n");
+
+    // fn_target_arch
+    out.push_str(".global fn_target_arch\n");
+    out.push_str("fn_target_arch:\n");
+    out.push_str("    mov $alya_str_target_arch, %eax\n");
+    out.push_str("    ret\n\n");
 }
+

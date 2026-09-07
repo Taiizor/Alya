@@ -332,6 +332,11 @@ for arg in c_args
 end
 
 # 3. Platform & system
+say target_os()
+say target_arch()
+say os_name()
+say arch()
+say is_windows() + is_linux() + is_macos()
 say is_windows() + is_posix()
 if len(platform()) > 0
     say "platform_ok"
@@ -350,28 +355,52 @@ end
 let ret = exec("echo test > " + null_device())
 say ret
 "#;
+    let expected_os = if cfg!(target_os = "windows") {
+        "windows"
+    } else if cfg!(target_os = "macos") {
+        "macos"
+    } else {
+        "linux"
+    };
+
+    let expected_arch = if cfg!(target_arch = "aarch64") {
+        "arm64"
+    } else if cfg!(target_arch = "x86") {
+        "x86"
+    } else {
+        "x64"
+    };
+
     if let Some((code, output)) = run_alya_code_with_args(code, &["--flag", "input.txt"]) {
         assert_eq!(code, 0);
         assert_eq!(
             output,
-            concat!(
-                "default_val\n",
-                "0\n",
-                "1\n",
-                "2\n",
-                "--flag\n",
-                "input.txt\n",
-                "out_of_bounds\n",
-                "1\n",
-                "0\n",
-                "arg: --flag\n",
-                "arg: input.txt\n",
-                "1\n",
-                "platform_ok\n",
-                "temp_dir_ok\n",
-                "null_device_ok\n",
-                "path_sep_ok\n",
-                "0\n",
+            format!(
+                concat!(
+                    "default_val\n",
+                    "0\n",
+                    "1\n",
+                    "2\n",
+                    "--flag\n",
+                    "input.txt\n",
+                    "out_of_bounds\n",
+                    "1\n",
+                    "0\n",
+                    "arg: --flag\n",
+                    "arg: input.txt\n",
+                    "{}\n",
+                    "{}\n",
+                    "{}\n",
+                    "{}\n",
+                    "1\n",
+                    "1\n",
+                    "platform_ok\n",
+                    "temp_dir_ok\n",
+                    "null_device_ok\n",
+                    "path_sep_ok\n",
+                    "0\n",
+                ),
+                expected_os, expected_arch, expected_os, expected_arch
             )
         );
     }

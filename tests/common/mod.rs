@@ -34,7 +34,8 @@ pub fn run_alya_code_with_input_and_args(
     let tokens = lexer.tokenize().expect("Lexer error");
     let mut parser = Parser::new(tokens);
     let mut ast = parser.parse().expect("Parser error");
-    let _ = alya::parser::resolve_imports(&mut ast, std::path::Path::new("."));
+    alya::parser::resolve_imports(&mut ast, std::path::Path::new("."))
+        .expect("Module import resolution failed");
 
     let os = if cfg!(target_os = "windows") {
         OperatingSystem::Windows

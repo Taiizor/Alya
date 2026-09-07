@@ -1,5 +1,39 @@
 # Alya Standard Library - OS Module
-# Provides operating system, environment, command execution, and CLI interactions.
+# Provides operating system, platform, architecture, environment, and CLI interactions.
+
+# --- Platform & Architecture ---
+
+function os_name()
+    return target_os()
+end
+
+function arch_name()
+    return target_arch()
+end
+
+function arch()
+    return target_arch()
+end
+
+function platform()
+    return target_os()
+end
+
+function is_windows()
+    return target_os() == "windows"
+end
+
+function is_linux()
+    return target_os() == "linux"
+end
+
+function is_macos()
+    return target_os() == "macos"
+end
+
+function is_posix()
+    return target_os() != "windows"
+end
 
 # --- Environment Variables ---
 
@@ -61,101 +95,96 @@ function has_arg(flag)
     return 0
 end
 
-# --- System & Platform Information ---
-
-function is_windows()
-    if get_env("OS") == "Windows_NT" or len(get_env("WINDIR")) > 0 or len(get_env("SystemRoot")) > 0
-        return 1
-    end
-    return 0
-end
-
-function is_posix()
-    if is_windows() == 1
-        return 0
-    end
-    return 1
-end
-
-function platform()
-    if is_windows() == 1
-        return "windows"
-    end
-    let cf = get_env("__CF_USER_TEXT_ENCODING")
-    let ostype = get_env("OSTYPE")
-    if len(cf) > 0 or ostype == "darwin"
-        return "macos"
-    end
-    return "linux"
-end
+# --- Filesystem & Platform Helpers ---
 
 function temp_dir()
-    if is_windows() == 1
-        let t = get_env("TEMP")
-        if len(t) > 0
-            return t
-        end
-        t = get_env("TMP")
-        if len(t) > 0
-            return t
-        end
-        return "C:/Windows/Temp"
+    when target_os()
+        is "windows"
+            let t = get_env("TEMP")
+            if len(t) > 0
+                return t
+            end
+            t = get_env("TMP")
+            if len(t) > 0
+                return t
+            end
+            return "C:/Windows/Temp"
+        else
+            let t = get_env("TMPDIR")
+            if len(t) > 0
+                return t
+            end
+            return "/tmp"
     end
-    let t = get_env("TMPDIR")
-    if len(t) > 0
-        return t
-    end
-    return "/tmp"
 end
 
 function home_dir()
-    if is_windows() == 1
-        let h = get_env("USERPROFILE")
-        if len(h) > 0
-            return h
-        end
-        let drive, p = get_env("HOMEDRIVE"), get_env("HOMEPATH")
-        if len(drive) > 0 and len(p) > 0
-            return drive + p
-        end
-        return ""
+    when target_os()
+        is "windows"
+            let h = get_env("USERPROFILE")
+            if len(h) > 0
+                return h
+            end
+            let drive, p = get_env("HOMEDRIVE"), get_env("HOMEPATH")
+            if len(drive) > 0 and len(p) > 0
+                return drive + p
+            end
+            return ""
+        else
+            return get_env("HOME")
     end
-    return get_env("HOME")
 end
 
 function user_name()
-    if is_windows() == 1
-        let u = get_env("USERNAME")
-        if len(u) > 0
-            return u
-        end
+    when target_os()
+        is "windows"
+            let u = get_env("USERNAME")
+            if len(u) > 0
+                return u
+            end
+        else
+            let u = get_env("USER")
+            if len(u) > 0
+                return u
+            end
+            return get_env("LOGNAME")
     end
-    let u = get_env("USER")
-    if len(u) > 0
-        return u
-    end
-    return get_env("LOGNAME")
+    return ""
 end
 
 function hostname()
-    let h = get_env("COMPUTERNAME")
-    if len(h) > 0
-        return h
+    when target_os()
+        is "windows"
+            let h = get_env("COMPUTERNAME")
+            if len(h) > 0
+                return h
+            end
+        else
+            let h = get_env("HOSTNAME")
+            if len(h) > 0
+                return h
+            end
     end
-    return get_env("HOSTNAME")
+    return ""
 end
 
 function null_device()
-    if is_windows() == 1
-        return "NUL"
+    when target_os()
+        is "windows"
+            return "NUL"
+        else
+            return "/dev/null"
     end
-    return "/dev/null"
 end
 
 function path_list_separator()
-    if is_windows() == 1
-        return ";"
+    when target_os()
+        is "windows"
+            return ";"
+        else
+            return ":"
     end
-    return ":"
 end
+
+
 

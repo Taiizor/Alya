@@ -100,4 +100,18 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    ldp x29, x30, [sp], #48\n");
     out.push_str("    ret\n\n");
 
+    // fn_target_os
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_target_os\n");
+    out.push_str("fn_target_os:\n");
+    emit_adrp_add(out, "x0", "alya_str_target_os", os);
+    out.push_str("    ret\n\n");
+
+    // fn_target_arch
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_target_arch\n");
+    out.push_str("fn_target_arch:\n");
+    emit_adrp_add(out, "x0", "alya_str_target_arch", os);
+    out.push_str("    ret\n\n");
 }
+

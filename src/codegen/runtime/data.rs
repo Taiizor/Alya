@@ -70,6 +70,20 @@ pub fn emit_data_sections(
         out.push_str("\n.section .rodata\n");
     }
 
+    let os_str = match os {
+        OperatingSystem::Windows => "windows",
+        OperatingSystem::Linux => "linux",
+        OperatingSystem::MacOS => "macos",
+    };
+    let arch_str = match arch {
+        Architecture::X64 => "x64",
+        Architecture::X86 => "x86",
+        Architecture::ARM64 => "arm64",
+    };
+    out.push_str("alya_str_target_os:\n");
+    out.push_str(&format!("    {} \"{}\"\n", str_directive, os_str));
+    out.push_str("alya_str_target_arch:\n");
+    out.push_str(&format!("    {} \"{}\"\n", str_directive, arch_str));
     out.push_str("alya_str_empty:\n");
     out.push_str(&format!("    {} \"\"\n", str_directive));
     out.push_str("alya_str_mode_rb:\n");
