@@ -1,0 +1,40 @@
+use crate::ast::*;
+
+pub fn collect_function_defs<'a>(
+    stmts: &'a [Stmt],
+    defs: &mut Vec<(&'a str, &'a [String], &'a [Stmt])>,
+) {
+    for stmt in stmts {
+        match stmt {
+            Stmt::Function { name, params, body } => {
+                defs.push((name.as_str(), params.as_slice(), body.as_slice()));
+                collect_function_defs(body, defs);
+            }
+            Stmt::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                collect_function_defs(then_block, defs);
+                if let Some(eb) = else_block {
+                    collect_function_defs(eb, defs);
+                }
+            }
+            Stmt::While { body, .. }
+            | Stmt::For { body, .. }
+            | Stmt::ForEach { body, .. }
+            | Stmt::Repeat { body } => {
+                collect_function_defs(body, defs);
+            }
+            Stmt::TryCatch {
+                try_block,
+                catch_block,
+                ..
+            } => {
+                collect_function_defs(try_block, defs);
+                collect_function_defs(catch_block, defs);
+            }
+            _ => {}
+        }
+    }
+}
