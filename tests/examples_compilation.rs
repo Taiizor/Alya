@@ -363,7 +363,12 @@ While broke early at w = 4\n\
 Repeat item: 1\n\
 Repeat item: 2\n\
 Repeat item: 3\n\
-Repeat broke at r = 4\n",
+Repeat broke at r = 4\n\
+\n\
+=== Loop with Continue ===\n\
+Odd number: 1\n\
+Odd number: 3\n\
+Odd number: 5\n",
         ),
         "main.alya" => Some(
             "Enter name: Hello, TestUser! Welcome to Alya.\n\

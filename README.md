@@ -213,6 +213,17 @@ repeat
         break
     end
 end
+
+# Loop Control: break & continue
+for i in 1..5
+    if i == 2
+        continue    # Skip iteration
+    end
+    if i == 4
+        break       # Exit loop early
+    end
+    say i           # 1, 3
+end
 ```
 
 ### 6. Functions

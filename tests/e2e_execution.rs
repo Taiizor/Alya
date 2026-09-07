@@ -591,3 +591,41 @@ say "Dot product: {dot}"
         );
     }
 }
+
+#[test]
+fn test_e2e_break_and_continue() {
+    let code = r#"
+let sum = 0
+for i in 1..10
+    if i % 2 == 0
+        continue
+    end
+    if i > 6
+        break
+    end
+    sum += i
+end
+say sum
+
+let w = 0
+let w_sum = 0
+while w < 10
+    w += 1
+    if w == 2
+        continue
+    end
+    if w == 5
+        break
+    end
+    w_sum += w
+end
+say w_sum
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        // for loop: 1 + 3 + 5 = 9
+        // while loop: w=1 (sum=1), w=2 (continue), w=3 (sum=4), w=4 (sum=8), w=5 (break) -> 8
+        assert_eq!(output, "9\n8\n");
+    }
+}
+

@@ -38,3 +38,13 @@ repeat
     say "Repeat item: {r}"
     r += 1
 end
+
+# 5. Loop with continue (skipping iterations)
+say "\n=== Loop with Continue ==="
+for num in 1..6
+    if num % 2 == 0
+        continue
+    end
+    say "Odd number: {num}"
+end
+
