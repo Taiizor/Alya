@@ -1,68 +1,6 @@
-#[derive(Debug, Clone, PartialEq)]
-pub enum TokenType {
-    // Keywords
-    Say,        // say (like print)
-    Let,        // let (variable declaration)
-    If,         // if
-    Else,       // else
-    While,      // while
-    For,        // for
-    In,         // in
-    Function,   // function
-    End,        // end
-    Return,     // return
-    When,       // when (pattern matching)
-    Is,         // is
-    Then,       // then
-    Repeat,     // repeat (infinite loop)
-    Break,      // break
-    Continue,   // continue
-    Ask,        // ask (input)
+pub mod token;
 
-    // Literals
-    Number(f64),
-    String(String),
-    Identifier(String),
-    True,
-    False,
-
-    // Operators
-    Plus,       // +
-    Minus,      // -
-    Multiply,   // *
-    Divide,     // /
-    Modulo,     // %
-    Assign,     // =
-    Equal,      // ==
-    NotEqual,   // !=
-    Less,       // <
-    Greater,    // >
-    LessEqual,  // <=
-    GreaterEqual, // >=
-    And,        // and
-    Or,         // or
-    Not,        // not
-
-    // Delimiters
-    LeftParen,  // (
-    RightParen, // )
-    LeftBrace,  // {
-    RightBrace, // }
-    Comma,      // ,
-    Dot,        // .
-    DotDot,     // ..
-    Newline,    // \n
-
-    // Special
-    Eof,
-}
-
-#[derive(Debug, Clone)]
-pub struct Token {
-    pub token_type: TokenType,
-    pub line: usize,
-    pub column: usize,
-}
+pub use token::{Token, TokenType};
 
 pub struct Lexer {
     input: Vec<char>,
@@ -135,7 +73,7 @@ impl Lexer {
         while let Some(ch) = self.current_char() {
             if ch.is_ascii_digit() {
                 self.advance();
-            } else if ch == '.' && !has_dot && self.peek_char().map_or(false, |c| c.is_ascii_digit()) {
+            } else if ch == '.' && !has_dot && self.peek_char().is_some_and(|c| c.is_ascii_digit()) {
                 has_dot = true;
                 self.advance();
             } else {
@@ -144,7 +82,8 @@ impl Lexer {
         }
 
         let num_str: String = self.input[start_pos..self.position].iter().collect();
-        num_str.parse::<f64>()
+        num_str
+            .parse::<f64>()
             .map_err(|_| format!("Invalid number: {}", num_str))
     }
 
@@ -348,7 +287,10 @@ impl Lexer {
                             column,
                         });
                     } else {
-                        return Err(format!("Unexpected character '!' at line {}, column {}", line, column));
+                        return Err(format!(
+                            "Unexpected character '!' at line {}, column {}",
+                            line, column
+                        ));
                     }
                 }
                 '<' => {
@@ -427,7 +369,10 @@ impl Lexer {
                     });
                 }
                 _ => {
-                    return Err(format!("Unexpected character '{}' at line {}, column {}", ch, line, column));
+                    return Err(format!(
+                        "Unexpected character '{}' at line {}, column {}",
+                        ch, line, column
+                    ));
                 }
             }
         }

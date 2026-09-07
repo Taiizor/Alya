@@ -8,6 +8,10 @@ license = "MIT"
 
 [dependencies]
 
+[lib]
+name = "alya"
+path = "src/lib.rs"
+
 [[bin]]
 name = "alyac"
 path = "src/main.rs"
