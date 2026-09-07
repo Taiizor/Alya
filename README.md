@@ -35,7 +35,7 @@
 
 - 🌟 **Expressive & Readable**: English-like keywords (`say`, `ask`, `when`, `repeat`, `function`).
 - 📁 **Modules & Imports**: Split code cleanly across multiple files with `import "module.alya"`, complete with circular dependency prevention.
-- 📚 **Standard Library**: Pre-bundled modules for `std/math`, `std/time`, `std/os`, and `std/json` with zero-config embedded compiler fallbacks.
+- 📚 **Standard Library**: Pre-bundled modules for `std/math`, `std/time`, `std/os`, `std/json`, and `std/mem` (high-performance Arena allocator & raw pointer management) with zero-config embedded compiler fallbacks.
 - 📦 **Arrays & Iteration**: Dynamic array literals (`[1, 2, 3]`), 0-based indexing (`arr[i]`), mutation (`arr[i] = val`), direct iteration (`for item in arr ... end`), querying (`len(arr)`), and automatic bounds safety.
 - 🗺️ **Hash Maps & Dictionaries**: Fast associative key-value storage (`map()`), bracket indexing (`m[k] = v`, `m[k]`), query methods (`m.len()`, `m.contains(k)` / `m.has(k)`), mutation (`m.set(k, v)`, `m.remove(k)`), collections (`m.keys()`, `m.values()`), and formatted output (`say m`).
 - 💾 **File I/O**: Standalone file system access with `read_file(path)`, `write_file(path, content)`, `file_exists(path)`, and `delete_file(path)` / `remove_file(path)`.
@@ -363,6 +363,7 @@ import "std/math"
 import "std/time"
 import "std/os"
 import "std/json"
+import "std/mem"
 
 # Math utilities and constants
 say PI                      # 3.14159
@@ -382,6 +383,15 @@ say json_number(42)         # 42
 say json_string("test")     # "test"
 say json_bool(1)            # true
 say json_array(["1", "2"])  # [1, 2]
+
+# High-performance Arena Allocator (O(1) allocation, bulk reset & free)
+let arena = arena_new(1024)
+let block = arena_alloc_mem(arena, 64)
+poke_byte(block, 0, 65)     # 'A'
+poke_byte(block, 1, 0)
+say str_from_ptr(block)     # "A"
+arena_clear(arena)          # Instant bulk reset
+arena_free_all(arena)       # Release all memory chunks
 ```
 
 ### 11. Floating-Point Numbers

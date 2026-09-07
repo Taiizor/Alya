@@ -23,6 +23,7 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "read_file"
                     | "get_env"
                     | "env"
+                    | "str_from_ptr"
             ) {
                 return true;
             }
@@ -170,6 +171,7 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
                     | "read_file"
                     | "get_env"
                     | "env"
+                    | "str_from_ptr"
             ) {
                 return true;
             }

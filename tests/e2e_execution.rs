@@ -1240,3 +1240,35 @@ say json_array(items)
         );
     }
 }
+
+#[test]
+fn test_e2e_memory_and_arena() {
+    let code = r#"
+import "std/mem"
+
+let ptr = alloc(16)
+poke_byte(ptr, 0, 89) # 'Y'
+poke_byte(ptr, 1, 0)
+say str_from_ptr(ptr)
+say peek_byte(ptr, 0)
+poke_int(ptr, 8, 424242)
+say peek_int(ptr, 8)
+free(ptr)
+
+let a = arena_new(256)
+let m1 = arena_alloc_mem(a, 32)
+poke_int(m1, 0, 777)
+say peek_int(m1, 0)
+say arena_total_allocated(a)
+arena_clear(a)
+say arena_total_allocated(a)
+arena_free_all(a)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!("Y\n", "89\n", "424242\n", "777\n", "32\n", "0\n",)
+        );
+    }
+}

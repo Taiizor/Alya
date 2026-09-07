@@ -9,7 +9,11 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern _getchar\n");
         out.push_str(".extern _fflush\n");
         out.push_str(".extern _calloc\n");
+        out.push_str(".extern _malloc\n");
+        out.push_str(".extern _free\n");
         out.push_str(".extern _realloc\n");
+        out.push_str(".extern _memcpy\n");
+        out.push_str(".extern _memset\n");
         out.push_str(".extern _time\n");
         out.push_str(".extern _getenv\n");
         out.push_str(".extern _system\n");
@@ -27,7 +31,11 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern getchar\n");
         out.push_str(".extern fflush\n");
         out.push_str(".extern calloc\n");
+        out.push_str(".extern malloc\n");
+        out.push_str(".extern free\n");
         out.push_str(".extern realloc\n");
+        out.push_str(".extern memcpy\n");
+        out.push_str(".extern memset\n");
         out.push_str(".extern time\n");
         out.push_str(".extern getenv\n");
         out.push_str(".extern system\n");

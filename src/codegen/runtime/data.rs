@@ -17,7 +17,7 @@ pub fn emit_data_sections(
     }
 
     out.push_str("alya_str_buf:\n");
-    out.push_str("    .space 65536\n");
+    out.push_str("    .space 1048576\n");
     match arch {
         Architecture::ARM64 | Architecture::X64 => {
             out.push_str("alya_str_idx:\n");

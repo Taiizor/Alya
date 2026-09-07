@@ -87,6 +87,7 @@ fn get_embedded_stdlib(module: &str) -> Option<&'static str> {
         "time" => Some(include_str!("../../stdlib/time.alya")),
         "os" => Some(include_str!("../../stdlib/os.alya")),
         "json" => Some(include_str!("../../stdlib/json.alya")),
+        "mem" => Some(include_str!("../../stdlib/mem.alya")),
         _ => None,
     }
 }

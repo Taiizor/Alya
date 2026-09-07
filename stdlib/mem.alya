@@ -1,0 +1,54 @@
+# Alya Standard Library - Memory & Arena Allocator Module
+# Provides high-performance Arena memory allocation and raw pointer utilities.
+
+struct Arena
+    handle
+    chunk_size
+end
+
+# Creates a new Arena allocator with the specified default chunk size (bytes).
+# If chunk_size is 0 or negative, 65536 bytes (64KB) is used by default.
+function arena_new(chunk_size)
+    if chunk_size <= 0
+        chunk_size = 65536
+    end
+    let h = arena_create(chunk_size)
+    return Arena(h, chunk_size)
+end
+
+# Allocates 'size' bytes from the arena.
+# The allocation is O(1) and aligned to 8 bytes.
+function arena_alloc_mem(arena, size)
+    return arena_alloc(arena.handle, size)
+end
+
+# Resets all allocations within the arena.
+# Memory chunks are retained for instant reuse without OS reallocation overhead.
+function arena_clear(arena)
+    arena_reset(arena.handle)
+end
+
+# Destroys the arena and frees all underlying chunk memory back to the system.
+function arena_free_all(arena)
+    arena_destroy(arena.handle)
+end
+
+# Returns the total number of bytes currently allocated through this arena.
+function arena_total_allocated(arena)
+    return arena_allocated(arena.handle)
+end
+
+# Allocates 'size' bytes from the system heap using malloc.
+function alloc_mem(size)
+    return alloc(size)
+end
+
+# Frees memory previously allocated by alloc() or realloc().
+function free_mem(ptr)
+    free(ptr)
+end
+
+# Resizes an existing heap allocation.
+function realloc_mem(ptr, size)
+    return realloc(ptr, size)
+end

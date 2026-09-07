@@ -677,6 +677,7 @@ import "std/math"
 import "std/time"
 import "std/os"
 import "std/json"
+import "std/mem"
 say PI
 "#;
     let mut lexer = Lexer::new(code);
@@ -705,11 +706,16 @@ say PI
         Stmt::Function { name, .. } => name == "json_bool",
         _ => false,
     });
+    let has_arena_new = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "arena_new",
+        _ => false,
+    });
 
     assert!(has_hypot, "Missing hypot from std/math");
     assert!(has_now, "Missing now from std/time");
     assert!(has_env, "Missing env from std/os");
     assert!(has_json_bool, "Missing json_bool from std/json");
+    assert!(has_arena_new, "Missing arena_new from std/mem");
 }
 
 #[test]

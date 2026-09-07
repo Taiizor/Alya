@@ -7,7 +7,11 @@ pub fn emit_header(out: &mut String) {
     out.push_str(".extern getchar\n");
     out.push_str(".extern fflush\n");
     out.push_str(".extern calloc\n");
+    out.push_str(".extern malloc\n");
+    out.push_str(".extern free\n");
     out.push_str(".extern realloc\n");
+    out.push_str(".extern memcpy\n");
+    out.push_str(".extern memset\n");
     out.push_str(".extern time\n");
     out.push_str(".extern getenv\n");
     out.push_str(".extern system\n");
