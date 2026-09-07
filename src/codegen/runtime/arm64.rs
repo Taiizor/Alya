@@ -27,7 +27,8 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     emit_adrp_add(out, "x19", "alya_str_buf", os);
     emit_adrp_add(out, "x20", "alya_str_idx", os);
     out.push_str("    ldr x21, [x20]\n");
-    out.push_str("    cmp x21, #48000\n");
+    out.push_str("    mov x9, #48000\n");
+    out.push_str("    cmp x21, x9\n");
     out.push_str("    b.lt .L_arm_concat_ok\n");
     out.push_str("    mov x21, #0\n");
     out.push_str(".L_arm_concat_ok:\n");
@@ -107,7 +108,8 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     emit_adrp_add(out, "x19", "alya_str_buf", os);
     emit_adrp_add(out, "x20", "alya_str_idx", os);
     out.push_str("    ldr x2, [x20]\n");
-    out.push_str("    cmp x2, #48000\n");
+    out.push_str("    mov x9, #48000\n");
+    out.push_str("    cmp x2, x9\n");
     out.push_str("    b.lt .L_arm_ask_buf_ok\n");
     out.push_str("    mov x2, #0\n");
     out.push_str(".L_arm_ask_buf_ok:\n");
