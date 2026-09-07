@@ -1,24 +1,22 @@
-# Fibonacci-style number sequence in Alya
-# Demonstrates the power of arithmetic expressions
+# Fibonacci sequence in Alya
+# Demonstrates loops, variables, and arithmetic expressions
 
-say "Number sequence demonstration:"
-say "Starting with Fibonacci-like pattern"
+say "=== Fibonacci Sequence in Alya ==="
 
-# First 10 Fibonacci numbers shown explicitly
-say "First 10 Fibonacci numbers:"
-say 0
-say 1
-say 1
-say 2
-say 3
-say 5
-say 8
-say 13
-say 21
-say 34
+say "Computing first 10 Fibonacci numbers with a loop:"
 
-say "Computing Fibonacci numbers with expressions:"
-say "Manual calculations demonstrating how to compute Fibonacci:"
+let a = 0
+let b = 1
+let temp = 0
+
+for i in 1..10
+    say a
+    temp = a + b
+    a = b
+    b = temp
+end
+
+say "\nStep-by-step recurrence demonstration:"
 say "F(5) = F(4) + F(3) = 3 + 2 = "
 say 3 + 2
 
