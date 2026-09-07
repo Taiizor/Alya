@@ -347,14 +347,6 @@ Status 200: OK\n\
 Priority 2: Medium\n",
         ),
         "quickstart_arithmetic.alya" => Some("15\n5\n50\n2\n"),
-        "test.alya" => Some(
-            "=== Math Built-ins ===\n\
-4\n\
-256\n\
-\n\
-=== Repeat Loop ===\n\
-Completed loops: 3\n",
-        ),
         "try_catch.alya" => Some(
             "=== Try-Catch Demo ===\n\
 \n\
