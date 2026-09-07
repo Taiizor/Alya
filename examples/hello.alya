@@ -1,3 +1,5 @@
 # Hello World in Alya
+# The canonical entry program demonstrating basic console output
+
 say "Hello, World!"
 say "Welcome to Alya programming language!"

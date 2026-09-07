@@ -1,10 +1,32 @@
-# Conditionals from README.md
-let score = 85
+# Conditionals in Alya
+# Demonstrates if, elif, else, and logical operators (&&, ||, !)
 
+let score = 85
+let attendance = 92
+let has_recommendation = false
+
+say "=== Academic Evaluation ==="
+say "Score:      {score}"
+say "Attendance: {attendance}%"
+
+# 1. if / elif / else branching
 if score >= 90
-    say "Excellent!"
-else if score >= 70
-    say "Good job!"
+    say "Result: Grade A - Excellent!"
+elif score >= 75
+    say "Result: Grade B - Good job!"
+elif score >= 50
+    say "Result: Grade C - Passed"
 else
-    say "Keep trying!"
+    say "Result: Need improvement"
+end
+
+# 2. Logical operators (&&, ||, !)
+if (score >= 80) && (attendance >= 90)
+    say "Status: Eligible for honors"
+else
+    say "Status: Regular standing"
+end
+
+if has_recommendation || score >= 85
+    say "Award:  Scholarship considered"
 end

@@ -1,4 +1,5 @@
-# Clean, expressive & type-safe
+# Comprehensive showcase in Alya
+# Demonstrates functions, user input, arithmetic, string interpolation, and try-catch
 function greet(user)
     say "Hello, {user}! Welcome to Alya."
 end

@@ -1,12 +1,25 @@
-# Loops from README.md
-# For loop
+# Loops in Alya
+# Demonstrates for loops, while loops, compound assignment, and break statement
+
+say "=== For Loop (Range 1..5) ==="
 for i in 1..5
-    say i
+    say "Iteration {i}"
 end
 
-# While loop
+say "\n=== While Loop with += ==="
 let count = 0
-while count < 5
-    say count
-    count = count + 1
+while count < 4
+    count += 1
+    say "Count: {count}"
+end
+
+say "\n=== Loop with Early Break ==="
+let n = 1
+while n <= 10
+    if n > 3
+        say "Breaking loop at n = {n}"
+        break
+    end
+    say "Processing item {n}"
+    n += 1
 end

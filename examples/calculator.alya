@@ -1,34 +1,55 @@
 # Simple calculator in Alya
-# Demonstrates arithmetic operations
+# Demonstrates functions, arithmetic operations, and string interpolation
+
+function add(a, b)
+    return a + b
+end
+
+function subtract(a, b)
+    return a - b
+end
+
+function multiply(a, b)
+    return a * b
+end
+
+function divide(a, b)
+    return a / b
+end
+
+function modulo(a, b)
+    return a % b
+end
 
 say "=== Simple Calculator ==="
 
-# Addition
-say "Addition: 15 + 7 = "
-say 15 + 7
+let x = 15
+let y = 7
 
-# Subtraction
-say "Subtraction: 15 - 7 = "
-say 15 - 7
+let res_add = add(x, y)
+say "Addition:       {x} + {y} = {res_add}"
 
-# Multiplication
-say "Multiplication: 15 * 7 = "
-say 15 * 7
+let res_sub = subtract(x, y)
+say "Subtraction:    {x} - {y} = {res_sub}"
 
-# Division
-say "Division: 15 / 7 = "
-say 15 / 7  # Integer division: result is 2
+let res_mul = multiply(x, y)
+say "Multiplication: {x} * {y} = {res_mul}"
 
-# Complex expressions
-say "Complex: (15 + 7) * 2 = "
-say (15 + 7) * 2
+let res_div = divide(x, y)
+say "Division:       {x} / {y} = {res_div}"
 
-say "Complex: (15 - 7) / 2 = "
-say (15 - 7) / 2
+let res_mod = modulo(x, y)
+say "Modulo:         {x} % {y} = {res_mod}"
 
-# More complex expressions
-say "Expression: 100 / 4 - 5 = "
-say 100 / 4 - 5
+say "\n=== Complex Expressions ==="
+let comp1 = (x + y) * 2
+say "({x} + {y}) * 2 = {comp1}"
 
-say "Expression: (3 + 5) * (10 - 2) = "
-say (3 + 5) * (10 - 2)
+let comp2 = (x - y) / 2
+say "({x} - {y}) / 2 = {comp2}"
+
+let comp3 = 100 / 4 - 5
+say "100 / 4 - 5 = {comp3}"
+
+let comp4 = (3 + 5) * (10 - 2)
+say "(3 + 5) * (10 - 2) = {comp4}"

@@ -163,8 +163,6 @@ say "Player {user} scored {score} points!"
 say abs(-42)            # 42
 say max(10, 25)         # 25
 say min(10, 25)         # 10
-say sqrt(16)            # 4
-say pow(2, 8)           # 256
 say len("Hello Alya")   # 10
 ```
 
@@ -199,15 +197,6 @@ end
 # For Loop (Range)
 for i in 1..5
     say i
-end
-
-# Repeat Loop
-let loops = 0
-repeat
-    loops += 1
-    if loops >= 3
-        break
-    end
 end
 ```
 

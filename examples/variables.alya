@@ -1,21 +1,21 @@
 # Variables in Alya
-# Demonstrates variable declarations and usage
+# Demonstrates variable declaration, string interpolation, and mutability
 
+# 1. Variable declarations
 let name = "Alya"
 let version = 1
-let year = 2025
+let year = 2026
+let is_open_source = true
 
 say "=== Language Information ==="
-say "Language:"
-say name
+say "Language:    {name}"
+say "Version:     {version}"
+say "Year:        {year}"
+say "Open Source: {is_open_source}"
 
-say "Version:"
-say version
-
-say "Year:"
-say year
-
-# Using variables in expressions
+# 2. Variable reassignment and expressions
 let next_version = version + 1
-say "Next version will be:"
-say next_version
+say "Next version will be: {next_version}"
+
+let age_years = 2026 - 2024
+say "Project age: {age_years} years"

@@ -17,14 +17,14 @@ for i in 1..10
 end
 
 say "\nStep-by-step recurrence demonstration:"
-say "F(5) = F(4) + F(3) = 3 + 2 = "
-say 3 + 2
+let f5 = 3 + 2
+say "F(5) = F(4) + F(3) = 3 + 2 = {f5}"
 
-say "F(6) = F(5) + F(4) = 5 + 3 = "
-say 5 + 3
+let f6 = 5 + 3
+say "F(6) = F(5) + F(4) = 5 + 3 = {f6}"
 
-say "F(7) = F(6) + F(5) = 8 + 5 = "
-say 8 + 5
+let f7 = 8 + 5
+say "F(7) = F(6) + F(5) = 8 + 5 = {f7}"
 
-say "F(8) = F(7) + F(6) = 13 + 8 = "
-say 13 + 8
+let f8 = 13 + 8
+say "F(8) = F(7) + F(6) = 13 + 8 = {f8}"

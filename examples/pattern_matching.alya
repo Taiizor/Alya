@@ -1,7 +1,24 @@
-# Pattern matching from README.md
-let value = 1
-when value
-    is 1 then say "One"
-    is 2 then say "Two"
-    else say "Other"
+# Pattern matching in Alya
+# Demonstrates when / is / else pattern matching syntax
+
+say "=== HTTP Status Code Resolver ==="
+let status = 200
+
+when status
+    is 200 then say "Status {status}: OK"
+    is 400 then say "Status {status}: Bad Request"
+    is 404 then say "Status {status}: Not Found"
+    is 500 then say "Status {status}: Internal Server Error"
+    else say "Status {status}: Unknown Status"
+end
+
+say "\n=== Priority Level Resolver ==="
+let priority = 2
+
+when priority
+    is 1 then say "Priority 1: Low"
+    is 2 then say "Priority 2: Medium"
+    is 3 then say "Priority 3: High"
+    is 4 then say "Priority 4: Critical"
+    else say "Priority: Custom"
 end
