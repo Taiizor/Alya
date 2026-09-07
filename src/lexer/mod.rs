@@ -1,4 +1,6 @@
 pub mod token;
+#[cfg(test)]
+mod tests;
 
 pub use token::{Token, TokenType};
 

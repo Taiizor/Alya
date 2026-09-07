@@ -1,5 +1,7 @@
 pub mod expr;
 pub mod stmt;
+#[cfg(test)]
+mod tests;
 
 use crate::ast::Program;
 use crate::lexer::{Token, TokenType};

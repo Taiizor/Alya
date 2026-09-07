@@ -3,6 +3,8 @@ pub mod arch;
 pub mod context;
 pub mod runtime;
 pub mod target;
+#[cfg(test)]
+mod tests;
 
 pub use target::{Architecture, OperatingSystem};
 
