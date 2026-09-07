@@ -7,16 +7,21 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Release tag (e.g. v0.1.0)'
-        required: false
-        default: 'v0.1.0'
+        description: 'Release tag (e.g. v0.0.2)'
+        required: true
+        default: 'v0.0.2'
+      prerelease:
+        description: 'Mark as prerelease'
+        type: boolean
+        required: true
+        default: false
 
 permissions:
   contents: write
 
 jobs:
-  build-release:
-    name: Build (${{ matrix.target }})
+  build:
+    name: Build (${{ matrix.platform }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -24,18 +29,22 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
+            platform: x86_64-linux
             bin: alyac
             archive: tar.gz
           - os: macos-latest
             target: x86_64-apple-darwin
+            platform: x86_64-macos
             bin: alyac
             archive: tar.gz
           - os: macos-latest
             target: aarch64-apple-darwin
+            platform: arm64-macos
             bin: alyac
             archive: tar.gz
           - os: windows-latest
             target: x86_64-pc-windows-msvc
+            platform: x86_64-windows
             bin: alyac.exe
             archive: zip
 
@@ -55,8 +64,8 @@ jobs:
         if: matrix.archive == 'tar.gz'
         shell: bash
         run: |
-          VERSION="${{ github.ref_name || inputs.tag }}"
-          PACKAGE_NAME="alyac-${VERSION}-${{ matrix.target }}"
+          VERSION="${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}"
+          PACKAGE_NAME="alyac-${VERSION}-${{ matrix.platform }}"
           mkdir "${PACKAGE_NAME}"
           cp "target/${{ matrix.target }}/release/${{ matrix.bin }}" "${PACKAGE_NAME}/"
           cp README.md LICENSE "${PACKAGE_NAME}/"
@@ -67,8 +76,8 @@ jobs:
         if: matrix.archive == 'zip'
         shell: pwsh
         run: |
-          $Version = if ($env:GITHUB_REF_NAME) { $env:GITHUB_REF_NAME } else { "${{ inputs.tag }}" }
-          $PackageName = "alyac-$Version-${{ matrix.target }}"
+          $Version = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}" } else { "${{ inputs.tag }}" }
+          $PackageName = "alyac-$Version-${{ matrix.platform }}"
           New-Item -ItemType Directory -Force -Path $PackageName | Out-Null
           Copy-Item "target/${{ matrix.target }}/release/${{ matrix.bin }}" -Destination $PackageName
           Copy-Item README.md, LICENSE -Destination $PackageName
@@ -76,13 +85,33 @@ jobs:
           $hash = (Get-FileHash -Algorithm SHA256 "$PackageName.zip").Hash.ToLower()
           "$hash  $PackageName.zip" | Out-File -FilePath "$PackageName.zip.sha256" -Encoding ascii
 
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v3
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          files: |
-            alyac-*.tar.gz
-            alyac-*.tar.gz.sha256
-            alyac-*.zip
-            alyac-*.zip.sha256
+          name: release-${{ matrix.platform }}
+          path: |
+            alyac-*-${{ matrix.platform }}.*
+          if-no-files-found: error
+
+  publish:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: dist
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: "Alya ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}"
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
+          prerelease: ${{ inputs.prerelease == true || (inputs.prerelease != false && contains(github.ref_name, '-')) }}
           generate_release_notes: true
+          files: dist/*
