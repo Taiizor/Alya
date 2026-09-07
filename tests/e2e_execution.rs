@@ -846,3 +846,74 @@ end
         assert_eq!(output, "0\n");
     }
 }
+
+#[test]
+fn test_e2e_split_and_join() {
+    let code = r#"
+let fruits_str = "apple,banana,cherry"
+let fruits = fruits_str.split(",")
+say fruits.len()
+for f in fruits
+    say f
+end
+
+let joined = fruits.join(" - ")
+say joined
+
+// Function syntax
+let words = split("hello world alya", " ")
+say join(words, "_")
+
+// Indexing split result
+say fruits[0]
+say fruits[2]
+
+// Method chaining
+let chained = "x:y:z".split(":").join("/")
+say chained
+
+// Empty delimiter (char-by-char split)
+let chars = "abc".split("")
+say chars.len()
+for c in chars
+    say c
+end
+
+// Single element & empty array join
+let single = ["solo"].join(",")
+say single
+
+let empty = [].join(",")
+say "empty: [{empty}]"
+
+// Split delimiter not found
+let no_match = "standalone".split(",")
+say no_match.len()
+say no_match[0]
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!(
+                "3\n",
+                "apple\n",
+                "banana\n",
+                "cherry\n",
+                "apple - banana - cherry\n",
+                "hello_world_alya\n",
+                "apple\n",
+                "cherry\n",
+                "x/y/z\n",
+                "3\n",
+                "a\n",
+                "b\n",
+                "c\n",
+                "solo\n",
+                "empty: []\n",
+                "1\n",
+                "standalone\n",
+            )
+        );
+    }
+}

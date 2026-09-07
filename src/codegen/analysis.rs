@@ -126,6 +126,13 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
             expr_is_definitely_string(left, known_strings)
                 || expr_is_definitely_string(right, known_strings)
         }
+        Expr::Index { array, .. } => match &**array {
+            Expr::Identifier(arr_name) => {
+                known_strings.contains(&format!("arr_is_str:{}", arr_name))
+            }
+            Expr::Call { name, .. } if name == "split" || name == "args" => true,
+            _ => false,
+        },
         _ => false,
     }
 }
@@ -133,10 +140,21 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
 fn collect_string_vars_from_stmts(stmts: &[Stmt], known_strings: &mut HashSet<String>) {
     for stmt in stmts {
         match stmt {
-            Stmt::Let { name, value, .. } | Stmt::Assign { name, value, .. }
-                if expr_is_definitely_string(value, known_strings) =>
-            {
-                known_strings.insert(name.clone());
+            Stmt::Let { name, value, .. } | Stmt::Assign { name, value, .. } => {
+                if expr_is_definitely_string(value, known_strings) {
+                    known_strings.insert(name.clone());
+                }
+                let is_str_arr = match value {
+                    Expr::Array(elems) => elems
+                        .first()
+                        .is_some_and(|e| expr_is_definitely_string(e, known_strings)),
+                    Expr::Call { name: cname, .. } if cname == "split" || cname == "args" => true,
+                    Expr::Identifier(src) => known_strings.contains(&format!("arr_is_str:{}", src)),
+                    _ => false,
+                };
+                if is_str_arr {
+                    known_strings.insert(format!("arr_is_str:{}", name));
+                }
             }
             Stmt::TryCatch {
                 try_block,
@@ -236,6 +254,12 @@ fn expr_is_definitely_float(expr: &Expr, known_floats: &HashSet<String>) -> bool
             expr,
         } => expr_is_definitely_float(expr, known_floats),
         Expr::Call { name, .. } => name == "float",
+        Expr::Index { array, .. } => match &**array {
+            Expr::Identifier(arr_name) => {
+                known_floats.contains(&format!("arr_is_flt:{}", arr_name))
+            }
+            _ => false,
+        },
         _ => false,
     }
 }
@@ -243,10 +267,20 @@ fn expr_is_definitely_float(expr: &Expr, known_floats: &HashSet<String>) -> bool
 fn collect_float_vars_from_stmts(stmts: &[Stmt], known_floats: &mut HashSet<String>) {
     for stmt in stmts {
         match stmt {
-            Stmt::Let { name, value, .. } | Stmt::Assign { name, value, .. }
-                if expr_is_definitely_float(value, known_floats) =>
-            {
-                known_floats.insert(name.clone());
+            Stmt::Let { name, value, .. } | Stmt::Assign { name, value, .. } => {
+                if expr_is_definitely_float(value, known_floats) {
+                    known_floats.insert(name.clone());
+                }
+                let is_flt_arr = match value {
+                    Expr::Array(elems) => elems
+                        .first()
+                        .is_some_and(|e| expr_is_definitely_float(e, known_floats)),
+                    Expr::Identifier(src) => known_floats.contains(&format!("arr_is_flt:{}", src)),
+                    _ => false,
+                };
+                if is_flt_arr {
+                    known_floats.insert(format!("arr_is_flt:{}", name));
+                }
             }
             Stmt::TryCatch {
                 try_block,
