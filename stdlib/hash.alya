@@ -4,13 +4,12 @@
 function djb2(s)
     let slen = len(s)
     let h = 5381
-    let i = 0
-    let c = 0
+    let i, c = 0
     while i < slen
         c = ord(char_at(s, i))
         h = (bit_shl(h, 5) + h) + c
         h = bit_and(h, 2147483647)
-        i = i + 1
+        i += 1
     end
     return h
 end
@@ -18,14 +17,13 @@ end
 function fnv1a(s)
     let slen = len(s)
     let h = 2166136261
-    let i = 0
-    let c = 0
+    let i, c = 0
     while i < slen
         c = ord(char_at(s, i))
         h = bit_xor(h, c)
         h = h * 16777619
         h = bit_and(h, 2147483647)
-        i = i + 1
+        i += 1
     end
     return h
 end
@@ -34,45 +32,37 @@ function hex_encode(s)
     let hex_chars = "0123456789abcdef"
     let slen = len(s)
     let res = ""
-    let i = 0
-    let c = 0
-    let hi = 0
-    let lo = 0
+    let i, c, hi, lo = 0
     while i < slen
         c = ord(char_at(s, i))
         hi = bit_and(bit_shr(c, 4), 15)
         lo = bit_and(c, 15)
         res = res + char_at(hex_chars, hi) + char_at(hex_chars, lo)
-        i = i + 1
+        i += 1
     end
     return res
 end
 
 function _hex_val(ch)
     let c = ord(ch)
-    if c >= 48 and c <= 57
-        return c - 48
-    elif c >= 97 and c <= 102
-        return c - 87
-    elif c >= 65 and c <= 70
-        return c - 55
+    when c
+        is 48..57 then return c - 48
+        is 97..102 then return c - 87
+        is 65..70 then return c - 55
+        else return 0
     end
-    return 0
 end
 
 function hex_decode(s)
     let slen = len(s)
     let res = ""
-    let i = 0
-    let hi = 0
-    let lo = 0
-    let b = 0
+    let i, hi, lo, b = 0
     while i + 1 < slen
         hi = _hex_val(char_at(s, i))
         lo = _hex_val(char_at(s, i + 1))
         b = bit_or(bit_shl(hi, 4), lo)
         res = res + chr(b)
-        i = i + 2
+        i += 2
     end
     return res
 end
@@ -81,16 +71,7 @@ function base64_encode(s)
     let b64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
     let slen = len(s)
     let res = ""
-    let i = 0
-    let b0 = 0
-    let b1 = 0
-    let b2 = 0
-    let has_b1 = 0
-    let has_b2 = 0
-    let idx0 = 0
-    let idx1 = 0
-    let idx2 = 0
-    let idx3 = 0
+    let i, b0, b1, b2, has_b1, has_b2, idx0, idx1, idx2, idx3 = 0
     while i < slen
         b0 = ord(char_at(s, i))
         b1 = 0
@@ -123,42 +104,28 @@ function base64_encode(s)
         else
             res = res + "="
         end
-        i = i + 3
+        i += 3
     end
     return res
 end
 
 function _b64_val(ch)
     let c = ord(ch)
-    if c >= 65 and c <= 90
-        return c - 65
-    elif c >= 97 and c <= 122
-        return c - 71
-    elif c >= 48 and c <= 57
-        return c + 4
-    elif c == 43
-        return 62
-    elif c == 47
-        return 63
+    when c
+        is 65..90 then return c - 65
+        is 97..122 then return c - 71
+        is 48..57 then return c + 4
+        is 43 then return 62
+        is 47 then return 63
+        else return 0
     end
-    return 0
 end
 
 function base64_decode(s)
     let slen = len(s)
     let res = ""
-    let i = 0
-    let c0 = ""
-    let c1 = ""
-    let c2 = ""
-    let c3 = ""
-    let v0 = 0
-    let v1 = 0
-    let v2 = 0
-    let v3 = 0
-    let b0 = 0
-    let b1 = 0
-    let b2 = 0
+    let i, v0, v1, v2, v3, b0, b1, b2 = 0
+    let c0, c1, c2, c3 = ""
     while i + 3 < slen
         c0 = char_at(s, i)
         c1 = char_at(s, i + 1)
@@ -181,7 +148,7 @@ function base64_decode(s)
             b2 = bit_and(bit_or(bit_shl(bit_and(v2, 3), 6), v3), 255)
             res = res + chr(b2)
         end
-        i = i + 4
+        i += 4
     end
     return res
 end

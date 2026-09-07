@@ -1,4 +1,4 @@
-﻿# Alya Standard Library - JSON Helper Module
+# Alya Standard Library - JSON Helper Module
 # Provides serialization utilities for JSON formatting.
 
 function json_number(n)
@@ -10,10 +10,9 @@ function json_string(s)
 end
 
 function json_bool(b)
-    if b
-        return "true"
-    else
-        return "false"
+    when b
+        is 1 then return "true"
+        else return "false"
     end
 end
 
@@ -29,7 +28,7 @@ function json_array(items)
             res = res + ", "
         end
         res = res + items[i]
-        i = i + 1
+        i += 1
     end
     res = res + "]"
     return res
@@ -49,7 +48,7 @@ function json_object(m)
             res = res + ", "
         end
         res = res + "\"" + str(k[i]) + "\": " + str(v[i])
-        i = i + 1
+        i += 1
     end
     res = res + "}"
     return res

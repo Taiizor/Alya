@@ -14,21 +14,19 @@ function rad_to_deg(rad)
 end
 
 function clamp(val, min_val, max_val)
-    if val < min_val
-        return min_val
-    elif val > max_val
-        return max_val
+    when val
+        is < min_val then return min_val
+        is > max_val then return max_val
+        else return val
     end
-    return val
 end
 
 function sign(val)
-    if val > 0
-        return 1
-    elif val < 0
-        return -1
+    when val
+        is > 0 then return 1
+        is < 0 then return -1
+        else return 0
     end
-    return 0
 end
 
 function is_even(n)
@@ -44,10 +42,9 @@ function hypot(a, b)
 end
 
 function round(val)
-    if val >= 0.0
-        return int(val + 0.5)
-    else
-        return int(val - 0.5)
+    when val
+        is >= 0.0 then return int(val + 0.5)
+        else return int(val - 0.5)
     end
 end
 
@@ -117,12 +114,9 @@ function rand_range(min_val, max_val)
 end
 
 function sum(arr)
-    let count = len(arr)
     let total = 0
-    let i = 0
-    while i < count
-        total = total + arr[i]
-        i = i + 1
+    for x in arr
+        total += x
     end
     return total
 end
@@ -141,23 +135,20 @@ function median(arr)
         return 0
     end
     let sorted = []
-    let i = 0
-    while i < count
-        sorted.push(arr[i])
-        i = i + 1
+    for x in arr
+        sorted.push(x)
     end
     let j = 1
-    let key = 0
-    let k = 0
+    let key, k = 0
     while j < count
         key = sorted[j]
         k = j - 1
         while k >= 0 and sorted[k] > key
             sorted[k + 1] = sorted[k]
-            k = k - 1
+            k -= 1
         end
         sorted[k + 1] = key
-        j = j + 1
+        j += 1
     end
     let mid = count / 2
     if count % 2 != 0

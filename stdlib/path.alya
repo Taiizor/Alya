@@ -11,13 +11,13 @@ function is_absolute(path)
         return 0
     end
     let c0 = char_at(path, 0)
-    if c0 == "/" or c0 == "\\"
-        return 1
+    when c0
+        is "/", "\\" then return 1
     end
     if plen >= 3 and char_at(path, 1) == ":"
         let c2 = char_at(path, 2)
-        if c2 == "/" or c2 == "\\"
-            return 1
+        when c2
+            is "/", "\\" then return 1
         end
     end
     return 0
@@ -32,10 +32,10 @@ function file_name(path)
     let ch = ""
     while i >= 0
         ch = char_at(path, i)
-        if ch == "/" or ch == "\\"
-            return substring(path, i + 1, plen - (i + 1))
+        when ch
+            is "/", "\\" then return substring(path, i + 1, plen - (i + 1))
         end
-        i = i - 1
+        i -= 1
     end
     return path
 end
@@ -51,7 +51,7 @@ function file_ext(path)
         if char_at(name, i) == "."
             return substring(name, i, nlen - i)
         end
-        i = i - 1
+        i -= 1
     end
     return ""
 end
@@ -74,25 +74,25 @@ function parent_dir(path)
     end
     let i = plen - 1
     while i > 0 and (char_at(path, i) == "/" or char_at(path, i) == "\\")
-        i = i - 1
+        i -= 1
     end
     let ch = ""
     while i >= 0
         ch = char_at(path, i)
-        if ch == "/" or ch == "\\"
-            if i == 0
-                return "/"
-            end
-            return substring(path, 0, i)
+        when ch
+            is "/", "\\" then
+                if i == 0
+                    return "/"
+                end
+                return substring(path, 0, i)
         end
-        i = i - 1
+        i -= 1
     end
     return "."
 end
 
 function path_join(a, b)
-    let alen = len(a)
-    let blen = len(b)
+    let alen, blen = len(a), len(b)
     if alen == 0
         return b
     end

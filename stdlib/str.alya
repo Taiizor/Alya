@@ -6,8 +6,7 @@ function is_empty(s)
 end
 
 function starts_with(s, prefix)
-    let plen = len(prefix)
-    let slen = len(s)
+    let plen, slen = len(prefix), len(s)
     if plen > slen
         return 0
     end
@@ -18,8 +17,7 @@ function starts_with(s, prefix)
 end
 
 function ends_with(s, suffix)
-    let slen = len(s)
-    let suflen = len(suffix)
+    let slen, suflen = len(s), len(suffix)
     if suflen > slen
         return 0
     end
@@ -30,8 +28,7 @@ function ends_with(s, suffix)
 end
 
 function replace(s, old, new_s)
-    let slen = len(s)
-    let olen = len(old)
+    let slen, olen = len(s), len(old)
     if olen == 0
         return s
     end
@@ -39,11 +36,11 @@ function replace(s, old, new_s)
     let i = 0
     while i < slen
         if i + olen <= slen and substring(s, i, olen) == old
-            res = res + new_s
-            i = i + olen
+            res += new_s
+            i += olen
         else
-            res = res + char_at(s, i)
-            i = i + 1
+            res += char_at(s, i)
+            i += 1
         end
     end
     return res
@@ -53,8 +50,8 @@ function str_repeat(s, count)
     let res = ""
     let i = 0
     while i < count
-        res = res + s
-        i = i + 1
+        res += s
+        i += 1
     end
     return res
 end
@@ -98,32 +95,31 @@ function lines(s)
     if slen == 0
         return res
     end
-    let current = ""
+    let current, ch = ""
     let i = 0
-    let ch = ""
     while i < slen
         ch = char_at(s, i)
-        if ch == "\r"
-            if i + 1 < slen and char_at(s, i + 1) == "\n"
-                i = i + 1
-            end
-            res.push(current)
-            current = ""
-        elif ch == "\n"
-            res.push(current)
-            current = ""
-        else
-            current = current + ch
+        when ch
+            is "\r" then
+                if i + 1 < slen and char_at(s, i + 1) == "\n"
+                    i += 1
+                end
+                res.push(current)
+                current = ""
+            is "\n" then
+                res.push(current)
+                current = ""
+            else
+                current += ch
         end
-        i = i + 1
+        i += 1
     end
     res.push(current)
     return res
 end
 
 function count_matches(s, sub)
-    let slen = len(s)
-    let sublen = len(sub)
+    let slen, sublen = len(s), len(sub)
     if sublen == 0 or slen == 0 or sublen > slen
         return 0
     end
@@ -131,10 +127,10 @@ function count_matches(s, sub)
     let i = 0
     while i <= slen - sublen
         if substring(s, i, sublen) == sub
-            count = count + 1
-            i = i + sublen
+            count += 1
+            i += sublen
         else
-            i = i + 1
+            i += 1
         end
     end
     return count

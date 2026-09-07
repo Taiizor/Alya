@@ -1,4 +1,4 @@
-﻿# Alya Standard Library - Filesystem Module
+# Alya Standard Library - Filesystem Module
 # Provides high-level file and directory I/O operations.
 
 function fs_exists(path)
@@ -33,13 +33,21 @@ function copy_file(src, dst)
     if file_exists(src) == 0
         return 0
     end
-    let content = read_file(src)
-    return write_file(dst, content)
+    try
+        let content = read_file(src)
+        return write_file(dst, content)
+    catch
+        return 0
+    end
 end
 
 function move_file(src, dst)
-    if copy_file(src, dst)
-        return remove_file(src)
+    try
+        if copy_file(src, dst)
+            return remove_file(src)
+        end
+    catch
+        return 0
     end
     return 0
 end
