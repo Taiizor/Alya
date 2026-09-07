@@ -132,3 +132,26 @@ fn test_codegen_macos_x64_header_and_sections() {
     assert!(asm.contains(".asciz \"Hello Mac\\n\""));
     assert!(asm.contains("_printf"));
 }
+
+#[test]
+fn test_codegen_arm64_large_number_immediate() {
+    let program = simple_program(Stmt::Say(Expr::Number(424242.0)));
+    let asm = generate(&program, Architecture::ARM64, OperatingSystem::MacOS);
+
+    assert!(asm.contains("movz x1, #31026"));
+    assert!(asm.contains("movk x1, #6, lsl #16"));
+    assert!(!asm.contains("mov x1, #424242"));
+}
+
+#[test]
+fn test_codegen_arm64_large_number_expr() {
+    let program = simple_program(Stmt::Let {
+        name: "num".into(),
+        value: Expr::Number(424242.0),
+    });
+    let asm = generate(&program, Architecture::ARM64, OperatingSystem::Linux);
+
+    assert!(asm.contains("movz x0, #31026"));
+    assert!(asm.contains("movk x0, #6, lsl #16"));
+    assert!(!asm.contains("mov x0, #424242"));
+}

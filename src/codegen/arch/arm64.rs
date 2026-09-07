@@ -83,31 +83,46 @@ pub fn emit_call_printf(out: &mut String, os: OperatingSystem) {
     out.push_str(&format!("    bl {}printf\n", p));
 }
 
+pub fn emit_load_reg_u64(out: &mut String, reg: &str, u: u64) {
+    if u <= 65535 {
+        out.push_str(&format!("    mov {}, #{}\n", reg, u));
+        return;
+    }
+    let chunks = [
+        (u & 0xFFFF) as u16,
+        ((u >> 16) & 0xFFFF) as u16,
+        ((u >> 32) & 0xFFFF) as u16,
+        ((u >> 48) & 0xFFFF) as u16,
+    ];
+
+    let first_idx = chunks.iter().position(|&c| c != 0).unwrap_or(0);
+    let shift_str = if first_idx == 0 {
+        String::new()
+    } else {
+        format!(", lsl #{}", first_idx * 16)
+    };
+    out.push_str(&format!(
+        "    movz {}, #{}{}\n",
+        reg, chunks[first_idx], shift_str
+    ));
+    for (i, &chunk) in chunks.iter().enumerate().skip(first_idx + 1) {
+        if chunk != 0 {
+            out.push_str(&format!("    movk {}, #{}, lsl #{}\n", reg, chunk, i * 16));
+        }
+    }
+}
+
+pub fn emit_load_reg_imm64(out: &mut String, reg: &str, val: i64) {
+    emit_load_reg_u64(out, reg, val as u64);
+}
+
 pub fn emit_load_num(out: &mut String, val: i64) {
-    out.push_str(&format!("    mov x0, #{}\n", val));
+    emit_load_reg_imm64(out, "x0", val);
 }
 
 pub fn emit_load_float(out: &mut String, val: f64) {
     let bits = val.to_bits();
-    out.push_str(&format!("    movz x0, #{}\n", bits & 0xFFFF));
-    if (bits >> 16) & 0xFFFF != 0 {
-        out.push_str(&format!(
-            "    movk x0, #{}, lsl #16\n",
-            (bits >> 16) & 0xFFFF
-        ));
-    }
-    if (bits >> 32) & 0xFFFF != 0 {
-        out.push_str(&format!(
-            "    movk x0, #{}, lsl #32\n",
-            (bits >> 32) & 0xFFFF
-        ));
-    }
-    if (bits >> 48) & 0xFFFF != 0 {
-        out.push_str(&format!(
-            "    movk x0, #{}, lsl #48\n",
-            (bits >> 48) & 0xFFFF
-        ));
-    }
+    emit_load_reg_u64(out, "x0", bits);
     out.push_str("    fmov d0, x0\n");
 }
 
@@ -137,7 +152,7 @@ pub fn emit_arm64_load_x29_offset(
         out.push_str(&format!("    sub {}, x29, #{}\n", scratch_reg, offset));
         out.push_str(&format!("    ldr {}, [{}]\n", dest_reg, scratch_reg));
     } else {
-        out.push_str(&format!("    mov {}, #{}\n", scratch_reg, offset));
+        emit_load_reg_imm64(out, scratch_reg, offset as i64);
         out.push_str(&format!("    sub {}, x29, {}\n", scratch_reg, scratch_reg));
         out.push_str(&format!("    ldr {}, [{}]\n", dest_reg, scratch_reg));
     }
@@ -155,7 +170,7 @@ pub fn emit_arm64_store_x29_offset(
         out.push_str(&format!("    sub {}, x29, #{}\n", scratch_reg, offset));
         out.push_str(&format!("    str {}, [{}]\n", src_reg, scratch_reg));
     } else {
-        out.push_str(&format!("    mov {}, #{}\n", scratch_reg, offset));
+        emit_load_reg_imm64(out, scratch_reg, offset as i64);
         out.push_str(&format!("    sub {}, x29, {}\n", scratch_reg, scratch_reg));
         out.push_str(&format!("    str {}, [{}]\n", src_reg, scratch_reg));
     }
@@ -423,7 +438,7 @@ pub fn emit_say_offset(
 }
 
 pub fn emit_say_num_const(out: &mut String, val: i64, fmt_label: &str, os: OperatingSystem) {
-    out.push_str(&format!("    mov x1, #{}\n", val));
+    emit_load_reg_imm64(out, "x1", val);
     emit_adrp_add(out, "x0", fmt_label, os);
     if matches!(os, OperatingSystem::MacOS) {
         out.push_str("    sub sp, sp, #16\n");
