@@ -36,6 +36,7 @@
 - 🌟 **Expressive & Readable**: English-like keywords (`say`, `ask`, `when`, `repeat`, `function`).
 - 📁 **Modules & Imports**: Split code cleanly across multiple files with `import "module.alya"`, complete with circular dependency prevention.
 - 📦 **Arrays & Indexing**: Dynamic array literals (`[1, 2, 3]`), 0-based indexing (`arr[i]`), element mutation (`arr[i] = val`, `arr[i] += 1`), length querying (`len(arr)`), and automatic bounds safety.
+- 🔢 **Floating-Point Numbers**: First-class 64-bit IEEE 754 float support (`f64`), mixed integer-float arithmetic, built-in `float()` and `int()` casting, and formatted output.
 - 🛡️ **Exception Handling**: Built-in `try ... catch [err] ... end` support with runtime division/modulo by zero and out-of-bounds protection.
 - ⚡ **Direct Native Codegen**: Emits clean, comment-annotated assembly for **x86 (32-bit)**, **x64 (64-bit)**, and **ARM64 (Apple Silicon & AArch64)**.
 - 🛠️ **Built-in Functions**: Math intrinsics (`abs`, `min`, `max`, `sqrt`, `pow`), formatting (`print`, `println`), string conversions (`str`, `int`), and string length (`len`).
@@ -302,6 +303,22 @@ let product = multiply(total, 2)
 say product    # 60
 ```
 
+### 11. Floating-Point Numbers
+
+```alya
+# Float declarations & arithmetic
+let pi = 3.14159
+let radius = 2.5
+let area = pi * radius * radius
+say "Area: {area}"
+
+# Mixed integer-float arithmetic and type conversions
+let count = 4
+let average = (10.0 + 20.0 + 30.5 + 40.5) / float(count)
+say "Average: {average}"    # 25.25
+say int(average)             # 25
+```
+
 ---
 
 ## Platform & Architecture Matrix
@@ -327,7 +344,7 @@ Alya/
 │   ├── workflows/             # CI and Automated Release workflows
 │   ├── ISSUE_TEMPLATE/        # Bug report and Feature request forms
 │   └── PULL_REQUEST_TEMPLATE.md
-├── examples/                  # 21 rich example programs
+├── examples/                  # 22 rich example programs
 ├── src/
 │   ├── cli/                   # Argument parser, help, and commands
 │   ├── codegen/               # Assembly code generator (x86, x64, ARM64)

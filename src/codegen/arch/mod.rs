@@ -29,6 +29,30 @@ pub fn emit_load_num(out: &mut String, arch: Architecture, val: i64) {
     }
 }
 
+pub fn emit_load_float(out: &mut String, arch: Architecture, val: f64) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_load_float(out, val),
+        Architecture::X64 => x64::emit_load_float(out, val),
+        Architecture::X86 => x86::emit_load_float(out, val),
+    }
+}
+
+pub fn emit_int_to_float(out: &mut String, arch: Architecture) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_int_to_float(out),
+        Architecture::X64 => x64::emit_int_to_float(out),
+        Architecture::X86 => x86::emit_int_to_float(out),
+    }
+}
+
+pub fn emit_float_to_int(out: &mut String, arch: Architecture) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_float_to_int(out),
+        Architecture::X64 => x64::emit_float_to_int(out),
+        Architecture::X86 => x86::emit_float_to_int(out),
+    }
+}
+
 pub fn emit_load_str_label(out: &mut String, arch: Architecture, label: &str, os: OperatingSystem) {
     match arch {
         Architecture::ARM64 => arm64::emit_load_str_label(out, label, os),
@@ -82,6 +106,22 @@ pub fn emit_unary_op(out: &mut String, arch: Architecture, op: UnaryOp) {
         Architecture::ARM64 => arm64::emit_unary_op(out, op),
         Architecture::X64 => x64::emit_unary_op(out, op),
         Architecture::X86 => x86::emit_unary_op(out, op),
+    }
+}
+
+pub fn emit_float_binary_op(out: &mut String, arch: Architecture, op: BinaryOp) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_float_binary_op(out, op),
+        Architecture::X64 => x64::emit_float_binary_op(out, op),
+        Architecture::X86 => x86::emit_float_binary_op(out, op),
+    }
+}
+
+pub fn emit_float_unary_op(out: &mut String, arch: Architecture, op: UnaryOp) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_float_unary_op(out, op),
+        Architecture::X64 => x64::emit_float_unary_op(out, op),
+        Architecture::X86 => x86::emit_float_unary_op(out, op),
     }
 }
 
@@ -240,6 +280,20 @@ pub fn emit_say_acc(
         Architecture::ARM64 => arm64::emit_say_acc(out, fmt_label, os),
         Architecture::X64 => x64::emit_say_acc(out, fmt_label, stack_offset, os),
         Architecture::X86 => x86::emit_say_acc(out, fmt_label),
+    }
+}
+
+pub fn emit_say_float(
+    out: &mut String,
+    arch: Architecture,
+    fmt_label: &str,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_say_float(out, fmt_label, os),
+        Architecture::X64 => x64::emit_say_float(out, fmt_label, stack_offset, os),
+        Architecture::X86 => x86::emit_say_float(out, fmt_label),
     }
 }
 

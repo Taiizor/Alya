@@ -1,6 +1,6 @@
 use super::CodeGen;
 use crate::ast::{BinaryOp, Expr};
-use crate::codegen::analysis::{escape_string, is_string_expr};
+use crate::codegen::analysis::{escape_string, is_float_expr, is_string_expr};
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
 use crate::codegen::target::Architecture;
@@ -36,6 +36,8 @@ impl CodeGen {
                         _ => {
                             if is_string_expr(part, &self.ctx.variables) {
                                 format_str.push_str("%s");
+                            } else if is_float_expr(part, &self.ctx.variables) {
+                                format_str.push_str("%g");
                             } else {
                                 format_str.push_str("%ld");
                             }
@@ -98,21 +100,36 @@ impl CodeGen {
                     self.output.push('\n');
                     return;
                 }
+                let is_flt = is_float_expr(expr, &self.ctx.variables);
                 self.generate_expression(expr);
 
                 let fmt_label = self.ctx.next_string_label();
                 self.emit_rodata_section();
                 self.output.push_str(&format!("{}:\n", fmt_label));
-                self.emit_string_directive("%ld\\n");
+                if is_flt {
+                    self.emit_string_directive("%g\\n");
+                } else {
+                    self.emit_string_directive("%ld\\n");
+                }
                 self.output.push_str(".text\n");
 
-                arch::emit_say_acc(
-                    &mut self.output,
-                    self.arch,
-                    &fmt_label,
-                    self.ctx.stack_offset,
-                    self.os,
-                );
+                if is_flt {
+                    arch::emit_say_float(
+                        &mut self.output,
+                        self.arch,
+                        &fmt_label,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                } else {
+                    arch::emit_say_acc(
+                        &mut self.output,
+                        self.arch,
+                        &fmt_label,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                }
                 self.output.push('\n');
             }
             Expr::Identifier(name) => {
@@ -169,6 +186,28 @@ impl CodeGen {
                             );
                             self.output.push('\n');
                         }
+                        VarType::Float(offset) => {
+                            let fmt_label = self.ctx.next_string_label();
+                            self.emit_rodata_section();
+                            self.output.push_str(&format!("{}:\n", fmt_label));
+                            self.emit_string_directive("%g\\n");
+                            self.output.push_str(".text\n");
+
+                            arch::emit_load_var(
+                                &mut self.output,
+                                self.arch,
+                                offset,
+                                self.ctx.stack_offset,
+                            );
+                            arch::emit_say_float(
+                                &mut self.output,
+                                self.arch,
+                                &fmt_label,
+                                self.ctx.stack_offset,
+                                self.os,
+                            );
+                            self.output.push('\n');
+                        }
                         VarType::Array(offset) => {
                             arch::emit_load_var(
                                 &mut self.output,
@@ -192,25 +231,61 @@ impl CodeGen {
                 arch::emit_print_array(&mut self.output, self.arch, self.ctx.stack_offset, self.os);
                 self.output.push('\n');
             }
-            Expr::Number(n) => {
+            Expr::Float(n) => {
                 let fmt_label = self.ctx.next_string_label();
                 self.emit_rodata_section();
                 self.output.push_str(&format!("{}:\n", fmt_label));
-                self.emit_string_directive("%ld\\n");
+                self.emit_string_directive("%g\\n");
                 self.output.push_str(".text\n");
 
-                arch::emit_say_num_const(
+                arch::emit_load_float(&mut self.output, self.arch, *n);
+                arch::emit_say_float(
                     &mut self.output,
                     self.arch,
-                    *n as i64,
                     &fmt_label,
                     self.ctx.stack_offset,
                     self.os,
                 );
                 self.output.push('\n');
             }
+            Expr::Number(n) => {
+                if n.fract() != 0.0 {
+                    let fmt_label = self.ctx.next_string_label();
+                    self.emit_rodata_section();
+                    self.output.push_str(&format!("{}:\n", fmt_label));
+                    self.emit_string_directive("%g\\n");
+                    self.output.push_str(".text\n");
+
+                    arch::emit_load_float(&mut self.output, self.arch, *n);
+                    arch::emit_say_float(
+                        &mut self.output,
+                        self.arch,
+                        &fmt_label,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                    self.output.push('\n');
+                } else {
+                    let fmt_label = self.ctx.next_string_label();
+                    self.emit_rodata_section();
+                    self.output.push_str(&format!("{}:\n", fmt_label));
+                    self.emit_string_directive("%ld\\n");
+                    self.output.push_str(".text\n");
+
+                    arch::emit_say_num_const(
+                        &mut self.output,
+                        self.arch,
+                        *n as i64,
+                        &fmt_label,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                    self.output.push('\n');
+                }
+            }
             _ => {
                 let is_str = is_string_expr(expr, &self.ctx.variables);
+                let is_flt = is_float_expr(expr, &self.ctx.variables);
                 self.generate_expression(expr);
 
                 let fmt_label = self.ctx.next_string_label();
@@ -218,18 +293,30 @@ impl CodeGen {
                 self.output.push_str(&format!("{}:\n", fmt_label));
                 if is_str {
                     self.emit_string_directive("%s\\n");
+                } else if is_flt {
+                    self.emit_string_directive("%g\\n");
                 } else {
                     self.emit_string_directive("%ld\\n");
                 }
                 self.output.push_str(".text\n");
 
-                arch::emit_say_acc(
-                    &mut self.output,
-                    self.arch,
-                    &fmt_label,
-                    self.ctx.stack_offset,
-                    self.os,
-                );
+                if is_flt {
+                    arch::emit_say_float(
+                        &mut self.output,
+                        self.arch,
+                        &fmt_label,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                } else {
+                    arch::emit_say_acc(
+                        &mut self.output,
+                        self.arch,
+                        &fmt_label,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                }
                 self.output.push('\n');
             }
         }

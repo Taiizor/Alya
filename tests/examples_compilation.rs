@@ -310,6 +310,16 @@ F(6) = F(5) + F(4) = 5 + 3 = 8\n\
 F(7) = F(6) + F(5) = 8 + 5 = 13\n\
 F(8) = F(7) + F(6) = 13 + 8 = 21\n",
         ),
+        "floats.alya" => Some(
+            "=== Floating-Point Operations ===\n\
+Radius: 2.5\n\
+Circumference: 15.708\n\
+Area: 19.6349\n\
+Average: 25.25\n\
+Converted to float: 42.5\n\
+Converted back to int: 42\n\
+Final score: 30\n",
+        ),
         "functions.alya" => Some(
             "=== Functions Demo ===\n\
 Hello, Developer! Welcome to Alya.\n\

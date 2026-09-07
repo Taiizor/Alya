@@ -1,6 +1,6 @@
 use super::CodeGen;
 use crate::ast::{Expr, Stmt};
-use crate::codegen::analysis::{escape_string, is_string_expr};
+use crate::codegen::analysis::{escape_string, is_float_expr, is_string_expr};
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
 
@@ -41,6 +41,7 @@ impl CodeGen {
                         }
                         _ => false,
                     };
+                    let is_flt = is_float_expr(value, &self.ctx.variables);
                     self.generate_expression(value);
 
                     arch::emit_allocate_var(
@@ -57,6 +58,10 @@ impl CodeGen {
                         self.ctx
                             .variables
                             .insert(name.clone(), VarType::Array(self.ctx.stack_offset));
+                    } else if is_flt {
+                        self.ctx
+                            .variables
+                            .insert(name.clone(), VarType::Float(self.ctx.stack_offset));
                     } else {
                         self.ctx
                             .variables
@@ -65,11 +70,13 @@ impl CodeGen {
                 }
             },
             Stmt::Assign { name, value } => {
+                let is_flt = is_float_expr(value, &self.ctx.variables);
                 self.generate_expression(value);
 
                 if let Some(var_type) = self.ctx.variables.get(name).cloned() {
                     match var_type {
                         VarType::Number(offset)
+                        | VarType::Float(offset)
                         | VarType::StringOffset(offset)
                         | VarType::Array(offset) => {
                             arch::emit_store_var(
@@ -78,6 +85,11 @@ impl CodeGen {
                                 offset,
                                 self.ctx.stack_offset,
                             );
+                            if is_flt {
+                                self.ctx
+                                    .variables
+                                    .insert(name.clone(), VarType::Float(offset));
+                            }
                         }
                         VarType::StringLabel(_) => {}
                     }

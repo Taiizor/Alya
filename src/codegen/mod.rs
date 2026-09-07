@@ -12,7 +12,7 @@ mod tests;
 pub use target::{Architecture, OperatingSystem};
 
 use crate::ast::*;
-use analysis::infer_param_is_string;
+use analysis::{infer_param_is_float, infer_param_is_string};
 use context::{CodeGenContext, VarType};
 
 pub struct CodeGen {
@@ -81,10 +81,15 @@ impl CodeGen {
             );
 
             let is_str = infer_param_is_string(name, i, program);
+            let is_flt = infer_param_is_float(name, i, program);
             if is_str {
                 self.ctx
                     .variables
                     .insert(param.clone(), VarType::StringOffset(self.ctx.stack_offset));
+            } else if is_flt {
+                self.ctx
+                    .variables
+                    .insert(param.clone(), VarType::Float(self.ctx.stack_offset));
             } else {
                 self.ctx
                     .variables

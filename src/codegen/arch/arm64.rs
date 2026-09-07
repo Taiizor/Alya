@@ -57,6 +57,40 @@ pub fn emit_load_num(out: &mut String, val: i64) {
     out.push_str(&format!("    mov x0, #{}\n", val));
 }
 
+pub fn emit_load_float(out: &mut String, val: f64) {
+    let bits = val.to_bits();
+    out.push_str(&format!("    movz x0, #{}\n", bits & 0xFFFF));
+    if (bits >> 16) & 0xFFFF != 0 {
+        out.push_str(&format!(
+            "    movk x0, #{}, lsl #16\n",
+            (bits >> 16) & 0xFFFF
+        ));
+    }
+    if (bits >> 32) & 0xFFFF != 0 {
+        out.push_str(&format!(
+            "    movk x0, #{}, lsl #32\n",
+            (bits >> 32) & 0xFFFF
+        ));
+    }
+    if (bits >> 48) & 0xFFFF != 0 {
+        out.push_str(&format!(
+            "    movk x0, #{}, lsl #48\n",
+            (bits >> 48) & 0xFFFF
+        ));
+    }
+    out.push_str("    fmov d0, x0\n");
+}
+
+pub fn emit_int_to_float(out: &mut String) {
+    out.push_str("    scvtf d0, x0\n");
+    out.push_str("    fmov x0, d0\n");
+}
+
+pub fn emit_float_to_int(out: &mut String) {
+    out.push_str("    fmov d0, x0\n");
+    out.push_str("    fcvtzs x0, d0\n");
+}
+
 pub fn emit_load_str_label(out: &mut String, label: &str, os: OperatingSystem) {
     emit_adrp_add(out, "x0", label, os);
 }
@@ -129,6 +163,82 @@ pub fn emit_binary_op(out: &mut String, op: BinaryOp) {
 pub fn emit_unary_op(out: &mut String, op: UnaryOp) {
     match op {
         UnaryOp::Negate => out.push_str("    neg x0, x0\n"),
+        UnaryOp::Not => {
+            out.push_str("    cmp x0, #0\n");
+            out.push_str("    cset x0, eq\n");
+        }
+    }
+}
+
+pub fn emit_float_binary_op(out: &mut String, op: BinaryOp) {
+    out.push_str("    fmov d1, x0\n");
+    out.push_str("    ldr x1, [sp], #16\n");
+    out.push_str("    fmov d0, x1\n");
+    match op {
+        BinaryOp::Add => {
+            out.push_str("    fadd d0, d0, d1\n");
+            out.push_str("    fmov x0, d0\n");
+        }
+        BinaryOp::Subtract => {
+            out.push_str("    fsub d0, d0, d1\n");
+            out.push_str("    fmov x0, d0\n");
+        }
+        BinaryOp::Multiply => {
+            out.push_str("    fmul d0, d0, d1\n");
+            out.push_str("    fmov x0, d0\n");
+        }
+        BinaryOp::Divide => {
+            out.push_str("    fdiv d0, d0, d1\n");
+            out.push_str("    fmov x0, d0\n");
+        }
+        BinaryOp::Modulo => {
+            out.push_str("    fdiv d2, d0, d1\n");
+            out.push_str("    fcvtzs x2, d2\n");
+            out.push_str("    scvtf d2, x2\n");
+            out.push_str("    fmul d2, d2, d1\n");
+            out.push_str("    fsub d0, d0, d2\n");
+            out.push_str("    fmov x0, d0\n");
+        }
+        BinaryOp::Equal => {
+            out.push_str("    fcmp d0, d1\n");
+            out.push_str("    cset x0, eq\n");
+        }
+        BinaryOp::NotEqual => {
+            out.push_str("    fcmp d0, d1\n");
+            out.push_str("    cset x0, ne\n");
+        }
+        BinaryOp::Less => {
+            out.push_str("    fcmp d0, d1\n");
+            out.push_str("    cset x0, mi\n");
+        }
+        BinaryOp::Greater => {
+            out.push_str("    fcmp d0, d1\n");
+            out.push_str("    cset x0, gt\n");
+        }
+        BinaryOp::LessEqual => {
+            out.push_str("    fcmp d0, d1\n");
+            out.push_str("    cset x0, le\n");
+        }
+        BinaryOp::GreaterEqual => {
+            out.push_str("    fcmp d0, d1\n");
+            out.push_str("    cset x0, ge\n");
+        }
+        BinaryOp::And => {
+            out.push_str("    and x0, x1, x0\n");
+        }
+        BinaryOp::Or => {
+            out.push_str("    orr x0, x1, x0\n");
+        }
+    }
+}
+
+pub fn emit_float_unary_op(out: &mut String, op: UnaryOp) {
+    match op {
+        UnaryOp::Negate => {
+            out.push_str("    fmov d0, x0\n");
+            out.push_str("    fneg d0, d0\n");
+            out.push_str("    fmov x0, d0\n");
+        }
         UnaryOp::Not => {
             out.push_str("    cmp x0, #0\n");
             out.push_str("    cset x0, eq\n");
@@ -272,6 +382,20 @@ pub fn emit_say_acc(out: &mut String, fmt_label: &str, os: OperatingSystem) {
     }
 }
 
+pub fn emit_say_float(out: &mut String, fmt_label: &str, os: OperatingSystem) {
+    out.push_str("    mov x1, x0\n");
+    out.push_str("    fmov d0, x0\n");
+    emit_adrp_add(out, "x0", fmt_label, os);
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str("    sub sp, sp, #16\n");
+        out.push_str("    str x1, [sp]\n");
+        emit_call_printf(out, os);
+        out.push_str("    add sp, sp, #16\n");
+    } else {
+        emit_call_printf(out, os);
+    }
+}
+
 pub fn emit_say_interpolated_pop_and_call(
     out: &mut String,
     fmt_label: &str,
@@ -280,6 +404,9 @@ pub fn emit_say_interpolated_pop_and_call(
 ) {
     for i in (0..count).rev() {
         out.push_str(&format!("    ldr x{}, [sp], #16\n", i + 1));
+        if i < 8 {
+            out.push_str(&format!("    fmov d{}, x{}\n", i, i + 1));
+        }
     }
     emit_adrp_add(out, "x0", fmt_label, os);
     if matches!(os, OperatingSystem::MacOS) {

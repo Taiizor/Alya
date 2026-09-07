@@ -1,11 +1,16 @@
 use super::Lexer;
 
 impl Lexer {
-    pub(crate) fn read_number(&mut self) -> Result<f64, String> {
+    pub(crate) fn read_number(&mut self) -> Result<(f64, bool), String> {
         let start_pos = self.position;
         let start_line = self.line;
         let start_col = self.column;
         let mut has_dot = false;
+
+        if self.current_char() == Some('.') {
+            has_dot = true;
+            self.advance();
+        }
 
         while let Some(ch) = self.current_char() {
             if ch.is_ascii_digit() {
@@ -20,12 +25,13 @@ impl Lexer {
         }
 
         let num_str: String = self.input[start_pos..self.position].iter().collect();
-        num_str.parse::<f64>().map_err(|_| {
+        let val = num_str.parse::<f64>().map_err(|_| {
             format!(
                 "Invalid number '{}' at line {}, column {}",
                 num_str, start_line, start_col
             )
-        })
+        })?;
+        Ok((val, has_dot))
     }
 
     pub(crate) fn read_string(&mut self) -> Result<String, String> {

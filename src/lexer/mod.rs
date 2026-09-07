@@ -199,6 +199,13 @@ impl Lexer {
                             line,
                             column,
                         });
+                    } else if self.peek_char().is_some_and(|c| c.is_ascii_digit()) {
+                        let (num, _) = self.read_number()?;
+                        tokens.push(Token {
+                            token_type: TokenType::Float(num),
+                            line,
+                            column,
+                        });
                     } else {
                         self.advance();
                         tokens.push(Token {
@@ -309,9 +316,14 @@ impl Lexer {
                     }
                 }
                 _ if ch.is_ascii_digit() => {
-                    let num = self.read_number()?;
+                    let (num, is_float) = self.read_number()?;
+                    let token_type = if is_float {
+                        TokenType::Float(num)
+                    } else {
+                        TokenType::Number(num)
+                    };
                     tokens.push(Token {
-                        token_type: TokenType::Number(num),
+                        token_type,
                         line,
                         column,
                     });

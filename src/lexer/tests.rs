@@ -3,15 +3,16 @@ use super::Lexer;
 
 #[test]
 fn test_tokenize_numbers() {
-    let source = "42 3.75 0 100";
+    let source = "42 3.75 0 100 .5";
     let mut lexer = Lexer::new(source);
     let tokens = lexer.tokenize().expect("Tokenization failed");
 
     assert_eq!(tokens[0].token_type, TokenType::Number(42.0));
-    assert_eq!(tokens[1].token_type, TokenType::Number(3.75));
+    assert_eq!(tokens[1].token_type, TokenType::Float(3.75));
     assert_eq!(tokens[2].token_type, TokenType::Number(0.0));
     assert_eq!(tokens[3].token_type, TokenType::Number(100.0));
-    assert_eq!(tokens[4].token_type, TokenType::Eof);
+    assert_eq!(tokens[4].token_type, TokenType::Float(0.5));
+    assert_eq!(tokens[5].token_type, TokenType::Eof);
 }
 
 #[test]

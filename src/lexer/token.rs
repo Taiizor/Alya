@@ -25,6 +25,7 @@ pub enum TokenType {
 
     // Literals
     Number(f64),
+    Float(f64),
     String(String),
     Identifier(String),
     True,
@@ -133,6 +134,7 @@ impl std::fmt::Display for TokenType {
             TokenType::Catch => write!(f, "'catch'"),
             TokenType::Import => write!(f, "'import'"),
             TokenType::Number(n) => write!(f, "number '{}'", n),
+            TokenType::Float(n) => write!(f, "float '{}'", n),
             TokenType::String(s) => write!(f, "\"{}\"", s),
             TokenType::Identifier(s) => write!(f, "identifier '{}'", s),
             TokenType::True => write!(f, "'true'"),

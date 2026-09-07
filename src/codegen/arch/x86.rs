@@ -28,6 +28,25 @@ pub fn emit_load_num(out: &mut String, val: i64) {
     out.push_str(&format!("    mov ${}, %eax\n", val));
 }
 
+pub fn emit_load_float(out: &mut String, val: f64) {
+    let bits = val.to_bits();
+    let low = (bits & 0xFFFFFFFF) as u32;
+    let high = ((bits >> 32) & 0xFFFFFFFF) as u32;
+    out.push_str("    sub $8, %esp\n");
+    out.push_str(&format!("    movl ${}, (%esp)\n", low as i32));
+    out.push_str(&format!("    movl ${}, 4(%esp)\n", high as i32));
+    out.push_str("    movsd (%esp), %xmm0\n");
+    out.push_str("    add $8, %esp\n");
+}
+
+pub fn emit_int_to_float(out: &mut String) {
+    out.push_str("    cvtsi2sd %eax, %xmm0\n");
+}
+
+pub fn emit_float_to_int(out: &mut String) {
+    out.push_str("    cvttsd2si %xmm0, %eax\n");
+}
+
 pub fn emit_load_str_label(out: &mut String, label: &str) {
     out.push_str(&format!("    mov ${}, %eax\n", label));
 }
@@ -115,6 +134,73 @@ pub fn emit_unary_op(out: &mut String, op: UnaryOp) {
     }
 }
 
+pub fn emit_float_binary_op(out: &mut String, op: BinaryOp) {
+    out.push_str("    movapd %xmm0, %xmm1\n");
+    out.push_str("    movsd (%esp), %xmm0\n");
+    out.push_str("    add $8, %esp\n");
+    match op {
+        BinaryOp::Add => out.push_str("    addsd %xmm1, %xmm0\n"),
+        BinaryOp::Subtract => out.push_str("    subsd %xmm1, %xmm0\n"),
+        BinaryOp::Multiply => out.push_str("    mulsd %xmm1, %xmm0\n"),
+        BinaryOp::Divide => out.push_str("    divsd %xmm1, %xmm0\n"),
+        BinaryOp::Modulo => {
+            out.push_str("    movapd %xmm0, %xmm2\n");
+            out.push_str("    divsd %xmm1, %xmm2\n");
+            out.push_str("    cvttsd2si %xmm2, %ecx\n");
+            out.push_str("    cvtsi2sd %ecx, %xmm2\n");
+            out.push_str("    mulsd %xmm1, %xmm2\n");
+            out.push_str("    subsd %xmm2, %xmm0\n");
+        }
+        BinaryOp::Equal => {
+            out.push_str("    ucomisd %xmm1, %xmm0\n");
+            out.push_str("    sete %al\n");
+            out.push_str("    movzbl %al, %eax\n");
+        }
+        BinaryOp::NotEqual => {
+            out.push_str("    ucomisd %xmm1, %xmm0\n");
+            out.push_str("    setne %al\n");
+            out.push_str("    movzbl %al, %eax\n");
+        }
+        BinaryOp::Less => {
+            out.push_str("    ucomisd %xmm1, %xmm0\n");
+            out.push_str("    setb %al\n");
+            out.push_str("    movzbl %al, %eax\n");
+        }
+        BinaryOp::Greater => {
+            out.push_str("    ucomisd %xmm1, %xmm0\n");
+            out.push_str("    seta %al\n");
+            out.push_str("    movzbl %al, %eax\n");
+        }
+        BinaryOp::LessEqual => {
+            out.push_str("    ucomisd %xmm1, %xmm0\n");
+            out.push_str("    setbe %al\n");
+            out.push_str("    movzbl %al, %eax\n");
+        }
+        BinaryOp::GreaterEqual => {
+            out.push_str("    ucomisd %xmm1, %xmm0\n");
+            out.push_str("    setae %al\n");
+            out.push_str("    movzbl %al, %eax\n");
+        }
+        BinaryOp::And => out.push_str("    and %ebx, %eax\n"),
+        BinaryOp::Or => out.push_str("    or %ebx, %eax\n"),
+    }
+}
+
+pub fn emit_float_unary_op(out: &mut String, op: UnaryOp) {
+    match op {
+        UnaryOp::Negate => {
+            out.push_str("    mov $-1, %eax\n");
+            out.push_str("    cvtsi2sd %eax, %xmm1\n");
+            out.push_str("    mulsd %xmm1, %xmm0\n");
+        }
+        UnaryOp::Not => {
+            out.push_str("    test %eax, %eax\n");
+            out.push_str("    sete %al\n");
+            out.push_str("    movzbl %al, %eax\n");
+        }
+    }
+}
+
 pub fn emit_jump_if_zero(out: &mut String, label: &str) {
     out.push_str("    test %eax, %eax\n");
     out.push_str(&format!("    jz {}\n", label));
@@ -194,6 +280,14 @@ pub fn emit_say_acc(out: &mut String, fmt_label: &str) {
     out.push_str(&format!("    push ${}\n", fmt_label));
     emit_call_printf(out);
     out.push_str("    add $8, %esp\n");
+}
+
+pub fn emit_say_float(out: &mut String, fmt_label: &str) {
+    out.push_str("    sub $8, %esp\n");
+    out.push_str("    movsd %xmm0, (%esp)\n");
+    out.push_str(&format!("    push ${}\n", fmt_label));
+    emit_call_printf(out);
+    out.push_str("    add $12, %esp\n");
 }
 
 pub fn emit_say_interpolated_call(out: &mut String, fmt_label: &str, count: usize) {

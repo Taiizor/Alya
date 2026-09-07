@@ -472,3 +472,44 @@ say total
         assert_eq!(output, "2000\n");
     }
 }
+
+#[test]
+fn test_e2e_floating_point() {
+    let code = r#"
+let pi = 3.14
+let r = 2.0
+let area = pi * r * r
+say area
+
+let a = 10.5
+let b = 2.5
+say a + b
+say a - b
+say a * b
+say a / b
+
+let c = 1.25
+c += 0.75
+say c
+
+if a > b
+    say "greater"
+end
+
+let int_val = 10
+let flt_val = float(int_val)
+say flt_val
+
+let back_to_int = int(3.99)
+say back_to_int
+
+say "Interpolated: {pi}"
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            "12.56\n13\n8\n26.25\n4.2\n2\ngreater\n10\n3\nInterpolated: 3.14\n"
+        );
+    }
+}

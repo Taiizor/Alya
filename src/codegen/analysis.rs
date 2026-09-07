@@ -33,6 +33,32 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
     }
 }
 
+pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
+    match expr {
+        Expr::Float(_) => true,
+        Expr::Number(n) => n.fract() != 0.0,
+        Expr::Identifier(name) => {
+            matches!(vars.get(name), Some(VarType::Float(_)))
+        }
+        Expr::Binary {
+            left,
+            op:
+                BinaryOp::Add
+                | BinaryOp::Subtract
+                | BinaryOp::Multiply
+                | BinaryOp::Divide
+                | BinaryOp::Modulo,
+            right,
+        } => is_float_expr(left, vars) || is_float_expr(right, vars),
+        Expr::Unary {
+            op: UnaryOp::Negate,
+            expr,
+        } => is_float_expr(expr, vars),
+        Expr::Call { name, .. } => name == "float",
+        _ => false,
+    }
+}
+
 fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bool {
     match expr {
         Expr::String(_) | Expr::InterpolatedString(_) => true,
@@ -107,6 +133,93 @@ pub fn infer_param_is_string(func_name: &str, param_idx: usize, program: &Progra
     program.statements.iter().any(|s| {
         if let Some(arg) = find_call_arg(s, func_name, param_idx) {
             expr_is_definitely_string(arg, &known_strings)
+        } else {
+            false
+        }
+    })
+}
+
+fn expr_is_definitely_float(expr: &Expr, known_floats: &HashSet<String>) -> bool {
+    match expr {
+        Expr::Float(_) => true,
+        Expr::Number(n) => n.fract() != 0.0,
+        Expr::Identifier(name) => known_floats.contains(name),
+        Expr::Binary {
+            left,
+            op:
+                BinaryOp::Add
+                | BinaryOp::Subtract
+                | BinaryOp::Multiply
+                | BinaryOp::Divide
+                | BinaryOp::Modulo,
+            right,
+        } => {
+            expr_is_definitely_float(left, known_floats)
+                || expr_is_definitely_float(right, known_floats)
+        }
+        Expr::Unary {
+            op: UnaryOp::Negate,
+            expr,
+        } => expr_is_definitely_float(expr, known_floats),
+        Expr::Call { name, .. } => name == "float",
+        _ => false,
+    }
+}
+
+fn collect_float_vars_from_stmts(stmts: &[Stmt], known_floats: &mut HashSet<String>) {
+    for stmt in stmts {
+        match stmt {
+            Stmt::Let { name, value, .. } | Stmt::Assign { name, value, .. }
+                if expr_is_definitely_float(value, known_floats) =>
+            {
+                known_floats.insert(name.clone());
+            }
+            Stmt::TryCatch {
+                try_block,
+                catch_block,
+                ..
+            } => {
+                collect_float_vars_from_stmts(try_block, known_floats);
+                collect_float_vars_from_stmts(catch_block, known_floats);
+            }
+            Stmt::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                collect_float_vars_from_stmts(then_block, known_floats);
+                if let Some(else_stmts) = else_block {
+                    collect_float_vars_from_stmts(else_stmts, known_floats);
+                }
+            }
+            Stmt::While { body, .. } | Stmt::Repeat { body } | Stmt::For { body, .. } => {
+                collect_float_vars_from_stmts(body, known_floats);
+            }
+            Stmt::Function { body, .. } => {
+                collect_float_vars_from_stmts(body, known_floats);
+            }
+            _ => {}
+        }
+    }
+}
+
+pub fn collect_known_float_vars(program: &Program) -> HashSet<String> {
+    let mut known_floats = HashSet::new();
+    for _ in 0..4 {
+        let prev_len = known_floats.len();
+        collect_float_vars_from_stmts(&program.statements, &mut known_floats);
+        if known_floats.len() == prev_len {
+            break;
+        }
+    }
+    known_floats
+}
+
+pub fn infer_param_is_float(func_name: &str, param_idx: usize, program: &Program) -> bool {
+    let known_floats = collect_known_float_vars(program);
+    program.statements.iter().any(|s| {
+        if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+            expr_is_definitely_float(arg, &known_floats)
         } else {
             false
         }

@@ -1,6 +1,6 @@
 use super::CodeGen;
 use crate::ast::{BinaryOp, Expr};
-use crate::codegen::analysis::{escape_string, is_array_expr, is_string_expr};
+use crate::codegen::analysis::{escape_string, is_array_expr, is_float_expr, is_string_expr};
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
 use crate::codegen::target::Architecture;
@@ -9,7 +9,14 @@ impl CodeGen {
     pub(crate) fn generate_expression(&mut self, expr: &Expr) {
         match expr {
             Expr::Number(n) => {
-                arch::emit_load_num(&mut self.output, self.arch, *n as i64);
+                if n.fract() != 0.0 {
+                    arch::emit_load_float(&mut self.output, self.arch, *n);
+                } else {
+                    arch::emit_load_num(&mut self.output, self.arch, *n as i64);
+                }
+            }
+            Expr::Float(n) => {
+                arch::emit_load_float(&mut self.output, self.arch, *n);
             }
             Expr::String(s) => {
                 let label = self.ctx.next_string_label();
@@ -24,6 +31,7 @@ impl CodeGen {
                 if let Some(var_type) = self.ctx.variables.get(name).cloned() {
                     match var_type {
                         VarType::Number(offset)
+                        | VarType::Float(offset)
                         | VarType::StringOffset(offset)
                         | VarType::Array(offset) => {
                             arch::emit_load_var(
@@ -32,6 +40,17 @@ impl CodeGen {
                                 offset,
                                 self.ctx.stack_offset,
                             );
+                            if matches!(var_type, VarType::Float(_)) {
+                                match self.arch {
+                                    Architecture::X64 => {
+                                        self.output.push_str("    movq %rax, %xmm0\n");
+                                    }
+                                    Architecture::ARM64 => {
+                                        self.output.push_str("    fmov d0, x0\n");
+                                    }
+                                    Architecture::X86 => {}
+                                }
+                            }
                         }
                         VarType::StringLabel(label) => {
                             arch::emit_load_str_label(&mut self.output, self.arch, &label, self.os);
@@ -48,21 +67,62 @@ impl CodeGen {
                     return;
                 }
 
-                self.generate_expression(left);
-                arch::emit_push_temp(&mut self.output, self.arch);
+                let left_is_float = is_float_expr(left, &self.ctx.variables);
+                let right_is_float = is_float_expr(right, &self.ctx.variables);
+                let is_float = left_is_float || right_is_float;
 
-                self.generate_expression(right);
-                arch::emit_binary_op(&mut self.output, self.arch, *op);
+                if is_float {
+                    self.generate_expression(left);
+                    if !left_is_float {
+                        arch::emit_int_to_float(&mut self.output, self.arch);
+                    }
+                    if matches!(self.arch, Architecture::X86) {
+                        self.output
+                            .push_str("    sub $8, %esp\n    movsd %xmm0, (%esp)\n");
+                    } else {
+                        arch::emit_push_temp(&mut self.output, self.arch);
+                    }
+
+                    self.generate_expression(right);
+                    if !right_is_float {
+                        arch::emit_int_to_float(&mut self.output, self.arch);
+                    }
+
+                    arch::emit_float_binary_op(&mut self.output, self.arch, *op);
+                } else {
+                    self.generate_expression(left);
+                    arch::emit_push_temp(&mut self.output, self.arch);
+
+                    self.generate_expression(right);
+                    arch::emit_binary_op(&mut self.output, self.arch, *op);
+                }
             }
             Expr::Unary { op, expr } => {
+                let is_float = is_float_expr(expr, &self.ctx.variables);
                 self.generate_expression(expr);
-                arch::emit_unary_op(&mut self.output, self.arch, *op);
+                if is_float {
+                    arch::emit_float_unary_op(&mut self.output, self.arch, *op);
+                } else {
+                    arch::emit_unary_op(&mut self.output, self.arch, *op);
+                }
             }
             Expr::Call { name, args } => {
                 if name == "len" && args.len() == 1 && is_array_expr(&args[0], &self.ctx.variables)
                 {
                     self.generate_expression(&args[0]);
                     arch::emit_array_len(&mut self.output, self.arch);
+                    return;
+                }
+
+                if name == "float" && args.len() == 1 {
+                    self.generate_expression(&args[0]);
+                    arch::emit_int_to_float(&mut self.output, self.arch);
+                    return;
+                }
+
+                if name == "int" && args.len() == 1 {
+                    self.generate_expression(&args[0]);
+                    arch::emit_float_to_int(&mut self.output, self.arch);
                     return;
                 }
 

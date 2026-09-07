@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VarType {
-    Number(i32),         // Stack offset for numeric variables
+    Number(i32),         // Stack offset for numeric (integer) variables
+    Float(i32),          // Stack offset for floating-point (f64) variables
     StringLabel(String), // Rodata label for string literals
     StringOffset(i32),   // Stack offset for string pointers
     Array(i32),          // Stack offset for array pointers
