@@ -49,3 +49,92 @@ fn test_all_examples_compile_to_assembly() {
         assert!(!arm64_asm.is_empty(), "Empty arm64 assembly generated for '{}'", example_name);
     }
 }
+
+#[test]
+fn test_all_examples_execute_with_gcc() {
+    if std::process::Command::new("gcc").arg("--version").output().is_err() {
+        eprintln!("Skipping GCC execution: GCC not found in PATH.");
+        return;
+    }
+
+    let mut examples: Vec<String> = fs::read_dir("examples")
+        .expect("Failed to read examples directory")
+        .filter_map(|entry| {
+            let path = entry.ok()?.path();
+            if path.extension().and_then(|ext| ext.to_str()) == Some("alya") {
+                path.file_name()?.to_str().map(|s| s.to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
+    examples.sort();
+
+    let os = if cfg!(target_os = "windows") {
+        OperatingSystem::Windows
+    } else {
+        OperatingSystem::Linux
+    };
+
+    for (idx, example_name) in examples.iter().enumerate() {
+        let path = format!("examples/{}", example_name);
+        let source = fs::read_to_string(&path)
+            .unwrap_or_else(|e| panic!("Failed to read example file '{}': {}", path, e));
+
+        let mut lexer = Lexer::new(&source);
+        let tokens = lexer.tokenize()
+            .unwrap_or_else(|e| panic!("Lexer failed for '{}': {}", example_name, e));
+        let mut parser = Parser::new(tokens);
+        let ast = parser.parse()
+            .unwrap_or_else(|e| panic!("Parser failed for '{}': {}", example_name, e));
+
+        let asm_code = codegen::generate(&ast, Architecture::X64, os);
+        let temp_asm = format!("temp_ex_test_{}.s", idx);
+        let temp_exe = if cfg!(target_os = "windows") {
+            format!("temp_ex_test_{}.exe", idx)
+        } else {
+            format!("temp_ex_test_{}", idx)
+        };
+
+        fs::write(&temp_asm, &asm_code).expect("Failed to write asm");
+
+        let mut gcc = std::process::Command::new("gcc");
+        gcc.arg(&temp_asm).arg("-o").arg(&temp_exe);
+        if !matches!(os, OperatingSystem::Windows) {
+            gcc.arg("-no-pie");
+        }
+        let gcc_status = gcc.status().expect("Failed to run gcc");
+        let _ = fs::remove_file(&temp_asm);
+        assert!(gcc_status.success(), "GCC failed to compile '{}'", example_name);
+
+        let run_cmd = if cfg!(target_os = "windows") {
+            format!(".\\{}", temp_exe)
+        } else {
+            format!("./{}", temp_exe)
+        };
+
+        let mut child = std::process::Command::new(&run_cmd)
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .expect("Failed to spawn compiled example");
+
+        // Pipe mock input for interactive examples like user_input.alya
+        if let Some(mut stdin) = child.stdin.take() {
+            use std::io::Write;
+            let _ = stdin.write_all(b"TestUser\nAlya\n");
+        }
+
+        let status = child.wait().expect("Failed to wait on example execution");
+        let _ = fs::remove_file(&temp_exe);
+
+        assert!(
+            status.success(),
+            "Example '{}' failed during execution with status: {:?}",
+            example_name,
+            status
+        );
+    }
+}
+
