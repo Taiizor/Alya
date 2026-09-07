@@ -2,7 +2,10 @@ use crate::ast::{BinaryOp, UnaryOp};
 
 pub fn emit_header(out: &mut String) {
     out.push_str(".global main\n");
-    out.push_str(".extern printf\n\n");
+    out.push_str(".extern printf\n");
+    out.push_str(".extern exit\n");
+    out.push_str(".extern getchar\n");
+    out.push_str(".extern fflush\n\n");
     out.push_str(".text\n");
     out.push_str("main:\n");
     out.push_str("    push %ebp\n");
@@ -53,10 +56,14 @@ pub fn emit_binary_op(out: &mut String, op: BinaryOp) {
         BinaryOp::Subtract => out.push_str("    sub %ebx, %eax\n"),
         BinaryOp::Multiply => out.push_str("    imul %ebx, %eax\n"),
         BinaryOp::Divide => {
+            out.push_str("    test %ebx, %ebx\n");
+            out.push_str("    jz alya_error_div_zero\n");
             out.push_str("    cdq\n");
             out.push_str("    idiv %ebx\n");
         }
         BinaryOp::Modulo => {
+            out.push_str("    test %ebx, %ebx\n");
+            out.push_str("    jz alya_error_div_zero\n");
             out.push_str("    cdq\n");
             out.push_str("    idiv %ebx\n");
             out.push_str("    mov %edx, %eax\n");

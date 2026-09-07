@@ -115,3 +115,41 @@ fn test_tokenize_unexpected_character() {
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("Unexpected character '@'"));
 }
+
+#[test]
+fn test_tokenize_slash_and_multiline_comments() {
+    let source = "// single line\nsay 10 /* inline multiline */ + 20\n";
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Tokenization failed");
+
+    let types: Vec<_> = tokens.into_iter().map(|t| t.token_type).collect();
+    assert_eq!(types, vec![
+        TokenType::Newline,
+        TokenType::Say,
+        TokenType::Number(10.0),
+        TokenType::Plus,
+        TokenType::Number(20.0),
+        TokenType::Newline,
+        TokenType::Eof,
+    ]);
+}
+
+#[test]
+fn test_tokenize_compound_and_logical_operators() {
+    let source = "+= -= *= /= && || ! elif";
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Tokenization failed");
+
+    let types: Vec<_> = tokens.into_iter().map(|t| t.token_type).collect();
+    assert_eq!(types, vec![
+        TokenType::PlusAssign,
+        TokenType::MinusAssign,
+        TokenType::MultiplyAssign,
+        TokenType::DivideAssign,
+        TokenType::And,
+        TokenType::Or,
+        TokenType::Not,
+        TokenType::Elif,
+        TokenType::Eof,
+    ]);
+}

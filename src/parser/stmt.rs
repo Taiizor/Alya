@@ -31,15 +31,66 @@ impl Parser {
                 };
                 self.advance();
 
-                if matches!(self.current_token().token_type, TokenType::Assign) {
-                    self.advance();
-                    let value = self.parse_expression()?;
-                    Ok(Stmt::Assign { name: ident, value })
-                } else {
-                    // Put the identifier back into an expression
-                    self.position -= 1;
-                    let expr = self.parse_expression()?;
-                    Ok(Stmt::Expr(expr))
+                match self.current_token().token_type {
+                    TokenType::Assign => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        Ok(Stmt::Assign { name: ident, value })
+                    }
+                    TokenType::PlusAssign => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        Ok(Stmt::Assign {
+                            name: ident.clone(),
+                            value: Expr::Binary {
+                                left: Box::new(Expr::Identifier(ident)),
+                                op: BinaryOp::Add,
+                                right: Box::new(value),
+                            },
+                        })
+                    }
+                    TokenType::MinusAssign => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        Ok(Stmt::Assign {
+                            name: ident.clone(),
+                            value: Expr::Binary {
+                                left: Box::new(Expr::Identifier(ident)),
+                                op: BinaryOp::Subtract,
+                                right: Box::new(value),
+                            },
+                        })
+                    }
+                    TokenType::MultiplyAssign => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        Ok(Stmt::Assign {
+                            name: ident.clone(),
+                            value: Expr::Binary {
+                                left: Box::new(Expr::Identifier(ident)),
+                                op: BinaryOp::Multiply,
+                                right: Box::new(value),
+                            },
+                        })
+                    }
+                    TokenType::DivideAssign => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        Ok(Stmt::Assign {
+                            name: ident.clone(),
+                            value: Expr::Binary {
+                                left: Box::new(Expr::Identifier(ident)),
+                                op: BinaryOp::Divide,
+                                right: Box::new(value),
+                            },
+                        })
+                    }
+                    _ => {
+                        // Put the identifier back into an expression
+                        self.position -= 1;
+                        let expr = self.parse_expression()?;
+                        Ok(Stmt::Expr(expr))
+                    }
                 }
             }
             _ => {
@@ -60,7 +111,7 @@ impl Parser {
 
         let name = match &self.current_token().token_type {
             TokenType::Identifier(s) => s.clone(),
-            _ => return Err(format!("Expected identifier after 'let' at line {}", self.current_token().line)),
+            _ => return Err(format!("Expected identifier after 'let' at line {}, column {}", self.current_token().line, self.current_token().column)),
         };
         self.advance();
 
@@ -78,13 +129,16 @@ impl Parser {
         let mut then_block = Vec::new();
         while !matches!(
             self.current_token().token_type,
-            TokenType::Else | TokenType::End | TokenType::Eof
+            TokenType::Else | TokenType::Elif | TokenType::End | TokenType::Eof
         ) {
             then_block.push(self.parse_statement()?);
             self.skip_newlines();
         }
 
-        let (else_block, is_chained) = if matches!(self.current_token().token_type, TokenType::Else) {
+        let (else_block, is_chained) = if matches!(self.current_token().token_type, TokenType::Elif) {
+            let else_if = self.parse_if()?;
+            (Some(vec![else_if]), true)
+        } else if matches!(self.current_token().token_type, TokenType::Else) {
             self.advance();
 
             // Check for 'else if'
@@ -106,7 +160,7 @@ impl Parser {
 
         if !is_chained {
             if !matches!(self.current_token().token_type, TokenType::End) {
-                return Err(format!("Expected 'end' at line {}", self.current_token().line));
+                return Err(format!("Expected 'end' at line {}, column {}", self.current_token().line, self.current_token().column));
             }
             self.advance();
         }
@@ -139,7 +193,7 @@ impl Parser {
 
         let var = match &self.current_token().token_type {
             TokenType::Identifier(s) => s.clone(),
-            _ => return Err(format!("Expected identifier after 'for' at line {}", self.current_token().line)),
+            _ => return Err(format!("Expected identifier after 'for' at line {}, column {}", self.current_token().line, self.current_token().column)),
         };
         self.advance();
 
@@ -171,7 +225,7 @@ impl Parser {
 
         let name = match &self.current_token().token_type {
             TokenType::Identifier(s) => s.clone(),
-            _ => return Err(format!("Expected function name at line {}", self.current_token().line)),
+            _ => return Err(format!("Expected function name at line {}, column {}", self.current_token().line, self.current_token().column)),
         };
         self.advance();
 
@@ -187,7 +241,7 @@ impl Parser {
                     self.advance();
                 }
             } else {
-                return Err(format!("Expected parameter name at line {}", self.current_token().line));
+                return Err(format!("Expected parameter name at line {}, column {}", self.current_token().line, self.current_token().column));
             }
         }
 
@@ -248,8 +302,9 @@ impl Parser {
                 break;
             } else {
                 return Err(format!(
-                    "Expected 'is' or 'else' in 'when' block at line {}",
-                    self.current_token().line
+                    "Expected 'is' or 'else' in 'when' block at line {}, column {}",
+                    self.current_token().line,
+                    self.current_token().column
                 ));
             }
         }
@@ -274,7 +329,7 @@ impl Parser {
 
         match current_else {
             Some(mut stmts) if !stmts.is_empty() => Ok(stmts.remove(0)),
-            _ => Err("Empty 'when' statement".to_string()),
+            _ => Err(format!("Empty 'when' statement at line {}, column {}", self.current_token().line, self.current_token().column)),
         }
     }
 }

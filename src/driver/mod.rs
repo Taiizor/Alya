@@ -13,7 +13,7 @@ pub fn run(args: CliArgs) -> Result<(), String> {
     // 1. Lexical Analysis
     let mut lexer = Lexer::new(&source);
     let tokens = lexer.tokenize()
-        .map_err(|e| format!("Lexer error: {}", e))?;
+        .map_err(|e| crate::diagnostics::render_error(&args.input_file, &source, &e))?;
 
     if args.command == CommandKind::EmitTokens {
         println!("{:<12} {:<30}", "POSITION", "TOKEN");
@@ -27,7 +27,8 @@ pub fn run(args: CliArgs) -> Result<(), String> {
     // 2. Syntactic Analysis (Parsing)
     let mut parser = Parser::new(tokens);
     let ast = parser.parse()
-        .map_err(|e| format!("Parser error: {}", e))?;
+        .map_err(|e| crate::diagnostics::render_error(&args.input_file, &source, &e))?;
+
 
     if args.command == CommandKind::EmitAst {
         println!("{:#?}", ast);

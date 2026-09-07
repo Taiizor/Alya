@@ -3,7 +3,10 @@ use crate::codegen::target::OperatingSystem;
 
 pub fn emit_header(out: &mut String) {
     out.push_str(".global main\n");
-    out.push_str(".extern printf\n\n");
+    out.push_str(".extern printf\n");
+    out.push_str(".extern exit\n");
+    out.push_str(".extern getchar\n");
+    out.push_str(".extern fflush\n\n");
     out.push_str(".text\n");
     out.push_str("main:\n");
     out.push_str("    push %rbp\n");
@@ -68,10 +71,14 @@ pub fn emit_binary_op(out: &mut String, op: BinaryOp) {
         BinaryOp::Subtract => out.push_str("    sub %rbx, %rax\n"),
         BinaryOp::Multiply => out.push_str("    imul %rbx, %rax\n"),
         BinaryOp::Divide => {
+            out.push_str("    test %rbx, %rbx\n");
+            out.push_str("    jz alya_error_div_zero\n");
             out.push_str("    cqo\n");
             out.push_str("    idiv %rbx\n");
         }
         BinaryOp::Modulo => {
+            out.push_str("    test %rbx, %rbx\n");
+            out.push_str("    jz alya_error_div_zero\n");
             out.push_str("    cqo\n");
             out.push_str("    idiv %rbx\n");
             out.push_str("    mov %rdx, %rax\n");

@@ -151,6 +151,20 @@ impl Parser {
                 self.advance();
                 Ok(Expr::Number(0.0))
             }
+            TokenType::Ask => {
+                self.advance();
+                let mut args = Vec::new();
+                if matches!(self.current_token().token_type, TokenType::LeftParen) {
+                    self.advance();
+                    if !matches!(self.current_token().token_type, TokenType::RightParen) {
+                        args.push(self.parse_expression()?);
+                    }
+                    self.expect(TokenType::RightParen)?;
+                } else if matches!(self.current_token().token_type, TokenType::String(_)) {
+                    args.push(self.parse_primary()?);
+                }
+                Ok(Expr::Call { name: "ask".into(), args })
+            }
             TokenType::Identifier(name) => {
                 let ident = name.clone();
                 self.advance();
@@ -181,7 +195,7 @@ impl Parser {
                 Ok(expr)
             }
             _ => Err(format!(
-                "Unexpected token {:?} at line {}, column {}",
+                "Unexpected token {} at line {}, column {}",
                 self.current_token().token_type,
                 self.current_token().line,
                 self.current_token().column

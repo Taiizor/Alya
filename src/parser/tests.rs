@@ -223,3 +223,114 @@ fn test_parse_unclosed_block_error() {
     let result = parse_code(code);
     assert!(result.is_err());
 }
+
+#[test]
+fn test_parse_compound_assignments() {
+    let code = "x += 5\ny -= 3\nz *= 2\nw /= 4";
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 4);
+
+    assert_eq!(
+        program.statements[0],
+        Stmt::Assign {
+            name: "x".into(),
+            value: Expr::Binary {
+                left: Box::new(Expr::Identifier("x".into())),
+                op: BinaryOp::Add,
+                right: Box::new(Expr::Number(5.0)),
+            }
+        }
+    );
+
+    assert_eq!(
+        program.statements[1],
+        Stmt::Assign {
+            name: "y".into(),
+            value: Expr::Binary {
+                left: Box::new(Expr::Identifier("y".into())),
+                op: BinaryOp::Subtract,
+                right: Box::new(Expr::Number(3.0)),
+            }
+        }
+    );
+
+    assert_eq!(
+        program.statements[2],
+        Stmt::Assign {
+            name: "z".into(),
+            value: Expr::Binary {
+                left: Box::new(Expr::Identifier("z".into())),
+                op: BinaryOp::Multiply,
+                right: Box::new(Expr::Number(2.0)),
+            }
+        }
+    );
+
+    assert_eq!(
+        program.statements[3],
+        Stmt::Assign {
+            name: "w".into(),
+            value: Expr::Binary {
+                left: Box::new(Expr::Identifier("w".into())),
+                op: BinaryOp::Divide,
+                right: Box::new(Expr::Number(4.0)),
+            }
+        }
+    );
+}
+
+#[test]
+fn test_parse_elif_and_logical_symbols() {
+    let code = r#"
+if a > 0 && b > 0
+    say "both"
+elif a > 0 || !c
+    say "one or not c"
+else
+    say "none"
+end
+"#;
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 1);
+
+    match &program.statements[0] {
+        Stmt::If { condition, then_block: _, else_block } => {
+            assert_eq!(
+                *condition,
+                Expr::Binary {
+                    left: Box::new(Expr::Binary {
+                        left: Box::new(Expr::Identifier("a".into())),
+                        op: BinaryOp::Greater,
+                        right: Box::new(Expr::Number(0.0)),
+                    }),
+                    op: BinaryOp::And,
+                    right: Box::new(Expr::Binary {
+                        left: Box::new(Expr::Identifier("b".into())),
+                        op: BinaryOp::Greater,
+                        right: Box::new(Expr::Number(0.0)),
+                    }),
+                }
+            );
+            assert!(else_block.is_some());
+        }
+        other => panic!("Expected If, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_ask_expression() {
+    let code = "let name = ask \"Your name: \"\nlet city = ask(\"City: \")\nlet general = ask";
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 3);
+
+    assert_eq!(
+        program.statements[0],
+        Stmt::Let {
+            name: "name".into(),
+            value: Expr::Call {
+                name: "ask".into(),
+                args: vec![Expr::String("Your name: ".into())],
+            }
+        }
+    );
+}

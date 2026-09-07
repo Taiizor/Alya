@@ -7,7 +7,7 @@ use alya::parser::Parser;
 
 static TEST_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
 
-fn run_alya_code(source: &str) -> Option<String> {
+fn run_alya_code_full(source: &str) -> Option<(i32, String)> {
     // Check if gcc is available
     if Command::new("gcc").arg("--version").output().is_err() {
         eprintln!("Skipping E2E test: GCC is not available in PATH.");
@@ -60,10 +60,16 @@ fn run_alya_code(source: &str) -> Option<String> {
     let prog_out = Command::new(&run_cmd).output().expect("Program execution failed");
     let _ = fs::remove_file(&exe_path);
 
-    let output_str = String::from_utf8_lossy(&prog_out.stdout)
-        .replace("\r\n", "\n");
+    let code = prog_out.status.code().unwrap_or(-1);
+    let mut output = String::from_utf8_lossy(&prog_out.stdout).replace("\r\n", "\n");
+    let stderr = String::from_utf8_lossy(&prog_out.stderr).replace("\r\n", "\n");
+    output.push_str(&stderr);
 
-    Some(output_str)
+    Some((code, output))
+}
+
+fn run_alya_code(source: &str) -> Option<String> {
+    run_alya_code_full(source).map(|(_, out)| out)
 }
 
 #[test]
@@ -150,3 +156,108 @@ say "Welcome to {name}!"
         assert_eq!(output, "Welcome to Alya!\n");
     }
 }
+
+#[test]
+fn test_e2e_else_if_and_elif() {
+    let code = r#"
+let score = 85
+if score >= 90
+    say "A"
+else if score >= 80
+    say "B"
+else
+    say "C"
+end
+
+let val = 5
+if val == 1
+    say "one"
+elif val == 5
+    say "five"
+else
+    say "other"
+end
+"#;
+    if let Some(output) = run_alya_code(code) {
+        assert_eq!(output, "B\nfive\n");
+    }
+}
+
+#[test]
+fn test_e2e_compound_assignment() {
+    let code = r#"
+let x = 10
+x += 5
+x -= 2
+x *= 3
+x /= 2
+say x
+"#;
+    if let Some(output) = run_alya_code(code) {
+        assert_eq!(output, "19\n"); // ((10 + 5) - 2) * 3 / 2 = 39 / 2 = 19
+    }
+}
+
+#[test]
+fn test_e2e_slash_comments_and_logical_symbols() {
+    let code = r#"
+// This is a C-style comment
+/* Multi-line
+   comment */
+let a = 10
+let b = 20
+if (a < 15) && (b == 20)
+    say "and works"
+end
+
+if (a == 99) || (b > 10)
+    say "or works"
+end
+
+if !(a == 99)
+    say "not works"
+end
+"#;
+    if let Some(output) = run_alya_code(code) {
+        assert_eq!(output, "and works\nor works\nnot works\n");
+    }
+}
+
+#[test]
+fn test_e2e_builtins() {
+    let code = r#"
+say len("Hello, Alya!")
+say abs(-42)
+say abs(42)
+say min(15, 30)
+say max(15, 30)
+"#;
+    if let Some(output) = run_alya_code(code) {
+        assert_eq!(output, "12\n42\n42\n15\n30\n");
+    }
+}
+
+#[test]
+fn test_e2e_div_by_zero_protection() {
+    let code = r#"
+let a = 50
+let b = 0
+say a / b
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_ne!(code, 0);
+        assert!(output.contains("Runtime error: division by zero"));
+    }
+}
+
+#[test]
+fn test_e2e_modulo_by_zero_protection() {
+    let code = r#"
+say 100 % 0
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_ne!(code, 0);
+        assert!(output.contains("Runtime error: division by zero"));
+    }
+}
+

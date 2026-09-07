@@ -68,8 +68,27 @@ impl Lexer {
         }
     }
 
+    fn skip_multiline_comment(&mut self) -> Result<(), String> {
+        let start_line = self.line;
+        let start_col = self.column;
+        while let Some(ch) = self.current_char() {
+            if ch == '*' && self.peek_char() == Some('/') {
+                self.advance(); // skip '*'
+                self.advance(); // skip '/'
+                return Ok(());
+            }
+            self.advance();
+        }
+        Err(format!(
+            "Unclosed multiline comment starting at line {}, column {}",
+            start_line, start_col
+        ))
+    }
+
     fn read_number(&mut self) -> Result<f64, String> {
         let start_pos = self.position;
+        let start_line = self.line;
+        let start_col = self.column;
         let mut has_dot = false;
 
         while let Some(ch) = self.current_char() {
@@ -86,10 +105,12 @@ impl Lexer {
         let num_str: String = self.input[start_pos..self.position].iter().collect();
         num_str
             .parse::<f64>()
-            .map_err(|_| format!("Invalid number: {}", num_str))
+            .map_err(|_| format!("Invalid number '{}' at line {}, column {}", num_str, start_line, start_col))
     }
 
     fn read_string(&mut self) -> Result<String, String> {
+        let start_line = self.line;
+        let start_col = self.column;
         self.advance(); // Skip opening quote
         let mut result = String::new();
 
@@ -108,7 +129,7 @@ impl Lexer {
                     Some('{') => result.push('{'),
                     Some('}') => result.push('}'),
                     Some(c) => result.push(c),
-                    None => return Err("Unexpected end of string".to_string()),
+                    None => return Err(format!("Unexpected end of string at line {}, column {}", self.line, self.column)),
                 }
                 self.advance();
             } else {
@@ -117,7 +138,7 @@ impl Lexer {
             }
         }
 
-        Err("Unterminated string".to_string())
+        Err(format!("Unterminated string starting at line {}, column {}", start_line, start_col))
     }
 
     fn read_identifier(&mut self) -> String {
@@ -166,35 +187,76 @@ impl Lexer {
                 }
                 '+' => {
                     self.advance();
-                    tokens.push(Token {
-                        token_type: TokenType::Plus,
-                        line,
-                        column,
-                    });
+                    if self.current_char() == Some('=') {
+                        self.advance();
+                        tokens.push(Token {
+                            token_type: TokenType::PlusAssign,
+                            line,
+                            column,
+                        });
+                    } else {
+                        tokens.push(Token {
+                            token_type: TokenType::Plus,
+                            line,
+                            column,
+                        });
+                    }
                 }
                 '-' => {
                     self.advance();
-                    tokens.push(Token {
-                        token_type: TokenType::Minus,
-                        line,
-                        column,
-                    });
+                    if self.current_char() == Some('=') {
+                        self.advance();
+                        tokens.push(Token {
+                            token_type: TokenType::MinusAssign,
+                            line,
+                            column,
+                        });
+                    } else {
+                        tokens.push(Token {
+                            token_type: TokenType::Minus,
+                            line,
+                            column,
+                        });
+                    }
                 }
                 '*' => {
                     self.advance();
-                    tokens.push(Token {
-                        token_type: TokenType::Multiply,
-                        line,
-                        column,
-                    });
+                    if self.current_char() == Some('=') {
+                        self.advance();
+                        tokens.push(Token {
+                            token_type: TokenType::MultiplyAssign,
+                            line,
+                            column,
+                        });
+                    } else {
+                        tokens.push(Token {
+                            token_type: TokenType::Multiply,
+                            line,
+                            column,
+                        });
+                    }
                 }
                 '/' => {
                     self.advance();
-                    tokens.push(Token {
-                        token_type: TokenType::Divide,
-                        line,
-                        column,
-                    });
+                    if self.current_char() == Some('/') {
+                        self.skip_comment();
+                    } else if self.current_char() == Some('*') {
+                        self.advance();
+                        self.skip_multiline_comment()?;
+                    } else if self.current_char() == Some('=') {
+                        self.advance();
+                        tokens.push(Token {
+                            token_type: TokenType::DivideAssign,
+                            line,
+                            column,
+                        });
+                    } else {
+                        tokens.push(Token {
+                            token_type: TokenType::Divide,
+                            line,
+                            column,
+                        });
+                    }
                 }
                 '%' => {
                     self.advance();
@@ -289,8 +351,41 @@ impl Lexer {
                             column,
                         });
                     } else {
+                        tokens.push(Token {
+                            token_type: TokenType::Not,
+                            line,
+                            column,
+                        });
+                    }
+                }
+                '&' => {
+                    self.advance();
+                    if self.current_char() == Some('&') {
+                        self.advance();
+                        tokens.push(Token {
+                            token_type: TokenType::And,
+                            line,
+                            column,
+                        });
+                    } else {
                         return Err(format!(
-                            "Unexpected character '!' at line {}, column {}",
+                            "Unexpected character '&' at line {}, column {}. Did you mean '&&'?",
+                            line, column
+                        ));
+                    }
+                }
+                '|' => {
+                    self.advance();
+                    if self.current_char() == Some('|') {
+                        self.advance();
+                        tokens.push(Token {
+                            token_type: TokenType::Or,
+                            line,
+                            column,
+                        });
+                    } else {
+                        return Err(format!(
+                            "Unexpected character '|' at line {}, column {}. Did you mean '||'?",
                             line, column
                         ));
                     }
@@ -344,6 +439,7 @@ impl Lexer {
                         "let" => TokenType::Let,
                         "if" => TokenType::If,
                         "else" => TokenType::Else,
+                        "elif" => TokenType::Elif,
                         "while" => TokenType::While,
                         "for" => TokenType::For,
                         "in" => TokenType::In,

@@ -6,6 +6,7 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
     match expr {
         Expr::String(_) => true,
         Expr::InterpolatedString(_) => true,
+        Expr::Call { name, .. } if name == "ask" => true,
         Expr::Identifier(name) => {
             if let Some(var_type) = vars.get(name) {
                 matches!(var_type, VarType::StringLabel(_) | VarType::StringOffset(_))
