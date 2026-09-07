@@ -1,0 +1,436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Alya Social Preview Card</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    width: 1280px; height: 640px;
+    background: #080a10;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+    color: #e2e8f0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .canvas {
+    position: relative;
+    width: 1280px; height: 640px;
+    background:
+      radial-gradient(circle at 88% 12%, rgba(168, 85, 247, 0.22) 0%, transparent 45%),
+      radial-gradient(circle at 12% 88%, rgba(56, 189, 248, 0.18) 0%, transparent 45%),
+      radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
+      linear-gradient(150deg, #0b0d17 0%, #06080e 100%);
+    overflow: hidden;
+  }
+
+  /* Starfield / Grid mesh */
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.05) 1px, transparent 1px);
+    background-size: 36px 36px;
+    mask-image: radial-gradient(circle at 50% 50%, black 50%, transparent 95%);
+  }
+
+  /* Glowing ambient spheres */
+  .glow-orb-1 {
+    position: absolute; top: -120px; right: 200px;
+    width: 450px; height: 450px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.18) 0%, transparent 70%);
+    filter: blur(50px); pointer-events: none;
+  }
+  .glow-orb-2 {
+    position: absolute; bottom: -100px; left: 100px;
+    width: 400px; height: 400px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%);
+    filter: blur(50px); pointer-events: none;
+  }
+
+  .content-wrap {
+    position: absolute; inset: 0;
+    padding: 52px 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 48px;
+    z-index: 2;
+  }
+
+  /* Left Column */
+  .left-col {
+    flex: 0 0 540px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .badge-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.12), rgba(56, 189, 248, 0.12));
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    backdrop-filter: blur(10px);
+    width: fit-content;
+    box-shadow: 0 4px 20px rgba(168, 85, 247, 0.15);
+  }
+  .badge-sparkle {
+    color: #c084fc;
+    font-size: 14px;
+    animation: pulse 2s infinite;
+  }
+  .badge-text {
+    font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 13.5px;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    background: linear-gradient(90deg, #c084fc, #38bdf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .brand-title {
+    margin-top: 20px;
+    font-size: 68px;
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .brand-name {
+    background: linear-gradient(135deg, #ffffff 25%, #e2e8f0 60%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .brand-accent {
+    background: linear-gradient(135deg, #c084fc 0%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .tagline {
+    margin-top: 10px;
+    font-size: 20px;
+    font-weight: 500;
+    color: #94a3b8;
+    letter-spacing: -0.3px;
+  }
+  .tagline b {
+    color: #f1f5f9;
+    font-weight: 600;
+  }
+
+  .features-list {
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .feature-pill {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+  }
+  .feature-icon-box {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .icon-purple {
+    background: rgba(168, 85, 247, 0.2);
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    color: #d8b4fe;
+  }
+  .icon-cyan {
+    background: rgba(56, 189, 248, 0.2);
+    border: 1px solid rgba(56, 189, 248, 0.4);
+    color: #7dd3fc;
+  }
+  .icon-emerald {
+    background: rgba(52, 211, 153, 0.2);
+    border: 1px solid rgba(52, 211, 153, 0.4);
+    color: #6ee7b7;
+  }
+  .feature-text {
+    font-size: 15.5px;
+    color: #cbd5e1;
+    font-weight: 500;
+  }
+  .feature-text b {
+    color: #ffffff;
+    font-weight: 700;
+  }
+
+  .footer-row {
+    margin-top: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .repo-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 15.5px;
+    color: #94a3b8;
+  }
+  .repo-meta svg {
+    fill: #cbd5e1;
+    width: 22px; height: 22px;
+  }
+  .repo-name {
+    color: #f1f5f9;
+    font-weight: 600;
+  }
+  .license-chip {
+    font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 12px;
+    font-weight: 600;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Right Column: Code Showcase Window */
+  .right-col {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+  }
+
+  .editor-window {
+    width: 100%;
+    max-width: 550px;
+    border-radius: 16px;
+    background: rgba(13, 17, 26, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.6),
+      0 0 40px rgba(168, 85, 247, 0.12);
+    backdrop-filter: blur(16px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .window-header {
+    height: 42px;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(18, 24, 38, 0.7);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .traffic-lights {
+    display: flex;
+    gap: 7px;
+  }
+  .dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+  }
+  .dot-red { background: #ef4444; }
+  .dot-yellow { background: #f59e0b; }
+  .dot-green { background: #10b981; }
+
+  .tabs-container {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .active-tab {
+    font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 13px;
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 3px 12px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .tab-badge {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+  }
+  .inactive-tab {
+    font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 12.5px;
+    color: #64748b;
+    padding: 3px 8px;
+  }
+
+  .editor-body {
+    padding: 20px 22px;
+    font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 14.5px;
+    line-height: 1.6;
+    color: #e2e8f0;
+  }
+
+  .code-line {
+    white-space: pre;
+  }
+  .kw { color: #c084fc; font-weight: 600; }     /* let, function, try, catch, end, when */
+  .fn { color: #38bdf8; font-weight: 600; }     /* say, ask, user function */
+  .str { color: #34d399; }                      /* "Hello World" */
+  .cmt { color: #64748b; font-style: italic; }  /* # comments */
+  .num { color: #fbbf24; }                      /* numbers */
+  .op { color: #94a3b8; }                       /* +, =, / */
+  .var { color: #f8fafc; }                      /* variable names */
+  .err { color: #f87171; }
+
+  .window-status {
+    height: 38px;
+    padding: 0 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(10, 14, 23, 0.85);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 12.5px;
+    color: #64748b;
+  }
+  .status-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #38bdf8;
+  }
+  .status-left svg {
+    width: 14px; height: 14px;
+    fill: #38bdf8;
+  }
+  .status-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #94a3b8;
+  }
+  .target-arch {
+    color: #c084fc;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="grid"></div>
+    <div class="glow-orb-1"></div>
+    <div class="glow-orb-2"></div>
+
+    <div class="content-wrap">
+      <!-- Left Column -->
+      <div class="left-col">
+        <div class="badge-row">
+          <span class="badge-sparkle">✦</span>
+          <span class="badge-text">Next-Gen Compiled Language</span>
+        </div>
+
+        <div class="brand-title">
+          <span class="brand-name">Alya</span>
+          <span class="brand-accent">Lang</span>
+        </div>
+
+        <div class="tagline">
+          <b>Intuitive syntax.</b> Zero overhead. Native machine code.
+        </div>
+
+        <div class="features-list">
+          <div class="feature-pill">
+            <div class="feature-icon-box icon-purple">⚡</div>
+            <div class="feature-text"><b>Native Assembly Codegen</b> — x64, x86 &amp; ARM64</div>
+          </div>
+          <div class="feature-pill">
+            <div class="feature-icon-box icon-cyan">🛡️</div>
+            <div class="feature-text"><b>Robust Exception Safety</b> — Built-in <code>try...catch</code></div>
+          </div>
+          <div class="feature-pill">
+            <div class="feature-icon-box icon-emerald">💬</div>
+            <div class="feature-text"><b>English-Like Syntax</b> — <code>say</code>, <code>ask</code>, <code>when</code>, <code>repeat</code></div>
+          </div>
+        </div>
+
+        <div class="footer-row">
+          <div class="repo-meta">
+            <svg viewBox="0 0 16 16"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+            <span class="repo-name">Taiizor/Alya</span>
+          </div>
+          <span class="license-chip">MIT OPEN SOURCE</span>
+        </div>
+      </div>
+
+      <!-- Right Column: Code Showcase -->
+      <div class="right-col">
+        <div class="editor-window">
+          <div class="window-header">
+            <div class="traffic-lights">
+              <span class="dot dot-red"></span>
+              <span class="dot dot-yellow"></span>
+              <span class="dot dot-green"></span>
+            </div>
+            <div class="tabs-container">
+              <div class="active-tab">
+                <span class="tab-badge"></span>
+                <span>main.alya</span>
+              </div>
+              <div class="inactive-tab">output.s</div>
+            </div>
+          </div>
+
+          <div class="editor-body">
+            <div class="code-line"><span class="cmt"># Clean, expressive &amp; type-safe</span></div>
+            <div class="code-line"><span class="kw">function</span> <span class="fn">greet</span>(<span class="var">user</span>)</div>
+            <div class="code-line">    <span class="fn">say</span> <span class="str">"Hello, {user}! Welcome to Alya."</span></div>
+            <div class="code-line"><span class="kw">end</span></div>
+            <div class="code-line">&nbsp;</div>
+            <div class="code-line"><span class="kw">try</span></div>
+            <div class="code-line">    <span class="kw">let</span> <span class="var">name</span> <span class="op">=</span> <span class="fn">ask</span> <span class="str">"Enter name: "</span></div>
+            <div class="code-line">    <span class="fn">greet</span>(<span class="var">name</span>)</div>
+            <div class="code-line">    <span class="kw">let</span> <span class="var">speed</span> <span class="op">=</span> <span class="num">100</span> <span class="op">/</span> <span class="num">2</span></div>
+            <div class="code-line">    <span class="fn">say</span> <span class="str">"Speed: {speed} ops/sec"</span></div>
+            <div class="code-line"><span class="kw">catch</span> <span class="err">err</span></div>
+            <div class="code-line">    <span class="fn">say</span> <span class="str">"Handled safely: "</span> <span class="op">+</span> <span class="err">err</span></div>
+            <div class="code-line"><span class="kw">end</span></div>
+          </div>
+
+          <div class="window-status">
+            <div class="status-left">
+              <svg viewBox="0 0 16 16"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg>
+              <span>alyac build · compiled in 14ms</span>
+            </div>
+            <div class="status-right">
+              <span class="target-arch">x64 · ARM64 · x86</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/social-preview/social-card.png" alt="Alya Programming Language" width="100%" style="max-width: 960px; border-radius: 10px;" />
+
 # Alya
 
 **A simple, intuitive, and modern multi-platform compiled programming language.**
