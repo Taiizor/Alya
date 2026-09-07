@@ -119,4 +119,3 @@ pub fn emit_string_concat_call(
         Architecture::X86 => x86::emit_string_concat_call(out),
     }
 }
-

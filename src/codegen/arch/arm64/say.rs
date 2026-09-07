@@ -1,6 +1,6 @@
-use crate::codegen::target::OperatingSystem;
 use super::emit_adrp_add;
 use super::loads::{emit_arm64_load_x29_offset, emit_load_reg_imm64};
+use crate::codegen::target::OperatingSystem;
 
 pub fn emit_call_printf(out: &mut String, os: OperatingSystem) {
     let p = if matches!(os, OperatingSystem::MacOS) {

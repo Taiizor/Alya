@@ -30,4 +30,3 @@ pub fn emit_footer(out: &mut String, arch: Architecture) {
         Architecture::X86 => x86::emit_footer(out),
     }
 }
-

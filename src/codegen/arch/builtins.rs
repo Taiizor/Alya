@@ -67,7 +67,6 @@ pub fn emit_catch_end(out: &mut String, arch: Architecture, stack_delta: i32) {
     }
 }
 
-
 pub fn emit_array_new(
     out: &mut String,
     arch: Architecture,
@@ -238,4 +237,3 @@ pub fn emit_for_each_load_element(
         }
     }
 }
-

@@ -73,7 +73,6 @@ pub fn emit_push_temp(out: &mut String, arch: Architecture) {
     }
 }
 
-
 pub fn emit_pop_temp(out: &mut String, arch: Architecture) {
     match arch {
         Architecture::ARM64 => arm64::emit_pop_temp(out),
@@ -81,4 +80,3 @@ pub fn emit_pop_temp(out: &mut String, arch: Architecture) {
         Architecture::X86 => x86::emit_pop_temp(out),
     }
 }
-

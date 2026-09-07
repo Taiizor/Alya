@@ -48,7 +48,6 @@ impl Parser {
         Ok(Stmt::Let { name, value })
     }
 
-
     pub(super) fn parse_function(&mut self) -> Result<Stmt, String> {
         self.advance(); // skip 'function'
 
@@ -114,7 +113,6 @@ impl Parser {
             Ok(Stmt::Return(Some(expr)))
         }
     }
-
 
     pub(super) fn parse_struct(&mut self) -> Result<Stmt, String> {
         self.advance(); // skip 'struct'

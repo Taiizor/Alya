@@ -283,4 +283,3 @@ pub fn emit_string_equality_call(
         out.push_str("    xor $1, %rax\n");
     }
 }
-

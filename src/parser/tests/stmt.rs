@@ -26,7 +26,6 @@ fn test_parse_let_and_assign() {
     );
 }
 
-
 #[test]
 fn test_parse_if_else() {
     let code = r#"
@@ -66,7 +65,6 @@ end
     }
 }
 
-
 #[test]
 fn test_parse_while_loop() {
     let code = r#"
@@ -94,7 +92,6 @@ end
     }
 }
 
-
 #[test]
 fn test_parse_repeat_loop() {
     let code = r#"
@@ -115,7 +112,6 @@ end
         other => panic!("Expected Repeat loop, got {:?}", other),
     }
 }
-
 
 #[test]
 fn test_parse_for_loop() {
@@ -142,7 +138,6 @@ end
         other => panic!("Expected For loop, got {:?}", other),
     }
 }
-
 
 #[test]
 fn test_parse_for_each_loop() {
@@ -174,7 +169,6 @@ end
         other => panic!("Expected ForEach loop, got {:?}", other),
     }
 }
-
 
 #[test]
 fn test_parse_function_and_call() {
@@ -213,14 +207,12 @@ let result = multiply(6, 7)
     );
 }
 
-
 #[test]
 fn test_parse_unclosed_block_error() {
     let code = "if x > 0\nsay 1";
     let result = parse_code(code);
     assert!(result.is_err());
 }
-
 
 #[test]
 fn test_parse_try_catch() {
@@ -266,5 +258,3 @@ end
         other => panic!("Expected TryCatch, got {:?}", other),
     }
 }
-
-

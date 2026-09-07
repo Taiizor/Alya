@@ -1,5 +1,5 @@
-use crate::codegen::target::OperatingSystem;
 use super::emit_adrp_add;
+use crate::codegen::target::OperatingSystem;
 
 pub fn emit_load_reg_u64(out: &mut String, reg: &str, u: u64) {
     if u <= 65535 {

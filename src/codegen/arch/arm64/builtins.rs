@@ -1,7 +1,7 @@
-use crate::ast::BinaryOp;
-use crate::codegen::target::OperatingSystem;
 use super::emit_adrp_add;
 use super::loads::{emit_arm64_load_x29_offset, emit_arm64_store_x29_offset};
+use crate::ast::BinaryOp;
+use crate::codegen::target::OperatingSystem;
 
 pub fn emit_try_begin(out: &mut String, catch_label: &str, os: OperatingSystem) {
     emit_adrp_add(out, "x9", "alya_catch_idx", os);
@@ -160,4 +160,3 @@ pub fn emit_string_equality_call(out: &mut String, op: BinaryOp) {
         out.push_str("    eor x0, x0, #1\n");
     }
 }
-

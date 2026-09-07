@@ -33,4 +33,3 @@ pub fn emit_float_unary_op(out: &mut String, arch: Architecture, op: UnaryOp) {
         Architecture::X86 => x86::emit_float_unary_op(out, op),
     }
 }
-

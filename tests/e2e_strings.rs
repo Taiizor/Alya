@@ -24,7 +24,6 @@ say "Escaped: {{bracket}}"
     }
 }
 
-
 #[test]
 fn test_e2e_string_helpers() {
     let code = r#"
@@ -89,7 +88,6 @@ say combo + " - SUCCESS"
         );
     }
 }
-
 
 #[test]
 fn test_e2e_split_and_join() {
@@ -161,7 +159,6 @@ say no_match[0]
         );
     }
 }
-
 
 #[test]
 fn test_e2e_character_tools() {
@@ -237,7 +234,6 @@ say "neg: [{out2}]"
     }
 }
 
-
 #[test]
 fn test_e2e_str_conversion_and_concat() {
     let code = r#"
@@ -268,5 +264,3 @@ say "item_" + 1 + "_part_" + 2
         );
     }
 }
-
-

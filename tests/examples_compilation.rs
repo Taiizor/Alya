@@ -226,4 +226,3 @@ fn test_all_examples_execute_with_gcc() {
         );
     }
 }
-

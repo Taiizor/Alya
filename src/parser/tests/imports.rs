@@ -15,7 +15,6 @@ fn test_parse_import() {
     }
 }
 
-
 #[test]
 fn test_resolve_imports_temporary_files() {
     use std::fs;
@@ -42,7 +41,6 @@ fn test_resolve_imports_temporary_files() {
 
     let _ = fs::remove_dir_all(&temp_dir);
 }
-
 
 #[test]
 fn test_resolve_imports_subdirectory_and_backslash_normalization() {
@@ -78,7 +76,6 @@ fn test_resolve_imports_subdirectory_and_backslash_normalization() {
 
     let _ = fs::remove_dir_all(&temp_dir);
 }
-
 
 #[test]
 fn test_resolve_embedded_stdlib_modules() {
@@ -164,7 +161,6 @@ say PI
     assert!(has_assert_eq, "Missing assert_eq from std/test");
 }
 
-
 #[test]
 fn test_embedded_stdlib_deduplication() {
     let code = r#"
@@ -194,5 +190,3 @@ say PI
         "Duplicate import of std/math should only include hypot once"
     );
 }
-
-

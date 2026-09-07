@@ -15,7 +15,6 @@ say 17 % 5
     }
 }
 
-
 #[test]
 fn test_e2e_variables_and_arithmetic() {
     let code = r#"
@@ -28,7 +27,6 @@ say sum
         assert_eq!(output, "35\n");
     }
 }
-
 
 #[test]
 fn test_e2e_conditionals() {
@@ -44,7 +42,6 @@ end
         assert_eq!(output, "le\n");
     }
 }
-
 
 #[test]
 fn test_e2e_loops() {
@@ -63,7 +60,6 @@ end
         assert_eq!(output, "1\n2\n3\n4\n10\n11\n12\n");
     }
 }
-
 
 #[test]
 fn test_e2e_else_if_and_elif() {
@@ -91,7 +87,6 @@ end
     }
 }
 
-
 #[test]
 fn test_e2e_compound_assignment() {
     let code = r#"
@@ -106,7 +101,6 @@ say x
         assert_eq!(output, "19\n"); // ((10 + 5) - 2) * 3 / 2 = 39 / 2 = 19
     }
 }
-
 
 #[test]
 fn test_e2e_slash_comments_and_logical_symbols() {
@@ -133,7 +127,6 @@ end
     }
 }
 
-
 #[test]
 fn test_e2e_repeat_loop() {
     let code = r#"
@@ -151,7 +144,6 @@ say loops
         assert_eq!(output, "3\n");
     }
 }
-
 
 #[test]
 fn test_e2e_break_and_continue() {
@@ -189,5 +181,3 @@ say w_sum
         assert_eq!(output, "9\n8\n");
     }
 }
-
-

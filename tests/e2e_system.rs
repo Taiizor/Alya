@@ -15,7 +15,6 @@ say max(15, 30)
     }
 }
 
-
 #[test]
 fn test_e2e_ask_input_automated() {
     let code = r#"
@@ -30,7 +29,6 @@ say "Hello, {name} from {city}!"
         assert!(output.contains("Hello, Alya from Istanbul!"));
     }
 }
-
 
 #[test]
 fn test_e2e_sqrt_and_pow() {
@@ -48,7 +46,6 @@ say pow(10, 0)
         assert_eq!(output, "4\n5\n1\n0\n256\n125\n1\n");
     }
 }
-
 
 #[test]
 fn test_e2e_floating_point() {
@@ -91,7 +88,6 @@ say "Interpolated: {pi}"
     }
 }
 
-
 #[test]
 fn test_e2e_cli_args() {
     let code = r#"
@@ -119,7 +115,6 @@ end
         assert_eq!(output, "0\n");
     }
 }
-
 
 #[test]
 fn test_e2e_file_io() {
@@ -166,7 +161,6 @@ say "missing: [{missing}]"
 
     let _ = std::fs::remove_file(test_path);
 }
-
 
 #[test]
 fn test_e2e_stdlib_modules() {
@@ -216,7 +210,6 @@ say json_array(items)
     }
 }
 
-
 #[test]
 fn test_e2e_memory_and_arena() {
     let code = r#"
@@ -248,5 +241,3 @@ arena_free_all(a)
         );
     }
 }
-
-

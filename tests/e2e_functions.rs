@@ -15,7 +15,6 @@ say multiply(7, 6)
     }
 }
 
-
 #[test]
 fn test_e2e_module_import() {
     let pid = std::process::id();
@@ -45,7 +44,6 @@ say total
         assert_eq!(output, "2000\n");
     }
 }
-
 
 #[test]
 fn test_e2e_for_each_loop() {
@@ -100,7 +98,6 @@ end
     }
 }
 
-
 #[test]
 fn test_e2e_parameter_type_propagation() {
     let code = r#"
@@ -125,5 +122,3 @@ say data["tag"]
         assert_eq!(output, concat!("init\n", "test_run\n", "test_run\n",));
     }
 }
-
-

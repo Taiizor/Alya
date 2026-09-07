@@ -14,7 +14,6 @@ say a / b
     }
 }
 
-
 #[test]
 fn test_e2e_modulo_by_zero_protection() {
     let code = r#"
@@ -25,7 +24,6 @@ say 100 % 0
         assert!(output.contains("Runtime error: division by zero"));
     }
 }
-
 
 #[test]
 fn test_e2e_try_catch_basic() {
@@ -49,7 +47,6 @@ say "After try"
     }
 }
 
-
 #[test]
 fn test_e2e_try_catch_with_err_var() {
     let code = r#"
@@ -64,7 +61,6 @@ end
         assert_eq!(output, "Caught: division by zero\n");
     }
 }
-
 
 #[test]
 fn test_e2e_try_catch_no_error() {
@@ -83,7 +79,6 @@ say "Done"
     }
 }
 
-
 #[test]
 fn test_e2e_array_bounds_catch() {
     let code = r#"
@@ -100,5 +95,3 @@ end
         assert_eq!(output, "caught: index out of bounds\n");
     }
 }
-
-

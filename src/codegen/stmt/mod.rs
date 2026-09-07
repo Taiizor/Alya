@@ -15,10 +15,18 @@ impl CodeGen {
             }
             Stmt::Let { name, value } => self.generate_let(name, value),
             Stmt::Assign { name, value } => self.generate_assign(name, value),
-            Stmt::FieldAssign { object, field, value } => {
+            Stmt::FieldAssign {
+                object,
+                field,
+                value,
+            } => {
                 self.generate_field_assign(object, field, value);
             }
-            Stmt::IndexAssign { array, index, value } => {
+            Stmt::IndexAssign {
+                array,
+                index,
+                value,
+            } => {
                 self.generate_index_assign(array, index, value);
             }
             Stmt::If {

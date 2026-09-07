@@ -85,4 +85,3 @@ pub fn emit_function_call(
         Architecture::X86 => x86::emit_function_call(out, name, args_count),
     }
 }
-

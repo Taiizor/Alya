@@ -24,7 +24,6 @@ say sum
     }
 }
 
-
 #[test]
 fn test_e2e_dynamic_arrays() {
     let code = r#"
@@ -71,7 +70,6 @@ end
     }
 }
 
-
 #[test]
 fn test_e2e_structs() {
     let code = r#"
@@ -115,7 +113,6 @@ say "Formatted point: ({p.x}, {p.y})"
     }
 }
 
-
 #[test]
 fn test_e2e_structs_advanced() {
     let code = r#"
@@ -150,7 +147,6 @@ say "Dot product: {dot}"
         );
     }
 }
-
 
 #[test]
 fn test_e2e_maps() {
@@ -229,7 +225,6 @@ say m1
     }
 }
 
-
 #[test]
 fn test_e2e_map_string_values() {
     let code = r#"
@@ -250,5 +245,3 @@ say m["name"]
         );
     }
 }
-
-

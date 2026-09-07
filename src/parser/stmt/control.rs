@@ -161,7 +161,6 @@ impl Parser {
         }
     }
 
-
     pub(super) fn parse_when(&mut self) -> Result<Stmt, String> {
         self.advance(); // skip 'when'
         let subject = self.parse_expression()?;
@@ -274,5 +273,4 @@ impl Parser {
             catch_block,
         })
     }
-
 }

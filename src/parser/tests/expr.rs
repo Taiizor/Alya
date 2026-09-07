@@ -26,7 +26,6 @@ fn test_parse_binary_precedence() {
     }
 }
 
-
 #[test]
 fn test_parse_parentheses_precedence() {
     let program = parse_code("say (1 + 2) * 3").expect("Parse failed");
@@ -52,7 +51,6 @@ fn test_parse_parentheses_precedence() {
     }
 }
 
-
 #[test]
 fn test_parse_unary_not_and_negate() {
     let program = parse_code("say -5\nsay not true").expect("Parse failed");
@@ -74,7 +72,6 @@ fn test_parse_unary_not_and_negate() {
         other => panic!("Expected not unary, got {:?}", other),
     }
 }
-
 
 #[test]
 fn test_parse_compound_assignments() {
@@ -131,7 +128,6 @@ fn test_parse_compound_assignments() {
     );
 }
 
-
 #[test]
 fn test_parse_elif_and_logical_symbols() {
     let code = r#"
@@ -174,7 +170,6 @@ end
     }
 }
 
-
 #[test]
 fn test_parse_ask_expression() {
     let code = "let name = ask \"Your name: \"\nlet city = ask(\"City: \")\nlet general = ask";
@@ -192,7 +187,6 @@ fn test_parse_ask_expression() {
         }
     );
 }
-
 
 #[test]
 fn test_parse_arrays() {
@@ -268,7 +262,6 @@ fn test_parse_arrays() {
     }
 }
 
-
 #[test]
 fn test_parse_struct_and_field_access() {
     let source = "struct Point\n  x\n  y\nend\nlet p = Point { x: 10, y: 20 }\np.x = 99\nsay p.x";
@@ -331,5 +324,3 @@ fn test_parse_struct_and_field_access() {
         other => panic!("Expected Stmt::Say(FieldAccess), got {:?}", other),
     }
 }
-
-
