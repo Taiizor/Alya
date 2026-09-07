@@ -1,0 +1,12 @@
+# Loops from README.md
+# For loop
+for i in 1..5
+    say i
+end
+
+# While loop
+let count = 0
+while count < 5
+    say count
+    count = count + 1
+end

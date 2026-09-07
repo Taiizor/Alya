@@ -1,0 +1,7 @@
+# Pattern matching from README.md
+let value = 1
+when value
+    is 1 then say "One"
+    is 2 then say "Two"
+    else say "Other"
+end

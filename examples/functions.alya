@@ -1,0 +1,6 @@
+# Functions from README.md
+function greet(name)
+    say "Hello, " + name + "!"
+end
+
+greet("World")

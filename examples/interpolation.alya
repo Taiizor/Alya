@@ -1,0 +1,4 @@
+# String interpolation from README.md
+let name = "Alice"
+let age = 25
+say "My name is {name} and I am {age} years old"

@@ -1,0 +1,10 @@
+# Conditionals from README.md
+let score = 85
+
+if score >= 90
+    say "Excellent!"
+else if score >= 70
+    say "Good job!"
+else
+    say "Keep trying!"
+end

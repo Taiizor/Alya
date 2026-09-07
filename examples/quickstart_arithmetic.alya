@@ -1,0 +1,7 @@
+# Quickstart Arithmetic from README.md
+let x = 10
+let y = 5
+say x + y
+say x - y
+say x * y
+say x / y
