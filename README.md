@@ -315,7 +315,7 @@ end
 Split large codebases across multiple files and import functions and variables using `import`:
 
 ```alya
-# math_utils.alya
+# modules/math_utils.alya
 function add(a, b)
     return a + b
 end
@@ -327,7 +327,7 @@ end
 
 ```alya
 # main.alya
-import "math_utils.alya"
+import "modules/math_utils.alya"
 
 let total = add(10, 20)
 let product = multiply(total, 2)
@@ -403,7 +403,7 @@ Alya/
 │   ├── workflows/             # CI and Automated Release workflows
 │   ├── ISSUE_TEMPLATE/        # Bug report and Feature request forms
 │   └── PULL_REQUEST_TEMPLATE.md
-├── examples/                  # 23 rich example programs
+├── examples/                  # 22 rich example programs and modules
 ├── src/
 │   ├── cli/                   # Argument parser, help, and commands
 │   ├── codegen/               # Assembly code generator (x86, x64, ARM64)

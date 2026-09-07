@@ -385,7 +385,6 @@ Odd number: 5\n",
             "Enter name: Hello, TestUser! Welcome to Alya.\n\
 Speed: 50 ops/sec\n",
         ),
-        "math_utils.alya" => Some(""),
         "modern_features.alya" => Some(
             "Calculated score: 46\n\
 Access granted!\n\

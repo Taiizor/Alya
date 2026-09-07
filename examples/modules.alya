@@ -1,4 +1,5 @@
-import "math_utils.alya"
+# Demonstrates modular multi-file imports from subdirectories
+import "modules/math_utils.alya"
 
 say "=== Modules & Imports ==="
 

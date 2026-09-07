@@ -1,3 +1,4 @@
+# Math utility module designed to be imported by other Alya programs
 function add(a, b)
     return a + b
 end
