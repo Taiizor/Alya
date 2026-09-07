@@ -172,8 +172,8 @@ fn test_all_examples_execute_with_gcc() {
 
         let mut child = std::process::Command::new(&run_cmd)
             .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
             .spawn()
             .expect("Failed to spawn compiled example");
 
@@ -183,14 +183,207 @@ fn test_all_examples_execute_with_gcc() {
             let _ = stdin.write_all(b"TestUser\nAlya\n");
         }
 
-        let status = child.wait().expect("Failed to wait on example execution");
+        let output = child
+            .wait_with_output()
+            .expect("Failed to wait on example execution");
         let _ = fs::remove_file(&temp_exe);
 
         assert!(
-            status.success(),
+            output.status.success(),
             "Example '{}' failed during execution with status: {:?}",
             example_name,
-            status
+            output.status
         );
+
+        let actual_stdout = String::from_utf8_lossy(&output.stdout).replace("\r\n", "\n");
+        let expected = get_expected_output(example_name).unwrap_or_else(|| {
+            panic!(
+                "Missing expected output definition for example '{}'!",
+                example_name
+            )
+        });
+
+        assert_eq!(
+            actual_stdout, expected,
+            "Example '{}' output did not match expected output!\nActual:\n{}\nExpected:\n{}",
+            example_name, actual_stdout, expected
+        );
+    }
+}
+
+fn get_expected_output(example_name: &str) -> Option<&'static str> {
+    match example_name {
+        "arithmetic.alya" => Some(
+            "=== Basic Arithmetic ===\n\
+20 + 6 = 26\n\
+20 - 6 = 14\n\
+20 * 6 = 120\n\
+20 / 6 = 3\n\
+20 % 6 = 2\n\
+\n\
+=== Expression Precedence ===\n\
+(20 + 6) * 2 = 52\n",
+        ),
+        "builtins.alya" => Some(
+            "Length: 12\n\
+Absolute value: 25\n\
+Min: 15\n\
+Max: 42\n\
+Square root of 64: 8\n\
+2 to the power of 10: 1024\n",
+        ),
+        "calculator.alya" => Some(
+            "=== Simple Calculator ===\n\
+Addition:       15 + 7 = 22\n\
+Subtraction:    15 - 7 = 8\n\
+Multiplication: 15 * 7 = 105\n\
+Division:       15 / 7 = 2\n\
+Modulo:         15 % 7 = 1\n\
+\n\
+=== Complex Expressions ===\n\
+(15 + 7) * 2 = 44\n\
+(15 - 7) / 2 = 4\n\
+100 / 4 - 5 = 20\n\
+(3 + 5) * (10 - 2) = 64\n",
+        ),
+        "comments.alya" => Some("Sum: 30\n"),
+        "compound_operators.alya" => Some(
+            "Initial: 10\n\
+After += 5: 15\n\
+After -= 3: 12\n\
+After *= 4: 48\n\
+After /= 2: 24\n",
+        ),
+        "conditionals.alya" => Some(
+            "=== Academic Evaluation ===\n\
+Score:      85\n\
+Attendance: 92%\n\
+Result: Grade B - Good job!\n\
+Status: Eligible for honors\n\
+Award:  Scholarship considered\n",
+        ),
+        "fibonacci.alya" => Some(
+            "=== Fibonacci Sequence in Alya ===\n\
+Computing first 10 Fibonacci numbers with a loop:\n\
+0\n\
+1\n\
+1\n\
+2\n\
+3\n\
+5\n\
+8\n\
+13\n\
+21\n\
+34\n\
+\n\
+Step-by-step recurrence demonstration:\n\
+F(5) = F(4) + F(3) = 3 + 2 = 5\n\
+F(6) = F(5) + F(4) = 5 + 3 = 8\n\
+F(7) = F(6) + F(5) = 8 + 5 = 13\n\
+F(8) = F(7) + F(6) = 13 + 8 = 21\n",
+        ),
+        "functions.alya" => Some(
+            "=== Functions Demo ===\n\
+Hello, Developer! Welcome to Alya.\n\
+Area of 8x5 rectangle: 40\n\
+Total after discount:  $90\n",
+        ),
+        "hello.alya" => Some(
+            "Hello, World!\n\
+Welcome to Alya programming language!\n",
+        ),
+        "interpolation.alya" => Some(
+            "=== Developer Profile ===\n\
+Name:        Alice\n\
+Role:        Software Engineer\n\
+Experience:  5 years\n\
+Projects:    12 completed\n\
+\n\
+Summary: Alice is a Software Engineer with 5 years of experience across 12 projects.\n",
+        ),
+        "loops.alya" => Some(
+            "=== For Loop (Range 1..5) ===\n\
+Iteration 1\n\
+Iteration 2\n\
+Iteration 3\n\
+Iteration 4\n\
+Iteration 5\n\
+\n\
+=== While Loop with += ===\n\
+Count: 1\n\
+Count: 2\n\
+Count: 3\n\
+Count: 4\n\
+\n\
+=== While Loop with Break ===\n\
+While item: 1\n\
+While item: 2\n\
+While item: 3\n\
+While broke early at w = 4\n\
+\n\
+=== Repeat Loop with Break ===\n\
+Repeat item: 1\n\
+Repeat item: 2\n\
+Repeat item: 3\n\
+Repeat broke at r = 4\n",
+        ),
+        "main.alya" => Some(
+            "Enter name: Hello, TestUser! Welcome to Alya.\n\
+Speed: 50 ops/sec\n",
+        ),
+        "modern_features.alya" => Some(
+            "Calculated score: 46\n\
+Access granted!\n\
+Length of greeting: 13\n\
+Absolute value of -42: 42\n\
+Minimum of 10 and 20: 10\n\
+Maximum of 10 and 20: 20\n",
+        ),
+        "pattern_matching.alya" => Some(
+            "=== HTTP Status Code Resolver ===\n\
+Status 200: OK\n\
+\n\
+=== Priority Level Resolver ===\n\
+Priority 2: Medium\n",
+        ),
+        "quickstart_arithmetic.alya" => Some("15\n5\n50\n2\n"),
+        "test.alya" => Some(
+            "=== Math Built-ins ===\n\
+4\n\
+256\n\
+\n\
+=== Repeat Loop ===\n\
+Completed loops: 3\n",
+        ),
+        "try_catch.alya" => Some(
+            "=== Try-Catch Demo ===\n\
+\n\
+1. Basic try-catch:\n\
+Attempting division...\n\
+Caught error: Division by zero was safely handled!\n\
+\n\
+2. Try-catch with error message:\n\
+Calculating modulo...\n\
+Caught exception message: division by zero\n\
+\n\
+3. Successful try block:\n\
+Safe division result: 25\n\
+\n\
+Program completed successfully without crashing.\n",
+        ),
+        "user_input.alya" => Some(
+            "What is your name? Hello, TestUser! Welcome to Alya.\n\
+What is your favorite programming language? Awesome, Alya is great!\n",
+        ),
+        "variables.alya" => Some(
+            "=== Language Information ===\n\
+Language:    Alya\n\
+Version:     1\n\
+Year:        2026\n\
+Open Source: 1\n\
+Next version will be: 2\n\
+Project age: 2 years\n",
+        ),
+        _ => None,
     }
 }
