@@ -146,13 +146,13 @@ impl Parser {
             self.skip_newlines();
         }
 
-        let else_block = if matches!(self.current_token().token_type, TokenType::Else) {
+        let (else_block, is_chained) = if matches!(self.current_token().token_type, TokenType::Else) {
             self.advance();
             
             // Check for 'else if'
             if matches!(self.current_token().token_type, TokenType::If) {
                 let else_if = self.parse_if()?;
-                Some(vec![else_if])
+                (Some(vec![else_if]), true)
             } else {
                 self.skip_newlines();
                 let mut else_stmts = Vec::new();
@@ -160,16 +160,18 @@ impl Parser {
                     else_stmts.push(self.parse_statement()?);
                     self.skip_newlines();
                 }
-                Some(else_stmts)
+                (Some(else_stmts), false)
             }
         } else {
-            None
+            (None, false)
         };
 
-        if !matches!(self.current_token().token_type, TokenType::End) {
-            return Err(format!("Expected 'end' at line {}", self.current_token().line));
+        if !is_chained {
+            if !matches!(self.current_token().token_type, TokenType::End) {
+                return Err(format!("Expected 'end' at line {}", self.current_token().line));
+            }
+            self.advance();
         }
-        self.advance();
 
         Ok(Stmt::If {
             condition,
