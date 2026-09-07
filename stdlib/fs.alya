@@ -1,0 +1,45 @@
+﻿# Alya Standard Library - Filesystem Module
+# Provides high-level file and directory I/O operations.
+
+function fs_exists(path)
+    return file_exists(path)
+end
+
+function fs_read(path)
+    return read_file(path)
+end
+
+function fs_write(path, content)
+    return write_file(path, content)
+end
+
+function fs_append(path, content)
+    return append_file(path, content)
+end
+
+function fs_remove(path)
+    return remove_file(path)
+end
+
+function fs_size(path)
+    return file_size(path)
+end
+
+function fs_mkdir(path)
+    return make_dir(path)
+end
+
+function copy_file(src, dst)
+    if file_exists(src) == 0
+        return 0
+    end
+    let content = read_file(src)
+    return write_file(dst, content)
+end
+
+function move_file(src, dst)
+    if copy_file(src, dst)
+        return remove_file(src)
+    end
+    return 0
+end

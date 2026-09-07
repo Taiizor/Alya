@@ -27,7 +27,8 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern _time\n");
         out.push_str(".extern _getenv\n");
         out.push_str(".extern _system\n");
-        out.push_str(".extern _usleep\n\n");
+        out.push_str(".extern _usleep\n");
+        out.push_str(".extern _mkdir\n\n");
         out.push_str(".text\n");
         out.push_str(".align 2\n");
         out.push_str("_main:\n");
@@ -52,7 +53,8 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern time\n");
         out.push_str(".extern getenv\n");
         out.push_str(".extern system\n");
-        out.push_str(".extern usleep\n\n");
+        out.push_str(".extern usleep\n");
+        out.push_str(".extern mkdir\n\n");
         out.push_str(".text\n");
         out.push_str(".align 2\n");
         out.push_str("main:\n");

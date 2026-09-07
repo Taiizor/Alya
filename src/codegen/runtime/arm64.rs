@@ -757,6 +757,48 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    ldp x29, x30, [sp], #48\n");
     out.push_str("    ret\n\n");
 
+    // fn_append_file
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_append_file\n");
+    out.push_str("fn_append_file:\n");
+    out.push_str("    stp x29, x30, [sp, #-48]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    stp x19, x20, [sp, #16]\n");
+    out.push_str("    stp x21, x22, [sp, #32]\n");
+    out.push_str("    mov x19, x0\n");
+    out.push_str("    mov x20, x1\n");
+    out.push_str("    cbz x19, .L_arm64_fapp_fail\n");
+    out.push_str("    mov x0, x19\n");
+    emit_adrp_add(out, "x1", "alya_str_mode_ab", os);
+    out.push_str(&format!("    bl {}fopen\n", p));
+    out.push_str("    cbz x0, .L_arm64_fapp_fail\n");
+    out.push_str("    mov x21, x0\n");
+    out.push_str("    mov x22, #0\n");
+    out.push_str("    cbz x20, .L_arm64_fapp_write\n");
+    out.push_str("    mov x9, x20\n");
+    out.push_str(".L_arm64_fapp_len_loop:\n");
+    out.push_str("    ldrb w10, [x9], #1\n");
+    out.push_str("    cbz w10, .L_arm64_fapp_write\n");
+    out.push_str("    add x22, x22, #1\n");
+    out.push_str("    b .L_arm64_fapp_len_loop\n");
+    out.push_str(".L_arm64_fapp_write:\n");
+    out.push_str("    mov x0, x20\n");
+    out.push_str("    mov x1, #1\n");
+    out.push_str("    mov x2, x22\n");
+    out.push_str("    mov x3, x21\n");
+    out.push_str(&format!("    bl {}fwrite\n", p));
+    out.push_str("    mov x0, x21\n");
+    out.push_str(&format!("    bl {}fclose\n", p));
+    out.push_str("    mov x0, #1\n");
+    out.push_str("    b .L_arm64_fapp_end\n");
+    out.push_str(".L_arm64_fapp_fail:\n");
+    out.push_str("    mov x0, #0\n");
+    out.push_str(".L_arm64_fapp_end:\n");
+    out.push_str("    ldp x21, x22, [sp, #32]\n");
+    out.push_str("    ldp x19, x20, [sp, #16]\n");
+    out.push_str("    ldp x29, x30, [sp], #48\n");
+    out.push_str("    ret\n\n");
+
     // fn_read_file
     out.push_str(".align 2\n");
     out.push_str("fn_read_file:\n");
@@ -804,6 +846,122 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    ldp x21, x22, [sp, #32]\n");
     out.push_str("    ldp x19, x20, [sp, #16]\n");
     out.push_str("    ldp x29, x30, [sp], #48\n");
+    out.push_str("    ret\n\n");
+
+    // fn_file_size
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_file_size\n");
+    out.push_str("fn_file_size:\n");
+    out.push_str("    stp x29, x30, [sp, #-32]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    stp x19, x20, [sp, #16]\n");
+    out.push_str("    mov x19, x0\n");
+    out.push_str("    cbz x19, .L_arm64_fsize_fail\n");
+    out.push_str("    mov x0, x19\n");
+    emit_adrp_add(out, "x1", "alya_str_mode_rb", os);
+    out.push_str(&format!("    bl {}fopen\n", p));
+    out.push_str("    cbz x0, .L_arm64_fsize_fail\n");
+    out.push_str("    mov x19, x0\n");
+    out.push_str("    mov x0, x19\n");
+    out.push_str("    mov x1, #0\n");
+    out.push_str("    mov x2, #2\n");
+    out.push_str(&format!("    bl {}fseek\n", p));
+    out.push_str("    mov x0, x19\n");
+    out.push_str(&format!("    bl {}ftell\n", p));
+    out.push_str("    mov x20, x0\n");
+    out.push_str("    mov x0, x19\n");
+    out.push_str(&format!("    bl {}fclose\n", p));
+    out.push_str("    mov x0, x20\n");
+    out.push_str("    b .L_arm64_fsize_end\n");
+    out.push_str(".L_arm64_fsize_fail:\n");
+    out.push_str("    mov x0, #-1\n");
+    out.push_str(".L_arm64_fsize_end:\n");
+    out.push_str("    ldp x19, x20, [sp, #16]\n");
+    out.push_str("    ldp x29, x30, [sp], #32\n");
+    out.push_str("    ret\n\n");
+
+    // fn_make_dir / fn_mkdir
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_make_dir\n");
+    out.push_str("fn_make_dir:\n");
+    out.push_str(".global fn_mkdir\n");
+    out.push_str("fn_mkdir:\n");
+    out.push_str("    stp x29, x30, [sp, #-16]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    cbz x0, .L_arm64_mkdir_fail\n");
+    out.push_str("    mov x1, #511\n");
+    out.push_str(&format!("    bl {}mkdir\n", p));
+    out.push_str("    cmp x0, #0\n");
+    out.push_str("    cset x0, eq\n");
+    out.push_str("    ldp x29, x30, [sp], #16\n");
+    out.push_str("    ret\n");
+    out.push_str(".L_arm64_mkdir_fail:\n");
+    out.push_str("    mov x0, #0\n");
+    out.push_str("    ldp x29, x30, [sp], #16\n");
+    out.push_str("    ret\n\n");
+
+    // Bitwise operations
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_bit_and\n");
+    out.push_str("fn_bit_and:\n");
+    out.push_str("    and x0, x0, x1\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_bit_or\n");
+    out.push_str("fn_bit_or:\n");
+    out.push_str("    orr x0, x0, x1\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_bit_xor\n");
+    out.push_str("fn_bit_xor:\n");
+    out.push_str("    eor x0, x0, x1\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_bit_not\n");
+    out.push_str("fn_bit_not:\n");
+    out.push_str("    mvn x0, x0\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_bit_shl\n");
+    out.push_str("fn_bit_shl:\n");
+    out.push_str("    lsl x0, x0, x1\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_bit_shr\n");
+    out.push_str("fn_bit_shr:\n");
+    out.push_str("    lsr x0, x0, x1\n");
+    out.push_str("    ret\n\n");
+
+    // PRNG
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_rand\n");
+    out.push_str("fn_rand:\n");
+    emit_adrp_add(out, "x9", "alya_rand_state", os);
+    out.push_str("    ldr x0, [x9]\n");
+    out.push_str("    cbnz x0, .L_arm64_rand_ok\n");
+    out.push_str("    movz x0, #0xcd15\n");
+    out.push_str("    movk x0, #0x075b, lsl #16\n");
+    out.push_str(".L_arm64_rand_ok:\n");
+    out.push_str("    movz x10, #0x4e6d\n");
+    out.push_str("    movk x10, #0x41c6, lsl #16\n");
+    out.push_str("    mul x0, x0, x10\n");
+    out.push_str("    mov x10, #12345\n");
+    out.push_str("    add x0, x0, x10\n");
+    out.push_str("    and x0, x0, #0x7fffffff\n");
+    out.push_str("    str x0, [x9]\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_rand_seed\n");
+    out.push_str("fn_rand_seed:\n");
+    emit_adrp_add(out, "x9", "alya_rand_state", os);
+    out.push_str("    str x0, [x9]\n");
+    out.push_str("    mov x0, #0\n");
     out.push_str("    ret\n\n");
 
     // alya_error_div_zero

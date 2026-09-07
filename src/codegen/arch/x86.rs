@@ -16,7 +16,9 @@ pub fn emit_header(out: &mut String) {
     out.push_str(".extern getenv\n");
     out.push_str(".extern system\n");
     out.push_str(".extern Sleep\n");
-    out.push_str(".extern usleep\n\n");
+    out.push_str(".extern usleep\n");
+    out.push_str(".extern _mkdir\n");
+    out.push_str(".extern mkdir\n\n");
     out.push_str(".text\n");
     out.push_str("main:\n");
     out.push_str("    push %ebp\n");

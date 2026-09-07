@@ -1,0 +1,141 @@
+# Alya Standard Library - String Module
+# Provides advanced string manipulation and inspection functions.
+
+function is_empty(s)
+    return len(s) == 0
+end
+
+function starts_with(s, prefix)
+    let plen = len(prefix)
+    let slen = len(s)
+    if plen > slen
+        return 0
+    end
+    if plen == 0
+        return 1
+    end
+    return substring(s, 0, plen) == prefix
+end
+
+function ends_with(s, suffix)
+    let slen = len(s)
+    let suflen = len(suffix)
+    if suflen > slen
+        return 0
+    end
+    if suflen == 0
+        return 1
+    end
+    return substring(s, slen - suflen, suflen) == suffix
+end
+
+function replace(s, old, new_s)
+    let slen = len(s)
+    let olen = len(old)
+    if olen == 0
+        return s
+    end
+    let res = ""
+    let i = 0
+    while i < slen
+        if i + olen <= slen and substring(s, i, olen) == old
+            res = res + new_s
+            i = i + olen
+        else
+            res = res + char_at(s, i)
+            i = i + 1
+        end
+    end
+    return res
+end
+
+function str_repeat(s, count)
+    let res = ""
+    let i = 0
+    while i < count
+        res = res + s
+        i = i + 1
+    end
+    return res
+end
+
+function pad_left(s, total_len, pad_char)
+    let slen = len(s)
+    if slen >= total_len
+        return s
+    end
+    let diff = total_len - slen
+    let padding = str_repeat(pad_char, diff)
+    return padding + s
+end
+
+function pad_right(s, total_len, pad_char)
+    let slen = len(s)
+    if slen >= total_len
+        return s
+    end
+    let diff = total_len - slen
+    let padding = str_repeat(pad_char, diff)
+    return s + padding
+end
+
+function capitalize(s)
+    let slen = len(s)
+    if slen == 0
+        return ""
+    end
+    let first = upper(substring(s, 0, 1))
+    if slen == 1
+        return first
+    end
+    let rest = lower(substring(s, 1, slen - 1))
+    return first + rest
+end
+
+function lines(s)
+    let res = []
+    let slen = len(s)
+    if slen == 0
+        return res
+    end
+    let current = ""
+    let i = 0
+    let ch = ""
+    while i < slen
+        ch = char_at(s, i)
+        if ch == "\r"
+            if i + 1 < slen and char_at(s, i + 1) == "\n"
+                i = i + 1
+            end
+            res.push(current)
+            current = ""
+        elif ch == "\n"
+            res.push(current)
+            current = ""
+        else
+            current = current + ch
+        end
+        i = i + 1
+    end
+    res.push(current)
+    return res
+end
+
+function count_matches(s, sub)
+    let slen = len(s)
+    let sublen = len(sub)
+    if sublen == 0 or slen == 0 or sublen > slen
+        return 0
+    end
+    let count = 0
+    let i = 0
+    while i <= slen - sublen
+        if substring(s, i, sublen) == sub
+            count = count + 1
+            i = i + sublen
+        else
+            i = i + 1
+        end
+    end
+    return count
+end

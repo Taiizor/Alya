@@ -15,6 +15,7 @@ pub struct Lexer {
 
 impl Lexer {
     pub fn new(input: &str) -> Self {
+        let input = input.strip_prefix('\u{feff}').unwrap_or(input);
         Self {
             input: input.chars().collect(),
             position: 0,

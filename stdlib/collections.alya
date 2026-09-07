@@ -1,0 +1,96 @@
+# Alya Standard Library - Collections Module
+# Provides common data structures: Stack, Queue, and Set.
+
+# 1. Stack (LIFO)
+function stack_new()
+    return []
+end
+
+function stack_push(s, val)
+    s.push(val)
+end
+
+function stack_pop(s)
+    return s.pop()
+end
+
+function stack_peek(s)
+    let count = len(s)
+    if count == 0
+        return 0
+    end
+    return s[count - 1]
+end
+
+function stack_size(s)
+    return len(s)
+end
+
+function stack_is_empty(s)
+    return len(s) == 0
+end
+
+# 2. Queue (FIFO)
+function queue_new()
+    return []
+end
+
+function queue_push(q, val)
+    q.push(val)
+end
+
+function queue_pop(q)
+    let total = len(q)
+    if total == 0
+        return 0
+    end
+    let first = q[0]
+    let i = 1
+    while i < total
+        q[i - 1] = q[i]
+        i = i + 1
+    end
+    q.pop()
+    return first
+end
+
+function queue_peek(q)
+    let total = len(q)
+    if total == 0
+        return 0
+    end
+    return q[0]
+end
+
+function queue_size(q)
+    return len(q)
+end
+
+function queue_is_empty(q)
+    return len(q) == 0
+end
+
+# 3. Set (Unique items)
+function set_new()
+    return map()
+end
+
+function set_add(s, item)
+    s[item] = 1
+end
+
+function set_has(s, item)
+    return s.has(item)
+end
+
+function set_remove(s, item)
+    return remove(s, item)
+end
+
+function set_size(s)
+    return len(s)
+end
+
+function set_to_array(s)
+    return keys(s)
+end

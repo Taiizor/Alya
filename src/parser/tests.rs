@@ -678,6 +678,12 @@ import "std/time"
 import "std/os"
 import "std/json"
 import "std/mem"
+import "std/str"
+import "std/path"
+import "std/fs"
+import "std/hash"
+import "std/collections"
+import "std/test"
 say PI
 "#;
     let mut lexer = Lexer::new(code);
@@ -710,12 +716,42 @@ say PI
         Stmt::Function { name, .. } => name == "arena_new",
         _ => false,
     });
+    let has_starts_with = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "starts_with",
+        _ => false,
+    });
+    let has_path_join = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "path_join",
+        _ => false,
+    });
+    let has_copy_file = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "copy_file",
+        _ => false,
+    });
+    let has_fnv1a = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "fnv1a",
+        _ => false,
+    });
+    let has_stack_new = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "stack_new",
+        _ => false,
+    });
+    let has_assert_eq = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "assert_eq",
+        _ => false,
+    });
 
     assert!(has_hypot, "Missing hypot from std/math");
     assert!(has_now, "Missing now from std/time");
     assert!(has_env, "Missing env from std/os");
     assert!(has_json_bool, "Missing json_bool from std/json");
     assert!(has_arena_new, "Missing arena_new from std/mem");
+    assert!(has_starts_with, "Missing starts_with from std/str");
+    assert!(has_path_join, "Missing path_join from std/path");
+    assert!(has_copy_file, "Missing copy_file from std/fs");
+    assert!(has_fnv1a, "Missing fnv1a from std/hash");
+    assert!(has_stack_new, "Missing stack_new from std/collections");
+    assert!(has_assert_eq, "Missing assert_eq from std/test");
 }
 
 #[test]

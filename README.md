@@ -356,42 +356,69 @@ say product    # 60
 
 #### Standard Library Modules (`std/*`)
 
-Alya comes with built-in standard library packages that can be imported without external dependencies:
+Alya comes with built-in, zero-dependency standard library packages that can be imported directly:
+
+| Module | Description | Key Functions |
+|---|---|---|
+| `std/str` | Advanced string manipulation | `starts_with`, `ends_with`, `replace`, `str_repeat`, `pad_left`, `pad_right`, `capitalize`, `lines`, `count_matches`, `is_empty` |
+| `std/path` | Cross-platform path handling | `path_join`, `file_name`, `file_ext`, `file_stem`, `parent_dir`, `is_absolute`, `path_separator` |
+| `std/fs` | File system operations | `fs_exists`, `fs_read`, `fs_write`, `fs_append`, `fs_size`, `fs_mkdir`, `fs_remove`, `copy_file`, `move_file` |
+| `std/math` | Trigonometry, stats & PRNG | `sin`, `cos`, `tan`, `hypot`, `round`, `floor`, `ceil`, `trunc`, `rand_range`, `rand_seed`, `sum`, `mean`, `median`, `clamp`, `sign`, `is_even`, `is_odd` |
+| `std/hash` | Hashing & binary encoding | `djb2`, `fnv1a`, `hex_encode`, `hex_decode`, `base64_encode`, `base64_decode` |
+| `std/collections` | High-level data structures | `Stack` (`stack_new`, `stack_push`, `stack_pop`, `stack_peek`, `stack_size`, `stack_is_empty`), `Queue` (`queue_new`, `queue_push`, `queue_pop`, `queue_peek`, `queue_size`), `Set` (`set_new`, `set_add`, `set_has`, `set_remove`, `set_size`, `set_to_array`) |
+| `std/test` | Micro-testing framework | `test_suite`, `assert`, `assert_eq`, `assert_ne`, `assert_str_eq`, `assert_str_ne`, `assert_true`, `assert_false`, `test_report`, `test_summary` |
+| `std/json` | JSON serialization | `json_number`, `json_string`, `json_bool`, `json_array`, `json_object`, `json_map` |
+| `std/time` | System clock & timers | `now`, `delay` |
+| `std/os` | Operating system interop | `env`, `get_env_var`, `exec` |
+| `std/mem` | Low-level & arena allocator | `arena_new`, `arena_alloc_mem`, `arena_clear`, `arena_free_all`, `alloc_mem`, `free_mem`, `realloc_mem`, `peek_byte`, `poke_byte`, `str_from_ptr` |
+
+##### Standard Library Example:
 
 ```alya
+import "std/str"
+import "std/path"
+import "std/fs"
 import "std/math"
-import "std/time"
-import "std/os"
+import "std/hash"
+import "std/collections"
 import "std/json"
-import "std/mem"
+import "std/test"
 
-# Math utilities and constants
-say PI                      # 3.14159
-say clamp(15, 1, 10)        # 10
-say hypot(3, 4)             # 5
+test_suite("Extended Stdlib Showcase")
 
-# System time & sleep
-let now_ts = now()          # Current UNIX epoch timestamp in seconds
-delay(100)                  # Sleep for 100 milliseconds
+# String & Path
+let joined = path_join("usr/local", "bin/alyac")
+assert_str_eq(joined, "usr/local/bin/alyac", "path_join")
+assert_str_eq(capitalize("alya"), "Alya", "capitalize")
+assert_eq(starts_with("hello world", "hello"), 1, "starts_with")
 
-# OS environment variables and system execution
-let user = env("USER")
-exec("echo Hello from Alya!")
+# Math & PRNG
+assert_eq(sum([10, 20, 30, 40, 50]), 150, "sum")
+assert_eq(floor(3.7), 3, "floor")
+assert_eq(round(cos(0.0)), 1, "cos")
 
-# JSON serialization helpers
-say json_number(42)         # 42
-say json_string("test")     # "test"
-say json_bool(1)            # true
-say json_array(["1", "2"])  # [1, 2]
+# Hashing & Encoding
+let h = djb2("hello")
+assert_str_eq(hex_encode("Hi"), "4869", "hex_encode")
+assert_str_eq(base64_encode("Alya"), "QWx5YQ==", "base64_encode")
 
-# High-performance Arena Allocator (O(1) allocation, bulk reset & free)
-let arena = arena_new(1024)
-let block = arena_alloc_mem(arena, 64)
-poke_byte(block, 0, 65)     # 'A'
-poke_byte(block, 1, 0)
-say str_from_ptr(block)     # "A"
-arena_clear(arena)          # Instant bulk reset
-arena_free_all(arena)       # Release all memory chunks
+# Collections (Stack, Queue, Set)
+let st = stack_new()
+stack_push(st, 100)
+stack_push(st, 200)
+assert_eq(stack_pop(st), 200, "stack LIFO")
+
+let s = set_new()
+set_add(s, "alpha")
+set_add(s, "alpha")
+assert_eq(set_size(s), 1, "set deduplication")
+
+# File System
+fs_write("scratch.txt", "Alya standard library")
+assert_eq(fs_exists("scratch.txt"), 1, "fs_exists")
+fs_remove("scratch.txt")
+
+test_summary()
 ```
 
 ### 11. Floating-Point Numbers

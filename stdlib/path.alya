@@ -1,0 +1,114 @@
+# Alya Standard Library - Path Module
+# Provides cross-platform filesystem path manipulation utilities.
+
+function path_separator()
+    return "/"
+end
+
+function is_absolute(path)
+    let plen = len(path)
+    if plen == 0
+        return 0
+    end
+    let c0 = char_at(path, 0)
+    if c0 == "/" or c0 == "\\"
+        return 1
+    end
+    if plen >= 3 and char_at(path, 1) == ":"
+        let c2 = char_at(path, 2)
+        if c2 == "/" or c2 == "\\"
+            return 1
+        end
+    end
+    return 0
+end
+
+function file_name(path)
+    let plen = len(path)
+    if plen == 0
+        return ""
+    end
+    let i = plen - 1
+    let ch = ""
+    while i >= 0
+        ch = char_at(path, i)
+        if ch == "/" or ch == "\\"
+            return substring(path, i + 1, plen - (i + 1))
+        end
+        i = i - 1
+    end
+    return path
+end
+
+function file_ext(path)
+    let name = file_name(path)
+    let nlen = len(name)
+    if nlen == 0
+        return ""
+    end
+    let i = nlen - 1
+    while i >= 0
+        if char_at(name, i) == "."
+            return substring(name, i, nlen - i)
+        end
+        i = i - 1
+    end
+    return ""
+end
+
+function file_stem(path)
+    let name = file_name(path)
+    let ext = file_ext(name)
+    let nlen = len(name)
+    let elen = len(ext)
+    if elen == 0
+        return name
+    end
+    return substring(name, 0, nlen - elen)
+end
+
+function parent_dir(path)
+    let plen = len(path)
+    if plen == 0
+        return "."
+    end
+    let i = plen - 1
+    while i > 0 and (char_at(path, i) == "/" or char_at(path, i) == "\\")
+        i = i - 1
+    end
+    let ch = ""
+    while i >= 0
+        ch = char_at(path, i)
+        if ch == "/" or ch == "\\"
+            if i == 0
+                return "/"
+            end
+            return substring(path, 0, i)
+        end
+        i = i - 1
+    end
+    return "."
+end
+
+function path_join(a, b)
+    let alen = len(a)
+    let blen = len(b)
+    if alen == 0
+        return b
+    end
+    if blen == 0
+        return a
+    end
+    let last_a = char_at(a, alen - 1)
+    let a_has_slash = (last_a == "/" or last_a == "\\")
+    let first_b = char_at(b, 0)
+    let b_has_slash = (first_b == "/" or first_b == "\\")
+
+    if a_has_slash and b_has_slash
+        return substring(a, 0, alen - 1) + "/" + substring(b, 1, blen - 1)
+    elif a_has_slash or b_has_slash
+        return a + b
+    else
+        return a + "/" + b
+    end
+end

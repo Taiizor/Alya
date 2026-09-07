@@ -17,7 +17,8 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern _time\n");
         out.push_str(".extern _getenv\n");
         out.push_str(".extern _system\n");
-        out.push_str(".extern _usleep\n\n");
+        out.push_str(".extern _usleep\n");
+        out.push_str(".extern _mkdir\n\n");
         out.push_str(".text\n");
         out.push_str("_main:\n");
         out.push_str("    push %rbp\n");
@@ -40,9 +41,11 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern getenv\n");
         out.push_str(".extern system\n");
         if matches!(os, OperatingSystem::Windows) {
-            out.push_str(".extern Sleep\n\n");
+            out.push_str(".extern Sleep\n");
+            out.push_str(".extern _mkdir\n\n");
         } else {
-            out.push_str(".extern usleep\n\n");
+            out.push_str(".extern usleep\n");
+            out.push_str(".extern mkdir\n\n");
         }
         out.push_str(".text\n");
         out.push_str("main:\n");

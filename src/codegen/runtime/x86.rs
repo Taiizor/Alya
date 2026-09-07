@@ -857,6 +857,55 @@ pub fn emit_x86_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %ebp\n");
     out.push_str("    ret\n\n");
 
+    // fn_append_file
+    out.push_str(".global fn_append_file\n");
+    out.push_str("fn_append_file:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    push %ebx\n");
+    out.push_str("    push %esi\n");
+    out.push_str("    push %edi\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jz .L_x86_fapp_fail\n");
+    out.push_str("    push $alya_str_mode_ab\n");
+    out.push_str("    push 8(%ebp)\n");
+    out.push_str("    call fopen\n");
+    out.push_str("    add $8, %esp\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jz .L_x86_fapp_fail\n");
+    out.push_str("    mov %eax, %ebx\n");
+    out.push_str("    mov 12(%ebp), %esi\n");
+    out.push_str("    xor %edi, %edi\n");
+    out.push_str("    test %esi, %esi\n");
+    out.push_str("    jz .L_x86_fapp_write\n");
+    out.push_str(".L_x86_fapp_len_loop:\n");
+    out.push_str("    cmpb $0, (%esi, %edi)\n");
+    out.push_str("    je .L_x86_fapp_write\n");
+    out.push_str("    inc %edi\n");
+    out.push_str("    jmp .L_x86_fapp_len_loop\n");
+    out.push_str(".L_x86_fapp_write:\n");
+    out.push_str("    push %ebx\n");
+    out.push_str("    push %edi\n");
+    out.push_str("    push $1\n");
+    out.push_str("    push %esi\n");
+    out.push_str("    call fwrite\n");
+    out.push_str("    add $16, %esp\n");
+    out.push_str("    push %ebx\n");
+    out.push_str("    call fclose\n");
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    mov $1, %eax\n");
+    out.push_str("    jmp .L_x86_fapp_end\n");
+    out.push_str(".L_x86_fapp_fail:\n");
+    out.push_str("    xor %eax, %eax\n");
+    out.push_str(".L_x86_fapp_end:\n");
+    out.push_str("    pop %edi\n");
+    out.push_str("    pop %esi\n");
+    out.push_str("    pop %ebx\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
     // fn_read_file
     out.push_str("fn_read_file:\n");
     out.push_str("    push %ebp\n");
@@ -913,6 +962,165 @@ pub fn emit_x86_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %edi\n");
     out.push_str("    pop %esi\n");
     out.push_str("    pop %ebx\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_file_size
+    out.push_str(".global fn_file_size\n");
+    out.push_str("fn_file_size:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    push %ebx\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jz .L_x86_fsize_fail\n");
+    out.push_str("    push $alya_str_mode_rb\n");
+    out.push_str("    push 8(%ebp)\n");
+    out.push_str("    call fopen\n");
+    out.push_str("    add $8, %esp\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jz .L_x86_fsize_fail\n");
+    out.push_str("    mov %eax, %ebx\n");
+    out.push_str("    push $2\n");
+    out.push_str("    push $0\n");
+    out.push_str("    push %ebx\n");
+    out.push_str("    call fseek\n");
+    out.push_str("    add $12, %esp\n");
+    out.push_str("    push %ebx\n");
+    out.push_str("    call ftell\n");
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    push %eax\n");
+    out.push_str("    push %ebx\n");
+    out.push_str("    call fclose\n");
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    pop %eax\n");
+    out.push_str("    jmp .L_x86_fsize_end\n");
+    out.push_str(".L_x86_fsize_fail:\n");
+    out.push_str("    mov $-1, %eax\n");
+    out.push_str(".L_x86_fsize_end:\n");
+    out.push_str("    pop %ebx\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_make_dir / fn_mkdir
+    out.push_str(".global fn_make_dir\n");
+    out.push_str("fn_make_dir:\n");
+    out.push_str(".global fn_mkdir\n");
+    out.push_str("fn_mkdir:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jz .L_x86_mkdir_fail\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    push %eax\n");
+        out.push_str("    call _mkdir\n");
+        out.push_str("    add $4, %esp\n");
+    } else {
+        out.push_str("    push $511\n");
+        out.push_str("    push %eax\n");
+        out.push_str("    call mkdir\n");
+        out.push_str("    add $8, %esp\n");
+    }
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jnz .L_x86_mkdir_fail\n");
+    out.push_str("    mov $1, %eax\n");
+    out.push_str("    jmp .L_x86_mkdir_end\n");
+    out.push_str(".L_x86_mkdir_fail:\n");
+    out.push_str("    xor %eax, %eax\n");
+    out.push_str(".L_x86_mkdir_end:\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    // Bitwise operations
+    out.push_str(".global fn_bit_and\n");
+    out.push_str("fn_bit_and:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    and 12(%ebp), %eax\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".global fn_bit_or\n");
+    out.push_str("fn_bit_or:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    or 12(%ebp), %eax\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".global fn_bit_xor\n");
+    out.push_str("fn_bit_xor:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    xor 12(%ebp), %eax\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".global fn_bit_not\n");
+    out.push_str("fn_bit_not:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    not %eax\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".global fn_bit_shl\n");
+    out.push_str("fn_bit_shl:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    push %ecx\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    mov 12(%ebp), %ecx\n");
+    out.push_str("    shll %cl, %eax\n");
+    out.push_str("    pop %ecx\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".global fn_bit_shr\n");
+    out.push_str("fn_bit_shr:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    push %ecx\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    mov 12(%ebp), %ecx\n");
+    out.push_str("    shrl %cl, %eax\n");
+    out.push_str("    pop %ecx\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    // PRNG
+    out.push_str(".global fn_rand\n");
+    out.push_str("fn_rand:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    mov alya_rand_state, %eax\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jnz .L_x86_rand_ok\n");
+    out.push_str("    mov $123456789, %eax\n");
+    out.push_str(".L_x86_rand_ok:\n");
+    out.push_str("    imul $1103515245, %eax\n");
+    out.push_str("    add $12345, %eax\n");
+    out.push_str("    and $0x7fffffff, %eax\n");
+    out.push_str("    mov %eax, alya_rand_state\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".global fn_rand_seed\n");
+    out.push_str("fn_rand_seed:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    mov %eax, alya_rand_state\n");
+    out.push_str("    xor %eax, %eax\n");
     out.push_str("    mov %ebp, %esp\n");
     out.push_str("    pop %ebp\n");
     out.push_str("    ret\n\n");

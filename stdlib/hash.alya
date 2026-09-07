@@ -1,0 +1,187 @@
+# Alya Standard Library - Hash Module
+# Provides hashing algorithms (FNV-1a, DJB2) and encoding/decoding utilities (Base64, Hex).
+
+function djb2(s)
+    let slen = len(s)
+    let h = 5381
+    let i = 0
+    let c = 0
+    while i < slen
+        c = ord(char_at(s, i))
+        h = (bit_shl(h, 5) + h) + c
+        h = bit_and(h, 2147483647)
+        i = i + 1
+    end
+    return h
+end
+
+function fnv1a(s)
+    let slen = len(s)
+    let h = 2166136261
+    let i = 0
+    let c = 0
+    while i < slen
+        c = ord(char_at(s, i))
+        h = bit_xor(h, c)
+        h = h * 16777619
+        h = bit_and(h, 2147483647)
+        i = i + 1
+    end
+    return h
+end
+
+function hex_encode(s)
+    let hex_chars = "0123456789abcdef"
+    let slen = len(s)
+    let res = ""
+    let i = 0
+    let c = 0
+    let hi = 0
+    let lo = 0
+    while i < slen
+        c = ord(char_at(s, i))
+        hi = bit_and(bit_shr(c, 4), 15)
+        lo = bit_and(c, 15)
+        res = res + char_at(hex_chars, hi) + char_at(hex_chars, lo)
+        i = i + 1
+    end
+    return res
+end
+
+function _hex_val(ch)
+    let c = ord(ch)
+    if c >= 48 and c <= 57
+        return c - 48
+    elif c >= 97 and c <= 102
+        return c - 87
+    elif c >= 65 and c <= 70
+        return c - 55
+    end
+    return 0
+end
+
+function hex_decode(s)
+    let slen = len(s)
+    let res = ""
+    let i = 0
+    let hi = 0
+    let lo = 0
+    let b = 0
+    while i + 1 < slen
+        hi = _hex_val(char_at(s, i))
+        lo = _hex_val(char_at(s, i + 1))
+        b = bit_or(bit_shl(hi, 4), lo)
+        res = res + chr(b)
+        i = i + 2
+    end
+    return res
+end
+
+function base64_encode(s)
+    let b64_chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+    let slen = len(s)
+    let res = ""
+    let i = 0
+    let b0 = 0
+    let b1 = 0
+    let b2 = 0
+    let has_b1 = 0
+    let has_b2 = 0
+    let idx0 = 0
+    let idx1 = 0
+    let idx2 = 0
+    let idx3 = 0
+    while i < slen
+        b0 = ord(char_at(s, i))
+        b1 = 0
+        b2 = 0
+        has_b1 = 0
+        has_b2 = 0
+        if i + 1 < slen
+            b1 = ord(char_at(s, i + 1))
+            has_b1 = 1
+        end
+        if i + 2 < slen
+            b2 = ord(char_at(s, i + 2))
+            has_b2 = 1
+        end
+
+        idx0 = bit_and(bit_shr(b0, 2), 63)
+        idx1 = bit_and(bit_or(bit_shl(bit_and(b0, 3), 4), bit_shr(b1, 4)), 63)
+        idx2 = bit_and(bit_or(bit_shl(bit_and(b1, 15), 2), bit_shr(b2, 6)), 63)
+        idx3 = bit_and(b2, 63)
+
+        res = res + char_at(b64_chars, idx0)
+        res = res + char_at(b64_chars, idx1)
+        if has_b1
+            res = res + char_at(b64_chars, idx2)
+        else
+            res = res + "="
+        end
+        if has_b2
+            res = res + char_at(b64_chars, idx3)
+        else
+            res = res + "="
+        end
+        i = i + 3
+    end
+    return res
+end
+
+function _b64_val(ch)
+    let c = ord(ch)
+    if c >= 65 and c <= 90
+        return c - 65
+    elif c >= 97 and c <= 122
+        return c - 71
+    elif c >= 48 and c <= 57
+        return c + 4
+    elif c == 43
+        return 62
+    elif c == 47
+        return 63
+    end
+    return 0
+end
+
+function base64_decode(s)
+    let slen = len(s)
+    let res = ""
+    let i = 0
+    let c0 = ""
+    let c1 = ""
+    let c2 = ""
+    let c3 = ""
+    let v0 = 0
+    let v1 = 0
+    let v2 = 0
+    let v3 = 0
+    let b0 = 0
+    let b1 = 0
+    let b2 = 0
+    while i + 3 < slen
+        c0 = char_at(s, i)
+        c1 = char_at(s, i + 1)
+        c2 = char_at(s, i + 2)
+        c3 = char_at(s, i + 3)
+
+        v0 = _b64_val(c0)
+        v1 = _b64_val(c1)
+        v2 = _b64_val(c2)
+        v3 = _b64_val(c3)
+
+        b0 = bit_or(bit_shl(v0, 2), bit_and(bit_shr(v1, 4), 3))
+        res = res + chr(b0)
+
+        if c2 != "="
+            b1 = bit_and(bit_or(bit_shl(bit_and(v1, 15), 4), bit_shr(v2, 2)), 255)
+            res = res + chr(b1)
+        end
+        if c3 != "="
+            b2 = bit_and(bit_or(bit_shl(bit_and(v2, 3), 6), v3), 255)
+            res = res + chr(b2)
+        end
+        i = i + 4
+    end
+    return res
+end

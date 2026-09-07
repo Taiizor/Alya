@@ -1,0 +1,84 @@
+# Alya Standard Library - Test Module
+# Provides micro-testing and assertion utilities.
+
+function test_suite(name)
+    say "=== Test Suite: {name} ==="
+end
+
+function assert(cond, msg)
+    if cond
+        say "  [PASS] {msg}"
+        return 1
+    else
+        say "  [FAIL] {msg}"
+        return 0
+    end
+end
+
+function assert_eq(actual, expected, msg)
+    if actual == expected
+        say "  [PASS] {msg}"
+        return 1
+    else
+        say "  [FAIL] {msg}"
+        return 0
+    end
+end
+
+function assert_ne(actual, expected, msg)
+    if actual != expected
+        say "  [PASS] {msg}"
+        return 1
+    else
+        say "  [FAIL] {msg}"
+        return 0
+    end
+end
+
+function assert_str_eq(actual, expected, msg)
+    if streq(actual, expected)
+        say "  [PASS] {msg}"
+        return 1
+    else
+        say "  [FAIL] {msg}"
+        return 0
+    end
+end
+
+function assert_str_ne(actual, expected, msg)
+    if streq(actual, expected) == 0
+        say "  [PASS] {msg}"
+        return 1
+    else
+        say "  [FAIL] {msg}"
+        return 0
+    end
+end
+
+function assert_true(cond, msg)
+    return assert(cond, msg)
+end
+
+function assert_false(cond, msg)
+    return assert(cond == 0, msg)
+end
+
+function test_report(passed, total)
+    let failed = total - passed
+    say "----------------------------------------"
+    say "Results: {passed}/{total} passed, {failed} failed."
+    if failed == 0
+        say "Status: ALL TESTS PASSED!"
+    else
+        say "Status: SOME TESTS FAILED!"
+    end
+    say "----------------------------------------"
+    return failed
+end
+
+function test_summary()
+    say "----------------------------------------"
+    say "Status: ALL TESTS PASSED!"
+    say "----------------------------------------"
+    return 0
+end

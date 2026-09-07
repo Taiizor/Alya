@@ -88,6 +88,12 @@ fn get_embedded_stdlib(module: &str) -> Option<&'static str> {
         "os" => Some(include_str!("../../stdlib/os.alya")),
         "json" => Some(include_str!("../../stdlib/json.alya")),
         "mem" => Some(include_str!("../../stdlib/mem.alya")),
+        "str" => Some(include_str!("../../stdlib/str.alya")),
+        "path" => Some(include_str!("../../stdlib/path.alya")),
+        "fs" => Some(include_str!("../../stdlib/fs.alya")),
+        "hash" => Some(include_str!("../../stdlib/hash.alya")),
+        "collections" => Some(include_str!("../../stdlib/collections.alya")),
+        "test" => Some(include_str!("../../stdlib/test.alya")),
         _ => None,
     }
 }

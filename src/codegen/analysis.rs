@@ -24,6 +24,22 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "get_env"
                     | "env"
                     | "str_from_ptr"
+                    | "replace"
+                    | "str_repeat"
+                    | "pad_left"
+                    | "pad_right"
+                    | "capitalize"
+                    | "path_separator"
+                    | "path_join"
+                    | "file_name"
+                    | "file_ext"
+                    | "parent_dir"
+                    | "file_stem"
+                    | "base64_encode"
+                    | "base64_decode"
+                    | "hex_encode"
+                    | "hex_decode"
+                    | "json_object"
             ) {
                 return true;
             }
@@ -79,7 +95,17 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             matches!(vars.get(name), Some(VarType::Array(_)))
         }
         Expr::Call { name, .. }
-            if matches!(name.as_str(), "split" | "args" | "keys" | "values") =>
+            if matches!(
+                name.as_str(),
+                "split"
+                    | "args"
+                    | "keys"
+                    | "values"
+                    | "lines"
+                    | "set_to_array"
+                    | "stack_new"
+                    | "queue_new"
+            ) =>
         {
             true
         }
@@ -92,7 +118,7 @@ pub fn is_map_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
         Expr::Identifier(name) => {
             matches!(vars.get(name), Some(VarType::Map(_)))
         }
-        Expr::Call { name, .. } if name == "map" => true,
+        Expr::Call { name, .. } if name == "map" || name == "set_new" => true,
         _ => false,
     }
 }
@@ -101,7 +127,7 @@ pub fn is_string_array(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
     match expr {
         Expr::Array(elems) => elems.first().is_some_and(|e| is_string_expr(e, vars)),
         Expr::Identifier(name) => vars.contains_key(&format!("arr_is_str:{}", name)),
-        Expr::Call { name, .. } if name == "split" || name == "args" => true,
+        Expr::Call { name, .. } if name == "split" || name == "args" || name == "lines" => true,
         _ => false,
     }
 }
@@ -145,7 +171,10 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
         } => is_float_expr(expr, vars),
         Expr::Index { array, .. } => is_float_array(array, vars),
         Expr::Call { name, .. } => {
-            name == "float" || vars.contains_key(&format!("fn_ret_flt:{}", name))
+            matches!(
+                name.as_str(),
+                "float" | "sin" | "cos" | "tan" | "mean" | "deg_to_rad" | "rad_to_deg"
+            ) || vars.contains_key(&format!("fn_ret_flt:{}", name))
         }
         _ => false,
     }
@@ -296,9 +325,18 @@ fn collect_string_vars_from_stmts(stmts: &[Stmt], known_strings: &mut HashSet<St
                 collect_string_vars_from_stmts(body, known_strings);
             }
             Stmt::Function { name, body, .. } => {
-                collect_string_vars_from_stmts(body, known_strings);
-                if stmts_return_string(body, known_strings) {
+                let mut fn_locals = known_strings.clone();
+                collect_string_vars_from_stmts(body, &mut fn_locals);
+                if stmts_return_string(body, &fn_locals) {
                     known_strings.insert(format!("fn_ret_str:{}", name));
+                }
+                for item in fn_locals {
+                    if item.starts_with("fn_ret_str:")
+                        || item.starts_with("map_field_str:")
+                        || item.starts_with("map_str:")
+                    {
+                        known_strings.insert(item);
+                    }
                 }
             }
             Stmt::IndexAssign {
@@ -445,7 +483,10 @@ fn expr_is_definitely_float(expr: &Expr, known_floats: &HashSet<String>) -> bool
             expr,
         } => expr_is_definitely_float(expr, known_floats),
         Expr::Call { name, .. } => {
-            name == "float" || known_floats.contains(&format!("fn_ret_flt:{}", name))
+            matches!(
+                name.as_str(),
+                "float" | "sin" | "cos" | "tan" | "mean" | "deg_to_rad" | "rad_to_deg"
+            ) || known_floats.contains(&format!("fn_ret_flt:{}", name))
         }
         Expr::Index { array, .. } => match &**array {
             Expr::Identifier(arr_name) => {
@@ -539,9 +580,15 @@ fn collect_float_vars_from_stmts(stmts: &[Stmt], known_floats: &mut HashSet<Stri
                 collect_float_vars_from_stmts(body, known_floats);
             }
             Stmt::Function { name, body, .. } => {
-                collect_float_vars_from_stmts(body, known_floats);
-                if stmts_return_float(body, known_floats) {
+                let mut fn_locals = known_floats.clone();
+                collect_float_vars_from_stmts(body, &mut fn_locals);
+                if stmts_return_float(body, &fn_locals) {
                     known_floats.insert(format!("fn_ret_flt:{}", name));
+                }
+                for item in fn_locals {
+                    if item.starts_with("fn_ret_flt:") {
+                        known_floats.insert(item);
+                    }
                 }
             }
             _ => {}
@@ -618,7 +665,21 @@ fn expr_is_definitely_array(expr: &Expr, known_arrays: &HashSet<String>) -> bool
     match expr {
         Expr::Array(_) => true,
         Expr::Identifier(name) => known_arrays.contains(name),
-        Expr::Call { name, .. } if name == "split" || name == "args" => true,
+        Expr::Call { name, .. }
+            if matches!(
+                name.as_str(),
+                "split"
+                    | "args"
+                    | "keys"
+                    | "values"
+                    | "lines"
+                    | "set_to_array"
+                    | "stack_new"
+                    | "queue_new"
+            ) =>
+        {
+            true
+        }
         _ => false,
     }
 }
@@ -655,9 +716,7 @@ fn collect_array_vars_from_stmts(stmts: &[Stmt], known_arrays: &mut HashSet<Stri
             | Stmt::ForEach { body, .. } => {
                 collect_array_vars_from_stmts(body, known_arrays);
             }
-            Stmt::Function { body, .. } => {
-                collect_array_vars_from_stmts(body, known_arrays);
-            }
+            Stmt::Function { .. } => {}
             _ => {}
         }
     }
@@ -707,7 +766,7 @@ pub fn infer_param_is_array(func_name: &str, param_idx: usize, program: &Program
 
 fn expr_is_definitely_map(expr: &Expr, known_maps: &HashSet<String>) -> bool {
     match expr {
-        Expr::Call { name, .. } if name == "map" => true,
+        Expr::Call { name, .. } if name == "map" || name == "set_new" => true,
         Expr::Identifier(name) => known_maps.contains(name),
         _ => false,
     }
@@ -745,9 +804,7 @@ fn collect_map_vars_from_stmts(stmts: &[Stmt], known_maps: &mut HashSet<String>)
             | Stmt::ForEach { body, .. } => {
                 collect_map_vars_from_stmts(body, known_maps);
             }
-            Stmt::Function { body, .. } => {
-                collect_map_vars_from_stmts(body, known_maps);
-            }
+            Stmt::Function { .. } => {}
             _ => {}
         }
     }
@@ -895,7 +952,19 @@ fn find_call_arg_in_expr<'a>(
     param_idx: usize,
 ) -> Option<&'a Expr> {
     match expr {
-        Expr::Call { name, args } if name == func_name => args.get(param_idx),
+        Expr::Call { name, args } => {
+            if name == func_name {
+                if let Some(arg) = args.get(param_idx) {
+                    return Some(arg);
+                }
+            }
+            for arg in args {
+                if let Some(res) = find_call_arg_in_expr(arg, func_name, param_idx) {
+                    return Some(res);
+                }
+            }
+            None
+        }
         Expr::Binary { left, right, .. } => find_call_arg_in_expr(left, func_name, param_idx)
             .or_else(|| find_call_arg_in_expr(right, func_name, param_idx)),
         Expr::Unary { expr, .. } => find_call_arg_in_expr(expr, func_name, param_idx),

@@ -36,6 +36,8 @@ pub fn emit_data_sections(
             out.push_str("    .space 1024\n");
             out.push_str("alya_err_msg:\n");
             out.push_str("    .quad 0\n");
+            out.push_str("alya_rand_state:\n");
+            out.push_str("    .quad 0\n");
         }
         Architecture::X86 => {
             out.push_str("alya_str_idx:\n");
@@ -53,6 +55,8 @@ pub fn emit_data_sections(
             out.push_str("alya_catch_stack_bp:\n");
             out.push_str("    .space 512\n");
             out.push_str("alya_err_msg:\n");
+            out.push_str("    .long 0\n");
+            out.push_str("alya_rand_state:\n");
             out.push_str("    .long 0\n");
         }
     }
@@ -72,6 +76,8 @@ pub fn emit_data_sections(
     out.push_str(&format!("    {} \"rb\"\n", str_directive));
     out.push_str("alya_str_mode_wb:\n");
     out.push_str(&format!("    {} \"wb\"\n", str_directive));
+    out.push_str("alya_str_mode_ab:\n");
+    out.push_str(&format!("    {} \"ab\"\n", str_directive));
     out.push_str("alya_fmt_prompt:\n");
     out.push_str(&format!("    {} \"%s\"\n", str_directive));
     out.push_str("alya_fmt_div_zero:\n");

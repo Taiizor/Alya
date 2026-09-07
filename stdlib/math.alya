@@ -1,5 +1,5 @@
 # Alya Standard Library - Math Module
-# Provides common mathematical constants and utility functions.
+# Provides common mathematical constants, trigonometry, statistics, and utility functions.
 
 let PI = 3.141592653589793
 let E = 2.718281828459045
@@ -48,5 +48,121 @@ function round(val)
         return int(val + 0.5)
     else
         return int(val - 0.5)
+    end
+end
+
+function floor(val)
+    let iv = int(val)
+    if val >= 0.0 or float(iv) == val
+        return iv
+    else
+        return iv - 1
+    end
+end
+
+function ceil(val)
+    let iv = int(val)
+    if val <= 0.0 or float(iv) == val
+        return iv
+    else
+        return iv + 1
+    end
+end
+
+function trunc(val)
+    return int(val)
+end
+
+function _normalize_angle(rad)
+    let two_pi = 6.283185307179586
+    let pi = 3.141592653589793
+    let cycles = int(rad / two_pi)
+    let rem = rad - float(cycles) * two_pi
+    while rem > pi
+        rem = rem - two_pi
+    end
+    while rem < -pi
+        rem = rem + two_pi
+    end
+    return rem
+end
+
+function sin(x)
+    let norm = _normalize_angle(x)
+    let x2 = norm * norm
+    let x3 = norm * x2
+    let x5 = x3 * x2
+    let x7 = x5 * x2
+    let x9 = x7 * x2
+    let x11 = x9 * x2
+    let x13 = x11 * x2
+    return norm - (x3 / 6.0) + (x5 / 120.0) - (x7 / 5040.0) + (x9 / 362880.0) - (x11 / 39916800.0) + (x13 / 6227020800.0)
+end
+
+function cos(x)
+    return sin(x + 1.5707963267948966)
+end
+
+function tan(x)
+    return sin(x) / cos(x)
+end
+
+function rand_range(min_val, max_val)
+    if min_val >= max_val
+        return min_val
+    end
+    let r = rand()
+    let span = max_val - min_val + 1
+    return min_val + (r % span)
+end
+
+function sum(arr)
+    let count = len(arr)
+    let total = 0
+    let i = 0
+    while i < count
+        total = total + arr[i]
+        i = i + 1
+    end
+    return total
+end
+
+function mean(arr)
+    let count = len(arr)
+    if count == 0
+        return 0.0
+    end
+    return float(sum(arr)) / float(count)
+end
+
+function median(arr)
+    let count = len(arr)
+    if count == 0
+        return 0
+    end
+    let sorted = []
+    let i = 0
+    while i < count
+        sorted.push(arr[i])
+        i = i + 1
+    end
+    let j = 1
+    let key = 0
+    let k = 0
+    while j < count
+        key = sorted[j]
+        k = j - 1
+        while k >= 0 and sorted[k] > key
+            sorted[k + 1] = sorted[k]
+            k = k - 1
+        end
+        sorted[k + 1] = key
+        j = j + 1
+    end
+    let mid = count / 2
+    if count % 2 != 0
+        return sorted[mid]
+    else
+        return (sorted[mid - 1] + sorted[mid]) / 2
     end
 end

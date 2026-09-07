@@ -1027,6 +1027,84 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
 
+    // fn_append_file
+    out.push_str(".global fn_append_file\n");
+    out.push_str("fn_append_file:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rbx\n");
+    out.push_str("    push %r12\n");
+    out.push_str("    push %r13\n");
+    out.push_str("    push %r14\n");
+    out.push_str("    push %r15\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    sub $40, %rsp\n");
+        out.push_str("    mov %rcx, %r12\n");
+        out.push_str("    mov %rdx, %r13\n");
+    } else {
+        out.push_str("    sub $8, %rsp\n");
+        out.push_str("    mov %rdi, %r12\n");
+        out.push_str("    mov %rsi, %r13\n");
+    }
+    out.push_str("    test %r12, %r12\n");
+    out.push_str("    jz .L_x64_fapp_fail\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %r12, %rcx\n");
+        out.push_str("    lea alya_str_mode_ab(%rip), %rdx\n");
+        out.push_str("    call fopen\n");
+    } else {
+        out.push_str("    mov %r12, %rdi\n");
+        out.push_str("    lea alya_str_mode_ab(%rip), %rsi\n");
+        out.push_str(&format!("    call {}fopen\n", p));
+    }
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jz .L_x64_fapp_fail\n");
+    out.push_str("    mov %rax, %r14\n");
+    out.push_str("    xor %r15, %r15\n");
+    out.push_str("    test %r13, %r13\n");
+    out.push_str("    jz .L_x64_fapp_do_write\n");
+    out.push_str(".L_x64_fapp_len_loop:\n");
+    out.push_str("    cmpb $0, (%r13, %r15)\n");
+    out.push_str("    je .L_x64_fapp_do_write\n");
+    out.push_str("    inc %r15\n");
+    out.push_str("    jmp .L_x64_fapp_len_loop\n");
+    out.push_str(".L_x64_fapp_do_write:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %r13, %rcx\n");
+        out.push_str("    mov $1, %rdx\n");
+        out.push_str("    mov %r15, %r8\n");
+        out.push_str("    mov %r14, %r9\n");
+        out.push_str("    call fwrite\n");
+        out.push_str("    mov %r14, %rcx\n");
+        out.push_str("    call fclose\n");
+    } else {
+        out.push_str("    mov %r13, %rdi\n");
+        out.push_str("    mov $1, %rsi\n");
+        out.push_str("    mov %r15, %rdx\n");
+        out.push_str("    mov %r14, %rcx\n");
+        out.push_str(&format!("    call {}fwrite\n", p));
+        out.push_str("    mov %r14, %rdi\n");
+        out.push_str(&format!("    call {}fclose\n", p));
+    }
+    out.push_str("    mov $1, %rax\n");
+    out.push_str("    jmp .L_x64_fapp_end\n");
+    out.push_str(".L_x64_fapp_fail:\n");
+    out.push_str("    xor %rax, %rax\n");
+    out.push_str(".L_x64_fapp_end:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    add $40, %rsp\n");
+    } else {
+        out.push_str("    add $8, %rsp\n");
+    }
+    out.push_str("    pop %r15\n");
+    out.push_str("    pop %r14\n");
+    out.push_str("    pop %r13\n");
+    out.push_str("    pop %r12\n");
+    out.push_str("    pop %rbx\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
     // fn_read_file
     out.push_str("fn_read_file:\n");
     out.push_str("    push %rbp\n");
@@ -1133,6 +1211,206 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %rbx\n");
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_file_size
+    out.push_str(".global fn_file_size\n");
+    out.push_str("fn_file_size:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rbx\n");
+    out.push_str("    push %r12\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    mov %rcx, %rbx\n");
+    } else {
+        out.push_str("    sub $16, %rsp\n");
+        out.push_str("    mov %rdi, %rbx\n");
+    }
+    out.push_str("    test %rbx, %rbx\n");
+    out.push_str("    jz .L_x64_fsize_fail\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rbx, %rcx\n");
+        out.push_str("    lea alya_str_mode_rb(%rip), %rdx\n");
+        out.push_str("    call fopen\n");
+    } else {
+        out.push_str("    mov %rbx, %rdi\n");
+        out.push_str("    lea alya_str_mode_rb(%rip), %rsi\n");
+        out.push_str(&format!("    call {}fopen\n", p));
+    }
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jz .L_x64_fsize_fail\n");
+    out.push_str("    mov %rax, %r12\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %r12, %rcx\n");
+        out.push_str("    xor %rdx, %rdx\n");
+        out.push_str("    mov $2, %r8\n");
+        out.push_str("    call fseek\n");
+        out.push_str("    mov %r12, %rcx\n");
+        out.push_str("    call ftell\n");
+        out.push_str("    mov %rax, %rbx\n");
+        out.push_str("    mov %r12, %rcx\n");
+        out.push_str("    call fclose\n");
+    } else {
+        out.push_str("    mov %r12, %rdi\n");
+        out.push_str("    xor %rsi, %rsi\n");
+        out.push_str("    mov $2, %rdx\n");
+        out.push_str(&format!("    call {}fseek\n", p));
+        out.push_str("    mov %r12, %rdi\n");
+        out.push_str(&format!("    call {}ftell\n", p));
+        out.push_str("    mov %rax, %rbx\n");
+        out.push_str("    mov %r12, %rdi\n");
+        out.push_str(&format!("    call {}fclose\n", p));
+    }
+    out.push_str("    mov %rbx, %rax\n");
+    out.push_str("    jmp .L_x64_fsize_end\n");
+    out.push_str(".L_x64_fsize_fail:\n");
+    out.push_str("    mov $-1, %rax\n");
+    out.push_str(".L_x64_fsize_end:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    add $32, %rsp\n");
+    } else {
+        out.push_str("    add $16, %rsp\n");
+    }
+    out.push_str("    pop %r12\n");
+    out.push_str("    pop %rbx\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_make_dir / fn_mkdir
+    out.push_str(".global fn_make_dir\n");
+    out.push_str("fn_make_dir:\n");
+    out.push_str(".global fn_mkdir\n");
+    out.push_str("fn_mkdir:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rbx\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    sub $40, %rsp\n");
+        out.push_str("    mov %rcx, %rbx\n");
+    } else {
+        out.push_str("    sub $8, %rsp\n");
+        out.push_str("    mov %rdi, %rbx\n");
+    }
+    out.push_str("    test %rbx, %rbx\n");
+    out.push_str("    jz .L_x64_mkdir_fail\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rbx, %rcx\n");
+        out.push_str("    call _mkdir\n");
+    } else {
+        out.push_str("    mov %rbx, %rdi\n");
+        out.push_str("    mov $511, %rsi\n");
+        out.push_str(&format!("    call {}mkdir\n", p));
+    }
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jnz .L_x64_mkdir_fail\n");
+    out.push_str("    mov $1, %rax\n");
+    out.push_str("    jmp .L_x64_mkdir_end\n");
+    out.push_str(".L_x64_mkdir_fail:\n");
+    out.push_str("    xor %rax, %rax\n");
+    out.push_str(".L_x64_mkdir_end:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    add $40, %rsp\n");
+    } else {
+        out.push_str("    add $8, %rsp\n");
+    }
+    out.push_str("    pop %rbx\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // Bitwise operations
+    out.push_str(".global fn_bit_and\n");
+    out.push_str("fn_bit_and:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rcx, %rax\n");
+        out.push_str("    and %rdx, %rax\n");
+    } else {
+        out.push_str("    mov %rdi, %rax\n");
+        out.push_str("    and %rsi, %rax\n");
+    }
+    out.push_str("    ret\n\n");
+
+    out.push_str(".global fn_bit_or\n");
+    out.push_str("fn_bit_or:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rcx, %rax\n");
+        out.push_str("    or %rdx, %rax\n");
+    } else {
+        out.push_str("    mov %rdi, %rax\n");
+        out.push_str("    or %rsi, %rax\n");
+    }
+    out.push_str("    ret\n\n");
+
+    out.push_str(".global fn_bit_xor\n");
+    out.push_str("fn_bit_xor:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rcx, %rax\n");
+        out.push_str("    xor %rdx, %rax\n");
+    } else {
+        out.push_str("    mov %rdi, %rax\n");
+        out.push_str("    xor %rsi, %rax\n");
+    }
+    out.push_str("    ret\n\n");
+
+    out.push_str(".global fn_bit_not\n");
+    out.push_str("fn_bit_not:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rcx, %rax\n");
+    } else {
+        out.push_str("    mov %rdi, %rax\n");
+    }
+    out.push_str("    not %rax\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".global fn_bit_shl\n");
+    out.push_str("fn_bit_shl:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rcx, %rax\n");
+        out.push_str("    mov %rdx, %rcx\n");
+    } else {
+        out.push_str("    mov %rdi, %rax\n");
+        out.push_str("    mov %rsi, %rcx\n");
+    }
+    out.push_str("    shl %cl, %rax\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".global fn_bit_shr\n");
+    out.push_str("fn_bit_shr:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rcx, %rax\n");
+        out.push_str("    mov %rdx, %rcx\n");
+    } else {
+        out.push_str("    mov %rdi, %rax\n");
+        out.push_str("    mov %rsi, %rcx\n");
+    }
+    out.push_str("    shr %cl, %rax\n");
+    out.push_str("    ret\n\n");
+
+    // PRNG
+    out.push_str(".global fn_rand\n");
+    out.push_str("fn_rand:\n");
+    out.push_str("    mov alya_rand_state(%rip), %rax\n");
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jnz .L_x64_rand_ok\n");
+    out.push_str("    mov $123456789, %rax\n");
+    out.push_str(".L_x64_rand_ok:\n");
+    out.push_str("    mov $1103515245, %rdx\n");
+    out.push_str("    imul %rdx, %rax\n");
+    out.push_str("    add $12345, %rax\n");
+    out.push_str("    and $0x7fffffff, %rax\n");
+    out.push_str("    mov %rax, alya_rand_state(%rip)\n");
+    out.push_str("    ret\n\n");
+
+    out.push_str(".global fn_rand_seed\n");
+    out.push_str("fn_rand_seed:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rcx, alya_rand_state(%rip)\n");
+    } else {
+        out.push_str("    mov %rdi, alya_rand_state(%rip)\n");
+    }
+    out.push_str("    xor %rax, %rax\n");
     out.push_str("    ret\n\n");
 
     // alya_error_div_zero
