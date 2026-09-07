@@ -10,7 +10,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/Taiizor/Alya?include_prereleases&color=blue)](https://github.com/Taiizor/Alya/releases)
 [![Rust Version](https://img.shields.io/badge/rust-1.75%2B-orange.svg)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Target Architectures](https://img.shields.io/badge/arch-x64%20%7C%20x86%20%7C%20arm64-blueviolet)](#platform--architecture-matrix)
+[![Target Architectures](https://img.shields.io/badge/arch-x86%20%7C%20x64%20%7C%20arm64-blueviolet)](#platform--architecture-matrix)
 
 <p align="center">
   <a href="#key-features">Key Features</a> •
