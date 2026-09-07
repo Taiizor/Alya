@@ -63,11 +63,18 @@ impl CodeGen {
                 }
                 arch::emit_function_epilogue(&mut self.output, self.arch);
             }
+            Stmt::Throw(opt_expr) => self.generate_throw(opt_expr.as_ref()),
             Stmt::TryCatch {
                 try_block,
                 catch_var,
                 catch_block,
-            } => self.generate_try_catch(try_block, catch_var.as_deref(), catch_block),
+                finally_block,
+            } => self.generate_try_catch(
+                try_block,
+                catch_var.as_deref(),
+                catch_block,
+                finally_block.as_deref(),
+            ),
             Stmt::Function { .. } => {}
             Stmt::StructDef { name, fields } => {
                 self.ctx.structs.insert(

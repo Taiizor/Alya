@@ -93,10 +93,14 @@ fn stmts_return_string(stmts: &[Stmt], known_strings: &HashSet<String>) -> bool 
         Stmt::TryCatch {
             try_block,
             catch_block,
+            finally_block,
             ..
         } => {
             stmts_return_string(try_block, known_strings)
                 || stmts_return_string(catch_block, known_strings)
+                || finally_block
+                    .as_ref()
+                    .is_some_and(|fb| stmts_return_string(fb, known_strings))
         }
         _ => false,
     })
@@ -127,12 +131,16 @@ fn collect_string_vars_from_stmts(stmts: &[Stmt], known_strings: &mut HashSet<St
                 try_block,
                 catch_var,
                 catch_block,
+                finally_block,
             } => {
                 if let Some(err_var) = catch_var {
                     known_strings.insert(err_var.clone());
                 }
                 collect_string_vars_from_stmts(try_block, known_strings);
                 collect_string_vars_from_stmts(catch_block, known_strings);
+                if let Some(finally_block) = finally_block {
+                    collect_string_vars_from_stmts(finally_block, known_strings);
+                }
             }
             Stmt::If {
                 then_block,

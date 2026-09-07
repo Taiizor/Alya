@@ -37,10 +37,14 @@ fn collect_array_vars_from_stmts(stmts: &[Stmt], known_arrays: &mut HashSet<Stri
             Stmt::TryCatch {
                 try_block,
                 catch_block,
+                finally_block,
                 ..
             } => {
                 collect_array_vars_from_stmts(try_block, known_arrays);
                 collect_array_vars_from_stmts(catch_block, known_arrays);
+                if let Some(finally_block) = finally_block {
+                    collect_array_vars_from_stmts(finally_block, known_arrays);
+                }
             }
             Stmt::If {
                 then_block,

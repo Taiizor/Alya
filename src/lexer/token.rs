@@ -21,6 +21,8 @@ pub enum TokenType {
     Ask,      // ask (input)
     Try,      // try
     Catch,    // catch
+    Finally,  // finally
+    Throw,    // throw
     Import,   // import
     Struct,   // struct
 
@@ -93,6 +95,8 @@ impl TokenType {
             "ask" => TokenType::Ask,
             "try" => TokenType::Try,
             "catch" => TokenType::Catch,
+            "finally" => TokenType::Finally,
+            "throw" => TokenType::Throw,
             "import" => TokenType::Import,
             "struct" => TokenType::Struct,
             "true" => TokenType::True,
@@ -135,6 +139,8 @@ impl std::fmt::Display for TokenType {
             TokenType::Ask => write!(f, "'ask'"),
             TokenType::Try => write!(f, "'try'"),
             TokenType::Catch => write!(f, "'catch'"),
+            TokenType::Finally => write!(f, "'finally'"),
+            TokenType::Throw => write!(f, "'throw'"),
             TokenType::Import => write!(f, "'import'"),
             TokenType::Struct => write!(f, "'struct'"),
             TokenType::Number(n) => write!(f, "number '{}'", n),

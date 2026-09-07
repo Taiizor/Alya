@@ -80,6 +80,10 @@ pub fn emit_data_sections(
     out.push_str(&format!("    {} \"ab\"\n", str_directive));
     out.push_str("alya_fmt_prompt:\n");
     out.push_str(&format!("    {} \"%s\"\n", str_directive));
+    out.push_str("alya_fmt_runtime_err:\n");
+    out.push_str(&format!("    {} \"Runtime error: %s\\n\"\n", str_directive));
+    out.push_str("alya_str_unhandled_err:\n");
+    out.push_str(&format!("    {} \"unhandled error\"\n", str_directive));
     out.push_str("alya_fmt_div_zero:\n");
     out.push_str(&format!(
         "    {} \"Runtime error: division by zero\\n\"\n",

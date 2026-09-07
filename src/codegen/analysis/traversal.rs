@@ -47,9 +47,13 @@ pub fn find_call_arg<'a>(stmt: &'a Stmt, func_name: &str, param_idx: usize) -> O
             }
             None
         }
+        Stmt::Throw(opt_expr) => opt_expr
+            .as_ref()
+            .and_then(|expr| find_call_arg_in_expr(expr, func_name, param_idx)),
         Stmt::TryCatch {
             try_block,
             catch_block,
+            finally_block,
             ..
         } => {
             for s in try_block {
@@ -60,6 +64,13 @@ pub fn find_call_arg<'a>(stmt: &'a Stmt, func_name: &str, param_idx: usize) -> O
             for s in catch_block {
                 if let Some(arg) = find_call_arg(s, func_name, param_idx) {
                     return Some(arg);
+                }
+            }
+            if let Some(finally_block) = finally_block {
+                for s in finally_block {
+                    if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+                        return Some(arg);
+                    }
                 }
             }
             None

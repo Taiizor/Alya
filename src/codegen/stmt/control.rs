@@ -1,6 +1,6 @@
 use super::CodeGen;
 use crate::ast::{Expr, Stmt};
-use crate::codegen::analysis::{is_float_array, is_string_array};
+use crate::codegen::analysis::{is_float_array, is_string_array, is_string_expr};
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
 
@@ -207,49 +207,192 @@ impl CodeGen {
         self.ctx.pop_loop();
     }
 
+    pub(super) fn generate_throw(&mut self, opt_expr: Option<&Expr>) {
+        if let Some(expr) = opt_expr {
+            if is_string_expr(expr, &self.ctx.variables) {
+                self.generate_expression(expr);
+                arch::emit_push_temp(&mut self.output, self.arch);
+            } else {
+                self.generate_expression(expr);
+                arch::emit_push_temp(&mut self.output, self.arch);
+                arch::emit_function_call(
+                    &mut self.output,
+                    self.arch,
+                    "str",
+                    1,
+                    self.ctx.stack_offset,
+                    self.os,
+                );
+                arch::emit_push_temp(&mut self.output, self.arch);
+            }
+            arch::emit_function_call(
+                &mut self.output,
+                self.arch,
+                "throw",
+                1,
+                self.ctx.stack_offset,
+                self.os,
+            );
+        } else {
+            arch::emit_function_call(
+                &mut self.output,
+                self.arch,
+                "rethrow",
+                0,
+                self.ctx.stack_offset,
+                self.os,
+            );
+        }
+    }
+
     pub(super) fn generate_try_catch(
         &mut self,
         try_block: &[Stmt],
         catch_var: Option<&str>,
         catch_block: &[Stmt],
+        finally_block: Option<&[Stmt]>,
     ) {
         let catch_label = self.ctx.next_label();
         let end_label = self.ctx.next_label();
         let saved_stack_offset = self.ctx.stack_offset;
         let saved_variables = self.ctx.variables.clone();
 
-        arch::emit_try_begin(&mut self.output, self.arch, &catch_label, self.os);
+        if let Some(finally_stmts) = finally_block {
+            let finally_normal_label = self.ctx.next_label();
+            let finally_rethrow_label = self.ctx.next_label();
 
-        for s in try_block {
-            self.generate_statement(s);
+            if !catch_block.is_empty() || catch_var.is_some() {
+                // Try block with catch
+                arch::emit_try_begin(&mut self.output, self.arch, &catch_label, self.os);
+                for s in try_block {
+                    self.generate_statement(s);
+                }
+                let try_delta = self.ctx.stack_offset - saved_stack_offset;
+                arch::emit_try_end(
+                    &mut self.output,
+                    self.arch,
+                    &finally_normal_label,
+                    try_delta,
+                    self.os,
+                );
+
+                // Catch block
+                self.ctx.stack_offset = saved_stack_offset;
+                self.ctx.variables = saved_variables.clone();
+                arch::emit_catch_begin(&mut self.output, self.arch, &catch_label);
+
+                if let Some(name) = catch_var {
+                    let name = name.to_string();
+                    arch::emit_catch_load_err(&mut self.output, self.arch, self.os);
+                    arch::emit_allocate_var(
+                        &mut self.output,
+                        self.arch,
+                        &mut self.ctx.stack_offset,
+                    );
+                    self.ctx
+                        .variables
+                        .insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
+                }
+
+                // Temporary try handler so that errors inside catch run finally and rethrow
+                let catch_saved_offset = self.ctx.stack_offset;
+                arch::emit_try_begin(&mut self.output, self.arch, &finally_rethrow_label, self.os);
+                for s in catch_block {
+                    self.generate_statement(s);
+                }
+                let catch_delta = self.ctx.stack_offset - catch_saved_offset;
+                arch::emit_try_end(
+                    &mut self.output,
+                    self.arch,
+                    &finally_normal_label,
+                    catch_delta,
+                    self.os,
+                );
+            } else {
+                // Try block WITHOUT catch (only finally)
+                arch::emit_try_begin(&mut self.output, self.arch, &finally_rethrow_label, self.os);
+                for s in try_block {
+                    self.generate_statement(s);
+                }
+                let try_delta = self.ctx.stack_offset - saved_stack_offset;
+                arch::emit_try_end(
+                    &mut self.output,
+                    self.arch,
+                    &finally_normal_label,
+                    try_delta,
+                    self.os,
+                );
+            }
+
+            // Normal path to finally
+            self.output
+                .push_str(&format!("{}:\n", finally_normal_label));
+            self.ctx.stack_offset = saved_stack_offset;
+            self.ctx.variables = saved_variables.clone();
+            for s in finally_stmts {
+                self.generate_statement(s);
+            }
+            let finally_delta = self.ctx.stack_offset - saved_stack_offset;
+            arch::emit_catch_end(&mut self.output, self.arch, finally_delta);
+            arch::emit_jump(&mut self.output, self.arch, &end_label);
+
+            // Error path to finally (runs finally and rethrows)
+            self.output
+                .push_str(&format!("{}:\n", finally_rethrow_label));
+            self.ctx.stack_offset = saved_stack_offset;
+            self.ctx.variables = saved_variables.clone();
+            for s in finally_stmts {
+                self.generate_statement(s);
+            }
+            let finally_rethrow_delta = self.ctx.stack_offset - saved_stack_offset;
+            arch::emit_catch_end(&mut self.output, self.arch, finally_rethrow_delta);
+            arch::emit_function_call(
+                &mut self.output,
+                self.arch,
+                "rethrow",
+                0,
+                self.ctx.stack_offset,
+                self.os,
+            );
+
+            self.ctx.stack_offset = saved_stack_offset;
+            self.ctx.variables = saved_variables;
+            self.output.push_str(&format!("{}:\n", end_label));
+        } else {
+            // Existing try-catch without finally
+            arch::emit_try_begin(&mut self.output, self.arch, &catch_label, self.os);
+
+            for s in try_block {
+                self.generate_statement(s);
+            }
+
+            let try_delta = self.ctx.stack_offset - saved_stack_offset;
+            arch::emit_try_end(&mut self.output, self.arch, &end_label, try_delta, self.os);
+
+            // At catch entry, runtime SP has been restored to saved_stack_offset.
+            self.ctx.stack_offset = saved_stack_offset;
+            self.ctx.variables = saved_variables.clone();
+            arch::emit_catch_begin(&mut self.output, self.arch, &catch_label);
+
+            if let Some(name) = catch_var {
+                let name = name.to_string();
+                arch::emit_catch_load_err(&mut self.output, self.arch, self.os);
+                arch::emit_allocate_var(&mut self.output, self.arch, &mut self.ctx.stack_offset);
+                self.ctx
+                    .variables
+                    .insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
+            }
+
+            for s in catch_block {
+                self.generate_statement(s);
+            }
+
+            let catch_delta = self.ctx.stack_offset - saved_stack_offset;
+            arch::emit_catch_end(&mut self.output, self.arch, catch_delta);
+
+            self.ctx.stack_offset = saved_stack_offset;
+            self.ctx.variables = saved_variables;
+            self.output.push_str(&format!("{}:\n", end_label));
         }
-
-        let try_delta = self.ctx.stack_offset - saved_stack_offset;
-        arch::emit_try_end(&mut self.output, self.arch, &end_label, try_delta, self.os);
-
-        // At catch entry, runtime SP has been restored to saved_stack_offset.
-        self.ctx.stack_offset = saved_stack_offset;
-        self.ctx.variables = saved_variables.clone();
-        arch::emit_catch_begin(&mut self.output, self.arch, &catch_label);
-
-        if let Some(name) = catch_var {
-            let name = name.to_string();
-            arch::emit_catch_load_err(&mut self.output, self.arch, self.os);
-            arch::emit_allocate_var(&mut self.output, self.arch, &mut self.ctx.stack_offset);
-            self.ctx
-                .variables
-                .insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
-        }
-
-        for s in catch_block {
-            self.generate_statement(s);
-        }
-
-        let catch_delta = self.ctx.stack_offset - saved_stack_offset;
-        arch::emit_catch_end(&mut self.output, self.arch, catch_delta);
-
-        self.ctx.stack_offset = saved_stack_offset;
-        self.ctx.variables = saved_variables;
-        self.output.push_str(&format!("{}:\n", end_label));
     }
 }

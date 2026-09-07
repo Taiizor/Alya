@@ -71,10 +71,14 @@ fn stmts_return_float(stmts: &[Stmt], known_floats: &HashSet<String>) -> bool {
         Stmt::TryCatch {
             try_block,
             catch_block,
+            finally_block,
             ..
         } => {
             stmts_return_float(try_block, known_floats)
                 || stmts_return_float(catch_block, known_floats)
+                || finally_block
+                    .as_ref()
+                    .is_some_and(|fb| stmts_return_float(fb, known_floats))
         }
         _ => false,
     })
@@ -94,10 +98,14 @@ fn collect_float_vars_from_stmts(stmts: &[Stmt], known_floats: &mut HashSet<Stri
             Stmt::TryCatch {
                 try_block,
                 catch_block,
+                finally_block,
                 ..
             } => {
                 collect_float_vars_from_stmts(try_block, known_floats);
                 collect_float_vars_from_stmts(catch_block, known_floats);
+                if let Some(finally_block) = finally_block {
+                    collect_float_vars_from_stmts(finally_block, known_floats);
+                }
             }
             Stmt::If {
                 then_block,

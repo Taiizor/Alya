@@ -422,6 +422,14 @@ Caught exception message: division by zero\n\
 3. Successful try block:\n\
 Safe division result: 25\n\
 \n\
+4. Custom throw:\n\
+Caught custom error: custom business error\n\
+\n\
+5. Try-catch-finally:\n\
+In try block...\n\
+Handled: io error\n\
+Finally block executed!\n\
+\n\
 Program completed successfully without crashing.\n",
         ),
         "user_input.alya" => Some(

@@ -231,38 +231,98 @@ impl Parser {
         }
     }
 
+    pub(super) fn parse_throw(&mut self) -> Result<Stmt, String> {
+        self.advance(); // skip 'throw'
+        if matches!(
+            self.current_token().token_type,
+            TokenType::Newline
+                | TokenType::Eof
+                | TokenType::End
+                | TokenType::Catch
+                | TokenType::Finally
+        ) {
+            Ok(Stmt::Throw(None))
+        } else {
+            let expr = self.parse_expression()?;
+            Ok(Stmt::Throw(Some(expr)))
+        }
+    }
+
     pub(super) fn parse_try_catch(&mut self) -> Result<Stmt, String> {
+        let try_line = self.current_token().line;
+        let try_col = self.current_token().column;
         self.advance(); // skip 'try'
         self.skip_newlines();
 
         let mut try_block = Vec::new();
         while !matches!(
             self.current_token().token_type,
-            TokenType::Catch | TokenType::Eof
+            TokenType::Catch | TokenType::Finally | TokenType::End | TokenType::Eof
         ) {
             try_block.extend(self.parse_statement()?);
             self.skip_newlines();
         }
 
-        self.expect(TokenType::Catch)?;
-
-        // Optional catch variable: `catch err` or `catch`
-        let catch_var = if let TokenType::Identifier(name) = &self.current_token().token_type {
-            let name = name.clone();
-            self.advance();
-            Some(name)
-        } else {
-            None
-        };
-        self.skip_newlines();
-
+        let mut catch_var = None;
         let mut catch_block = Vec::new();
-        while !matches!(
-            self.current_token().token_type,
-            TokenType::End | TokenType::Eof
-        ) {
-            catch_block.extend(self.parse_statement()?);
+        let mut has_catch = false;
+
+        if self.current_token().token_type == TokenType::Catch {
+            has_catch = true;
+            self.advance(); // skip 'catch'
+
+            // Optional catch variable: `catch err`, `catch (err)` or `catch`
+            if self.current_token().token_type == TokenType::LeftParen {
+                self.advance(); // skip '('
+                if let TokenType::Identifier(name) = &self.current_token().token_type {
+                    catch_var = Some(name.clone());
+                    self.advance();
+                } else if self.current_token().token_type == TokenType::RightParen {
+                    // empty parens: `catch ()`
+                } else {
+                    return Err(format!(
+                        "Expected identifier inside 'catch (...)' at line {}, column {}",
+                        self.current_token().line,
+                        self.current_token().column
+                    ));
+                }
+                self.expect(TokenType::RightParen)?;
+            } else if let TokenType::Identifier(name) = &self.current_token().token_type {
+                catch_var = Some(name.clone());
+                self.advance();
+            }
             self.skip_newlines();
+
+            while !matches!(
+                self.current_token().token_type,
+                TokenType::Finally | TokenType::End | TokenType::Eof
+            ) {
+                catch_block.extend(self.parse_statement()?);
+                self.skip_newlines();
+            }
+        }
+
+        let mut finally_block = None;
+        if self.current_token().token_type == TokenType::Finally {
+            self.advance(); // skip 'finally'
+            self.skip_newlines();
+
+            let mut stmts = Vec::new();
+            while !matches!(
+                self.current_token().token_type,
+                TokenType::End | TokenType::Eof
+            ) {
+                stmts.extend(self.parse_statement()?);
+                self.skip_newlines();
+            }
+            finally_block = Some(stmts);
+        }
+
+        if !has_catch && finally_block.is_none() {
+            return Err(format!(
+                "Expected 'catch' or 'finally' after 'try' block at line {}, column {}",
+                try_line, try_col
+            ));
         }
 
         self.expect(TokenType::End)?;
@@ -271,6 +331,7 @@ impl Parser {
             try_block,
             catch_var,
             catch_block,
+            finally_block,
         })
     }
 }

@@ -58,9 +58,11 @@ pub enum Stmt {
     Break,
     Continue,
     Expr(Expr),
+    Throw(Option<Expr>),
     TryCatch {
         try_block: Vec<Stmt>,
         catch_var: Option<String>,
         catch_block: Vec<Stmt>,
+        finally_block: Option<Vec<Stmt>>,
     },
 }

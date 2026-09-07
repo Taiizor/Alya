@@ -30,6 +30,7 @@ impl Parser {
             }
             TokenType::When => self.parse_when().map(|s| vec![s]),
             TokenType::Try => self.parse_try_catch().map(|s| vec![s]),
+            TokenType::Throw => self.parse_throw().map(|s| vec![s]),
             TokenType::Identifier(_) => {
                 // Could be assignment or function call
                 let ident = match &self.current_token().token_type {

@@ -29,10 +29,14 @@ pub fn collect_function_defs<'a>(
             Stmt::TryCatch {
                 try_block,
                 catch_block,
+                finally_block,
                 ..
             } => {
                 collect_function_defs(try_block, defs);
                 collect_function_defs(catch_block, defs);
+                if let Some(finally_block) = finally_block {
+                    collect_function_defs(finally_block, defs);
+                }
             }
             _ => {}
         }

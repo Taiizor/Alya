@@ -31,4 +31,23 @@ catch
     say "This should not run!"
 end
 
+# 4. User-thrown exception with catch (err)
+say "\n4. Custom throw:"
+try
+    throw "custom business error"
+catch (err)
+    say "Caught custom error: {err}"
+end
+
+# 5. Try-catch-finally block
+say "\n5. Try-catch-finally:"
+try
+    say "In try block..."
+    throw "io error"
+catch err
+    say "Handled: {err}"
+finally
+    say "Finally block executed!"
+end
+
 say "\nProgram completed successfully without crashing."

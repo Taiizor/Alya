@@ -46,10 +46,14 @@ fn collect_map_vars_from_stmts(stmts: &[Stmt], known_maps: &mut HashSet<String>)
             Stmt::TryCatch {
                 try_block,
                 catch_block,
+                finally_block,
                 ..
             } => {
                 collect_map_vars_from_stmts(try_block, known_maps);
                 collect_map_vars_from_stmts(catch_block, known_maps);
+                if let Some(finally_block) = finally_block {
+                    collect_map_vars_from_stmts(finally_block, known_maps);
+                }
             }
             Stmt::If {
                 then_block,

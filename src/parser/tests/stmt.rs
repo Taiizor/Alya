@@ -288,10 +288,12 @@ end
             try_block,
             catch_var,
             catch_block,
+            finally_block,
         } => {
             assert_eq!(try_block.len(), 1);
             assert_eq!(catch_var.as_deref(), Some("err"));
             assert_eq!(catch_block.len(), 1);
+            assert_eq!(*finally_block, None);
         }
         other => panic!("Expected TryCatch, got {:?}", other),
     }
@@ -301,11 +303,85 @@ end
             try_block,
             catch_var,
             catch_block,
+            finally_block,
         } => {
             assert_eq!(try_block.len(), 1);
             assert_eq!(*catch_var, None);
             assert_eq!(catch_block.len(), 1);
+            assert_eq!(*finally_block, None);
         }
         other => panic!("Expected TryCatch, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_catch_parentheses_and_finally() {
+    let code = r#"
+try
+    throw "error message"
+catch (e)
+    say e
+finally
+    say "cleanup"
+end
+
+try
+    say 1
+finally
+    say 2
+end
+"#;
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 2);
+
+    match &program.statements[0] {
+        Stmt::TryCatch {
+            try_block,
+            catch_var,
+            catch_block,
+            finally_block,
+        } => {
+            assert_eq!(try_block.len(), 1);
+            assert!(matches!(&try_block[0], Stmt::Throw(Some(_))));
+            assert_eq!(catch_var.as_deref(), Some("e"));
+            assert_eq!(catch_block.len(), 1);
+            assert_eq!(finally_block.as_ref().map(|b| b.len()), Some(1));
+        }
+        other => panic!("Expected TryCatch with finally, got {:?}", other),
+    }
+
+    match &program.statements[1] {
+        Stmt::TryCatch {
+            try_block,
+            catch_var,
+            catch_block,
+            finally_block,
+        } => {
+            assert_eq!(try_block.len(), 1);
+            assert_eq!(*catch_var, None);
+            assert_eq!(catch_block.len(), 0);
+            assert_eq!(finally_block.as_ref().map(|b| b.len()), Some(1));
+        }
+        other => panic!("Expected TryCatch without catch, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_throw_statements() {
+    let code = r#"
+throw "custom"
+throw
+"#;
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 2);
+    match &program.statements[0] {
+        Stmt::Throw(Some(expr)) => {
+            assert_eq!(*expr, Expr::String("custom".into()));
+        }
+        other => panic!("Expected Stmt::Throw(Some), got {:?}", other),
+    }
+    match &program.statements[1] {
+        Stmt::Throw(None) => {}
+        other => panic!("Expected Stmt::Throw(None), got {:?}", other),
     }
 }
