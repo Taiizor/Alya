@@ -192,7 +192,12 @@ impl CliArgs {
     }
 
     pub fn print_version() {
-        println!("alya {}", env!("CARGO_PKG_VERSION"));
+        println!(
+            "alyac {} ({}-{})",
+            env!("CARGO_PKG_VERSION"),
+            std::env::consts::OS,
+            std::env::consts::ARCH
+        );
     }
 
     pub fn print_usage() {
