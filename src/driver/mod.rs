@@ -111,7 +111,7 @@ pub fn run(args: CliArgs) -> Result<(), String> {
         runner::compile_with_gcc(&asm_file, &exe_file, args.arch, args.os)?;
 
         if args.command == CommandKind::Run {
-            runner::execute_binary(&exe_file, args.output_file.is_none())?;
+            runner::execute_binary(&exe_file, &args.run_args, args.output_file.is_none())?;
         } else if !args.quiet {
             println!("✓ Successfully compiled to {}", exe_file);
             println!("\nRun your program:");

@@ -45,6 +45,24 @@ fn test_codegen_arm64_header_and_footer() {
 }
 
 #[test]
+fn test_codegen_arm64_large_stack_offset() {
+    let mut stmts = Vec::new();
+    for i in 0..20 {
+        stmts.push(Stmt::Let {
+            name: format!("var_{}", i),
+            value: Expr::Number(i as f64),
+        });
+    }
+    stmts.push(Stmt::Say(Expr::Identifier("var_19".into())));
+    let program = Program { statements: stmts };
+    let asm = generate(&program, Architecture::ARM64, OperatingSystem::MacOS);
+
+    // Offset > 256 must use sub x9, x29, #... and [x9] instead of invalid unscaled negative offsets
+    assert!(asm.contains("sub x9, x29, #"));
+    assert!(!asm.contains("[x29, #-320]"));
+}
+
+#[test]
 fn test_codegen_string_rodata() {
     let program = simple_program(Stmt::Say(Expr::String("Test String".into())));
     let asm = generate(&program, Architecture::X64, OperatingSystem::Windows);

@@ -40,14 +40,20 @@ pub fn compile_with_gcc(
     }
 }
 
-pub fn execute_binary(exe_file: &str, delete_after: bool) -> Result<(), String> {
+pub fn execute_binary(
+    exe_file: &str,
+    run_args: &[String],
+    delete_after: bool,
+) -> Result<(), String> {
     let run_path = if cfg!(target_os = "windows") {
         format!(".\\{}", exe_file)
     } else {
         format!("./{}", exe_file)
     };
 
-    let mut child = Command::new(&run_path)
+    let mut cmd = Command::new(&run_path);
+    cmd.args(run_args);
+    let mut child = cmd
         .stdin(std::process::Stdio::inherit())
         .stdout(std::process::Stdio::inherit())
         .stderr(std::process::Stdio::inherit())

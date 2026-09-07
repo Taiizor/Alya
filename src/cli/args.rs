@@ -20,6 +20,7 @@ pub struct CliArgs {
     pub arch: Architecture,
     pub os: OperatingSystem,
     pub quiet: bool,
+    pub run_args: Vec<String>,
 }
 
 impl CliArgs {
@@ -85,6 +86,7 @@ impl CliArgs {
         let mut input_file = None;
         let mut output_file = None;
         let mut quiet = false;
+        let mut run_args = Vec::new();
         let mut arch = if cfg!(target_arch = "aarch64") {
             Architecture::ARM64
         } else if cfg!(target_arch = "x86") {
@@ -103,6 +105,10 @@ impl CliArgs {
         let mut i = start_idx;
         while i < args.len() {
             match args[i].as_str() {
+                "--" => {
+                    run_args.extend(args[i + 1..].iter().cloned());
+                    break;
+                }
                 "-h" | "--help" => {
                     Self::print_usage();
                     return Ok(None);
@@ -179,10 +185,14 @@ impl CliArgs {
                 }
                 arg if !arg.starts_with('-') => {
                     if let Some(existing) = &input_file {
-                        return Err(format!(
-                            "Error: Unexpected multiple input files: '{}' and '{}'",
-                            existing, arg
-                        ));
+                        if command == CommandKind::Run {
+                            run_args.push(arg.to_string());
+                        } else {
+                            return Err(format!(
+                                "Error: Unexpected multiple input files: '{}' and '{}'",
+                                existing, arg
+                            ));
+                        }
                     } else {
                         input_file = Some(arg.to_string());
                     }
@@ -207,6 +217,7 @@ impl CliArgs {
             arch,
             os,
             quiet,
+            run_args,
         }))
     }
 

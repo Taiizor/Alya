@@ -107,12 +107,48 @@ pub fn emit_load_str_label(out: &mut String, label: &str, os: OperatingSystem) {
     emit_adrp_add(out, "x0", label, os);
 }
 
+pub fn emit_arm64_load_x29_offset(
+    out: &mut String,
+    dest_reg: &str,
+    offset: i32,
+    scratch_reg: &str,
+) {
+    if (0..=256).contains(&offset) {
+        out.push_str(&format!("    ldr {}, [x29, #-{}]\n", dest_reg, offset));
+    } else if (0..=4095).contains(&offset) {
+        out.push_str(&format!("    sub {}, x29, #{}\n", scratch_reg, offset));
+        out.push_str(&format!("    ldr {}, [{}]\n", dest_reg, scratch_reg));
+    } else {
+        out.push_str(&format!("    mov {}, #{}\n", scratch_reg, offset));
+        out.push_str(&format!("    sub {}, x29, {}\n", scratch_reg, scratch_reg));
+        out.push_str(&format!("    ldr {}, [{}]\n", dest_reg, scratch_reg));
+    }
+}
+
+pub fn emit_arm64_store_x29_offset(
+    out: &mut String,
+    src_reg: &str,
+    offset: i32,
+    scratch_reg: &str,
+) {
+    if (0..=256).contains(&offset) {
+        out.push_str(&format!("    str {}, [x29, #-{}]\n", src_reg, offset));
+    } else if (0..=4095).contains(&offset) {
+        out.push_str(&format!("    sub {}, x29, #{}\n", scratch_reg, offset));
+        out.push_str(&format!("    str {}, [{}]\n", src_reg, scratch_reg));
+    } else {
+        out.push_str(&format!("    mov {}, #{}\n", scratch_reg, offset));
+        out.push_str(&format!("    sub {}, x29, {}\n", scratch_reg, scratch_reg));
+        out.push_str(&format!("    str {}, [{}]\n", src_reg, scratch_reg));
+    }
+}
+
 pub fn emit_load_var(out: &mut String, offset: i32, _stack_offset: i32) {
-    out.push_str(&format!("    ldr x0, [x29, #-{}]\n", offset));
+    emit_arm64_load_x29_offset(out, "x0", offset, "x9");
 }
 
 pub fn emit_store_var(out: &mut String, offset: i32, _stack_offset: i32) {
-    out.push_str(&format!("    str x0, [x29, #-{}]\n", offset));
+    emit_arm64_store_x29_offset(out, "x0", offset, "x9");
 }
 
 pub fn emit_allocate_var(out: &mut String, stack_offset: &mut i32) {
@@ -278,9 +314,9 @@ pub fn emit_increment_var(
     _stack_offset: i32,
     start_label: &str,
 ) {
-    out.push_str(&format!("    ldr x0, [x29, #-{}]\n", var_offset));
+    emit_arm64_load_x29_offset(out, "x0", var_offset, "x9");
     out.push_str("    add x0, x0, #1\n");
-    out.push_str(&format!("    str x0, [x29, #-{}]\n", var_offset));
+    emit_arm64_store_x29_offset(out, "x0", var_offset, "x9");
     out.push_str(&format!("    b {}\n", start_label));
 }
 
@@ -356,7 +392,7 @@ pub fn emit_say_offset(
     fmt_label: &str,
     os: OperatingSystem,
 ) {
-    out.push_str(&format!("    ldr x1, [x29, #-{}]\n", offset));
+    emit_arm64_load_x29_offset(out, "x1", offset, "x9");
     emit_adrp_add(out, "x0", fmt_label, os);
     if matches!(os, OperatingSystem::MacOS) {
         out.push_str("    sub sp, sp, #16\n");
@@ -585,13 +621,13 @@ pub fn emit_for_each_load_element(
     var_offset: i32,
     end_label: &str,
 ) {
-    out.push_str(&format!("    ldr x0, [x29, #-{}]\n", arr_offset));
+    emit_arm64_load_x29_offset(out, "x0", arr_offset, "x9");
     out.push_str(&format!("    cbz x0, {}\n", end_label));
     out.push_str("    ldr x1, [x0]\n");
-    out.push_str(&format!("    ldr x2, [x29, #-{}]\n", idx_offset));
+    emit_arm64_load_x29_offset(out, "x2", idx_offset, "x9");
     out.push_str("    cmp x2, x1\n");
     out.push_str(&format!("    b.ge {}\n", end_label));
     out.push_str("    ldr x3, [x0, #16]\n");
     out.push_str("    ldr x0, [x3, x2, lsl #3]\n");
-    out.push_str(&format!("    str x0, [x29, #-{}]\n", var_offset));
+    emit_arm64_store_x29_offset(out, "x0", var_offset, "x9");
 }
