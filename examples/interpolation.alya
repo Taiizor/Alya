@@ -3,8 +3,7 @@
 
 let name = "Alice"
 let role = "Software Engineer"
-let experience = 5
-let projects = 12
+let experience, projects = 5, 12
 
 say "=== Developer Profile ==="
 say "Name:        {name}"

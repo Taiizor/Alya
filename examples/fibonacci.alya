@@ -5,8 +5,7 @@ say "=== Fibonacci Sequence in Alya ==="
 
 say "Computing first 10 Fibonacci numbers with a loop:"
 
-let a = 0
-let b = 1
+let a, b = 0, 1
 let temp = 0
 
 for i in 1..10

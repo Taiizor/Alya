@@ -1,8 +1,7 @@
 # Arithmetic operations in Alya
 # Demonstrates basic math operations (+, -, *, /, %) and expression precedence
 
-let a = 20
-let b = 6
+let a, b = 20, 6
 
 let sum = a + b
 let diff = a - b

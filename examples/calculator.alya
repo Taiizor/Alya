@@ -23,8 +23,7 @@ end
 
 say "=== Simple Calculator ==="
 
-let x = 15
-let y = 7
+let x, y = 15, 7
 
 let res_add = add(x, y)
 say "Addition:       {x} + {y} = {res_add}"

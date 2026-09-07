@@ -4,8 +4,7 @@
 say "=== Floating-Point Operations ==="
 
 # 1. Float declarations
-let pi = 3.14159
-let radius = 2.5
+let pi, radius = 3.14159, 2.5
 
 # 2. Arithmetic calculations
 let circumference = 2.0 * pi * radius

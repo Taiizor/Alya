@@ -5,6 +5,7 @@
    - Compound assignment operators
    - Logical operators (&&, ||, !)
    - Chained elif branching
+   - Multi-variable let declarations (let a, b = 0, let x, y = 1, 2)
    - Built-in functions (len, abs, min, max)
 */
 
@@ -17,8 +18,7 @@ score /= 5
 say "Calculated score: {score}"
 
 // 2. Chained elif and logical operators
-let age = 22
-let has_id = true
+let age, has_id = 22, true
 
 if (age >= 18) && has_id
     say "Access granted!"

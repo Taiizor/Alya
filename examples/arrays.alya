@@ -34,8 +34,7 @@ say numbers
 
 # 6. Traversal with while loop
 say "Traversal with while loop:"
-let idx = 0
-let val = 0
+let idx, val = 0
 while idx < len(numbers)
     val = numbers[idx]
     say "  Element at {idx}: {val}"

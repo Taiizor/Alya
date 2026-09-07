@@ -3,8 +3,7 @@ import "modules/math_utils.alya"
 
 say "=== Modules & Imports ==="
 
-let x = 12
-let y = 4
+let x, y = 12, 4
 
 let sum = add(x, y)
 say "Sum: {sum}"

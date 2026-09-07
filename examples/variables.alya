@@ -3,8 +3,7 @@
 
 # 1. Variable declarations
 let name = "Alya"
-let version = 1
-let year = 2026
+let version, year = 1, 2026
 let is_open_source = true
 
 say "=== Language Information ==="

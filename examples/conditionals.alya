@@ -1,8 +1,7 @@
 # Conditionals in Alya
 # Demonstrates if, elif, else, and logical operators (&&, ||, !)
 
-let score = 85
-let attendance = 92
+let score, attendance = 85, 92
 let has_recommendation = false
 
 say "=== Academic Evaluation ==="

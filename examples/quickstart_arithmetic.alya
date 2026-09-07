@@ -1,8 +1,7 @@
 # Quickstart Arithmetic from README.md
 # Demonstrates basic evaluation and display of expressions
 
-let x = 10
-let y = 5
+let x, y = 10, 5
 
 say x + y  # 15
 say x - y  # 5
