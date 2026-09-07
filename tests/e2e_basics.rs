@@ -181,3 +181,32 @@ say w_sum
         assert_eq!(output, "9\n8\n");
     }
 }
+
+#[test]
+fn test_e2e_multi_variable_let() {
+    let code = r#"
+let idx, val = 0
+say idx
+say val
+
+let x, y = 10, 20
+say x
+say y
+
+let a, b, c = 100
+say a
+say b
+say c
+
+let first, second = "alpha", "beta"
+say first
+say second
+
+let m, n = 5 + 3, 4 * 6
+say m
+say n
+"#;
+    if let Some(output) = run_alya_code(code) {
+        assert_eq!(output, "0\n0\n10\n20\n100\n100\n100\nalpha\nbeta\n8\n24\n");
+    }
+}

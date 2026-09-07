@@ -24,7 +24,7 @@ impl Parser {
         self.skip_newlines();
 
         while !matches!(self.current_token().token_type, TokenType::Eof) {
-            statements.push(self.parse_statement()?);
+            statements.extend(self.parse_statement()?);
             self.skip_newlines();
         }
 

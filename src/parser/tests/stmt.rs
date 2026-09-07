@@ -27,6 +27,57 @@ fn test_parse_let_and_assign() {
 }
 
 #[test]
+fn test_parse_multi_let_single_value() {
+    let program = parse_code("let idx, val = 0").expect("Parse failed");
+    assert_eq!(program.statements.len(), 2);
+    assert_eq!(
+        program.statements[0],
+        Stmt::Let {
+            name: "idx".into(),
+            value: Expr::Number(0.0)
+        }
+    );
+    assert_eq!(
+        program.statements[1],
+        Stmt::Let {
+            name: "val".into(),
+            value: Expr::Number(0.0)
+        }
+    );
+}
+
+#[test]
+fn test_parse_multi_let_multiple_values() {
+    let program = parse_code("let idx, val = 0, 1").expect("Parse failed");
+    assert_eq!(program.statements.len(), 2);
+    assert_eq!(
+        program.statements[0],
+        Stmt::Let {
+            name: "idx".into(),
+            value: Expr::Number(0.0)
+        }
+    );
+    assert_eq!(
+        program.statements[1],
+        Stmt::Let {
+            name: "val".into(),
+            value: Expr::Number(1.0)
+        }
+    );
+}
+
+#[test]
+fn test_parse_multi_let_mismatch_error() {
+    let result1 = parse_code("let a, b = 1, 2, 3");
+    assert!(result1.is_err());
+    assert!(result1.unwrap_err().contains("Mismatch in 'let' statement"));
+
+    let result2 = parse_code("let a, b, c = 1, 2");
+    assert!(result2.is_err());
+    assert!(result2.unwrap_err().contains("Mismatch in 'let' statement"));
+}
+
+#[test]
 fn test_parse_if_else() {
     let code = r#"
 if x > 0

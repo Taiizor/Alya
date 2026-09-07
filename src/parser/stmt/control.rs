@@ -13,7 +13,7 @@ impl Parser {
             self.current_token().token_type,
             TokenType::Else | TokenType::Elif | TokenType::End | TokenType::Eof
         ) {
-            then_block.push(self.parse_statement()?);
+            then_block.extend(self.parse_statement()?);
             self.skip_newlines();
         }
 
@@ -35,7 +35,7 @@ impl Parser {
                     self.current_token().token_type,
                     TokenType::End | TokenType::Eof
                 ) {
-                    else_stmts.push(self.parse_statement()?);
+                    else_stmts.extend(self.parse_statement()?);
                     self.skip_newlines();
                 }
                 (Some(else_stmts), false)
@@ -72,7 +72,7 @@ impl Parser {
             self.current_token().token_type,
             TokenType::End | TokenType::Eof
         ) {
-            body.push(self.parse_statement()?);
+            body.extend(self.parse_statement()?);
             self.skip_newlines();
         }
 
@@ -90,7 +90,7 @@ impl Parser {
             self.current_token().token_type,
             TokenType::End | TokenType::Eof
         ) {
-            body.push(self.parse_statement()?);
+            body.extend(self.parse_statement()?);
             self.skip_newlines();
         }
 
@@ -127,7 +127,7 @@ impl Parser {
                 self.current_token().token_type,
                 TokenType::End | TokenType::Eof
             ) {
-                body.push(self.parse_statement()?);
+                body.extend(self.parse_statement()?);
                 self.skip_newlines();
             }
 
@@ -147,7 +147,7 @@ impl Parser {
                 self.current_token().token_type,
                 TokenType::End | TokenType::Eof
             ) {
-                body.push(self.parse_statement()?);
+                body.extend(self.parse_statement()?);
                 self.skip_newlines();
             }
 
@@ -178,8 +178,8 @@ impl Parser {
                 let pattern = self.parse_expression()?;
                 self.expect(TokenType::Then)?;
                 self.skip_newlines();
-                let stmt = self.parse_statement()?;
-                arms.push((pattern, stmt));
+                let stmts = self.parse_statement()?;
+                arms.push((pattern, stmts));
                 self.skip_newlines();
             } else if matches!(self.current_token().token_type, TokenType::Else) {
                 self.advance(); // skip 'else'
@@ -189,7 +189,7 @@ impl Parser {
                     self.current_token().token_type,
                     TokenType::End | TokenType::Eof
                 ) {
-                    else_stmts.push(self.parse_statement()?);
+                    else_stmts.extend(self.parse_statement()?);
                     self.skip_newlines();
                 }
                 else_block = Some(else_stmts);
@@ -207,7 +207,7 @@ impl Parser {
 
         // Desugar when into nested If statements
         let mut current_else = else_block;
-        for (pattern, stmt) in arms.into_iter().rev() {
+        for (pattern, stmts) in arms.into_iter().rev() {
             let condition = Expr::Binary {
                 left: Box::new(subject.clone()),
                 op: BinaryOp::Equal,
@@ -215,7 +215,7 @@ impl Parser {
             };
             let if_stmt = Stmt::If {
                 condition,
-                then_block: vec![stmt],
+                then_block: stmts,
                 else_block: current_else,
             };
             current_else = Some(vec![if_stmt]);
@@ -240,7 +240,7 @@ impl Parser {
             self.current_token().token_type,
             TokenType::Catch | TokenType::Eof
         ) {
-            try_block.push(self.parse_statement()?);
+            try_block.extend(self.parse_statement()?);
             self.skip_newlines();
         }
 
@@ -261,7 +261,7 @@ impl Parser {
             self.current_token().token_type,
             TokenType::End | TokenType::Eof
         ) {
-            catch_block.push(self.parse_statement()?);
+            catch_block.extend(self.parse_statement()?);
             self.skip_newlines();
         }
 

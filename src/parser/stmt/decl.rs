@@ -27,25 +27,74 @@ impl Parser {
         Ok(Stmt::Say(expr))
     }
 
-    pub(super) fn parse_let(&mut self) -> Result<Stmt, String> {
+    pub(super) fn parse_let(&mut self) -> Result<Vec<Stmt>, String> {
         self.advance(); // skip 'let'
 
-        let name = match &self.current_token().token_type {
-            TokenType::Identifier(s) => s.clone(),
-            _ => {
-                return Err(format!(
-                    "Expected identifier after 'let' at line {}, column {}",
-                    self.current_token().line,
-                    self.current_token().column
-                ))
+        let first_line = self.current_token().line;
+        let first_col = self.current_token().column;
+
+        let mut names = Vec::new();
+        loop {
+            let name = match &self.current_token().token_type {
+                TokenType::Identifier(s) => s.clone(),
+                _ => {
+                    return Err(format!(
+                        "Expected identifier after 'let' at line {}, column {}",
+                        self.current_token().line,
+                        self.current_token().column
+                    ))
+                }
+            };
+            self.advance();
+            names.push(name);
+
+            if matches!(self.current_token().token_type, TokenType::Comma) {
+                self.advance();
+            } else {
+                break;
             }
-        };
-        self.advance();
+        }
 
         self.expect(TokenType::Assign)?;
-        let value = self.parse_expression()?;
 
-        Ok(Stmt::Let { name, value })
+        let mut values = Vec::new();
+        loop {
+            let value = self.parse_expression()?;
+            values.push(value);
+
+            if matches!(self.current_token().token_type, TokenType::Comma) {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        if values.len() == 1 {
+            let single_val = values.remove(0);
+            let stmts = names
+                .into_iter()
+                .map(|name| Stmt::Let {
+                    name,
+                    value: single_val.clone(),
+                })
+                .collect();
+            Ok(stmts)
+        } else if values.len() == names.len() {
+            let stmts = names
+                .into_iter()
+                .zip(values)
+                .map(|(name, value)| Stmt::Let { name, value })
+                .collect();
+            Ok(stmts)
+        } else {
+            Err(format!(
+                "Mismatch in 'let' statement: {} variables defined but {} values provided at line {}, column {}",
+                names.len(),
+                values.len(),
+                first_line,
+                first_col
+            ))
+        }
     }
 
     pub(super) fn parse_function(&mut self) -> Result<Stmt, String> {
@@ -91,7 +140,7 @@ impl Parser {
             self.current_token().token_type,
             TokenType::End | TokenType::Eof
         ) {
-            body.push(self.parse_statement()?);
+            body.extend(self.parse_statement()?);
             self.skip_newlines();
         }
 

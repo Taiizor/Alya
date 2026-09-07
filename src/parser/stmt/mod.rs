@@ -6,30 +6,30 @@ use crate::lexer::TokenType;
 use crate::parser::Parser;
 
 impl Parser {
-    pub(super) fn parse_statement(&mut self) -> Result<Stmt, String> {
+    pub(super) fn parse_statement(&mut self) -> Result<Vec<Stmt>, String> {
         self.skip_newlines();
 
         match &self.current_token().token_type {
-            TokenType::Import => self.parse_import(),
-            TokenType::Struct => self.parse_struct(),
-            TokenType::Say => self.parse_say(),
+            TokenType::Import => self.parse_import().map(|s| vec![s]),
+            TokenType::Struct => self.parse_struct().map(|s| vec![s]),
+            TokenType::Say => self.parse_say().map(|s| vec![s]),
             TokenType::Let => self.parse_let(),
-            TokenType::If => self.parse_if(),
-            TokenType::While => self.parse_while(),
-            TokenType::Repeat => self.parse_repeat(),
-            TokenType::For => self.parse_for(),
-            TokenType::Function => self.parse_function(),
-            TokenType::Return => self.parse_return(),
+            TokenType::If => self.parse_if().map(|s| vec![s]),
+            TokenType::While => self.parse_while().map(|s| vec![s]),
+            TokenType::Repeat => self.parse_repeat().map(|s| vec![s]),
+            TokenType::For => self.parse_for().map(|s| vec![s]),
+            TokenType::Function => self.parse_function().map(|s| vec![s]),
+            TokenType::Return => self.parse_return().map(|s| vec![s]),
             TokenType::Break => {
                 self.advance();
-                Ok(Stmt::Break)
+                Ok(vec![Stmt::Break])
             }
             TokenType::Continue => {
                 self.advance();
-                Ok(Stmt::Continue)
+                Ok(vec![Stmt::Continue])
             }
-            TokenType::When => self.parse_when(),
-            TokenType::Try => self.parse_try_catch(),
+            TokenType::When => self.parse_when().map(|s| vec![s]),
+            TokenType::Try => self.parse_try_catch().map(|s| vec![s]),
             TokenType::Identifier(_) => {
                 // Could be assignment or function call
                 let ident = match &self.current_token().token_type {
@@ -102,18 +102,18 @@ impl Parser {
                             let value = self.parse_expression()?;
                             match target {
                                 Expr::Index { array, index } => {
-                                    return Ok(Stmt::IndexAssign {
+                                    return Ok(vec![Stmt::IndexAssign {
                                         array: *array,
                                         index: *index,
                                         value,
-                                    });
+                                    }]);
                                 }
                                 Expr::FieldAccess { object, field } => {
-                                    return Ok(Stmt::FieldAssign {
+                                    return Ok(vec![Stmt::FieldAssign {
                                         object: *object,
                                         field,
                                         value,
-                                    });
+                                    }]);
                                 }
                                 _ => unreachable!(),
                             }
@@ -138,23 +138,23 @@ impl Parser {
                             };
                             match target {
                                 Expr::Index { array, index } => {
-                                    return Ok(Stmt::IndexAssign {
+                                    return Ok(vec![Stmt::IndexAssign {
                                         array: *array,
                                         index: *index,
                                         value: bin_val,
-                                    });
+                                    }]);
                                 }
                                 Expr::FieldAccess { object, field } => {
-                                    return Ok(Stmt::FieldAssign {
+                                    return Ok(vec![Stmt::FieldAssign {
                                         object: *object,
                                         field,
                                         value: bin_val,
-                                    });
+                                    }]);
                                 }
                                 _ => unreachable!(),
                             }
                         }
-                        _ => return Ok(Stmt::Expr(target)),
+                        _ => return Ok(vec![Stmt::Expr(target)]),
                     }
                 }
 
@@ -162,67 +162,67 @@ impl Parser {
                     TokenType::Assign => {
                         self.advance();
                         let value = self.parse_expression()?;
-                        Ok(Stmt::Assign { name: ident, value })
+                        Ok(vec![Stmt::Assign { name: ident, value }])
                     }
                     TokenType::PlusAssign => {
                         self.advance();
                         let value = self.parse_expression()?;
-                        Ok(Stmt::Assign {
+                        Ok(vec![Stmt::Assign {
                             name: ident.clone(),
                             value: Expr::Binary {
                                 left: Box::new(Expr::Identifier(ident)),
                                 op: BinaryOp::Add,
                                 right: Box::new(value),
                             },
-                        })
+                        }])
                     }
                     TokenType::MinusAssign => {
                         self.advance();
                         let value = self.parse_expression()?;
-                        Ok(Stmt::Assign {
+                        Ok(vec![Stmt::Assign {
                             name: ident.clone(),
                             value: Expr::Binary {
                                 left: Box::new(Expr::Identifier(ident)),
                                 op: BinaryOp::Subtract,
                                 right: Box::new(value),
                             },
-                        })
+                        }])
                     }
                     TokenType::MultiplyAssign => {
                         self.advance();
                         let value = self.parse_expression()?;
-                        Ok(Stmt::Assign {
+                        Ok(vec![Stmt::Assign {
                             name: ident.clone(),
                             value: Expr::Binary {
                                 left: Box::new(Expr::Identifier(ident)),
                                 op: BinaryOp::Multiply,
                                 right: Box::new(value),
                             },
-                        })
+                        }])
                     }
                     TokenType::DivideAssign => {
                         self.advance();
                         let value = self.parse_expression()?;
-                        Ok(Stmt::Assign {
+                        Ok(vec![Stmt::Assign {
                             name: ident.clone(),
                             value: Expr::Binary {
                                 left: Box::new(Expr::Identifier(ident)),
                                 op: BinaryOp::Divide,
                                 right: Box::new(value),
                             },
-                        })
+                        }])
                     }
                     _ => {
                         // Put the identifier back into an expression
                         self.position -= 1;
                         let expr = self.parse_expression()?;
-                        Ok(Stmt::Expr(expr))
+                        Ok(vec![Stmt::Expr(expr)])
                     }
                 }
             }
             _ => {
                 let expr = self.parse_expression()?;
-                Ok(Stmt::Expr(expr))
+                Ok(vec![Stmt::Expr(expr)])
             }
         }
     }
