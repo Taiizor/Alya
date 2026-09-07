@@ -1,0 +1,36 @@
+# Alya Standard Library - JSON Helper Module
+# Provides serialization utilities for JSON formatting.
+
+function json_number(n)
+    return str(n)
+end
+
+function json_string(s)
+    return "\"" + s + "\""
+end
+
+function json_bool(b)
+    if b
+        return "true"
+    else
+        return "false"
+    end
+end
+
+function json_array(items)
+    let count = len(items)
+    if count == 0
+        return "[]"
+    end
+    let res = "["
+    let i = 0
+    while i < count
+        if i > 0
+            res = res + ", "
+        end
+        res = res + items[i]
+        i = i + 1
+    end
+    res = res + "]"
+    return res
+end

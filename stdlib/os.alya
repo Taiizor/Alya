@@ -1,0 +1,10 @@
+# Alya Standard Library - OS Module
+# Provides operating system and environment interactions.
+
+function env(key)
+    return get_env(key)
+end
+
+function exec(cmd)
+    return system_exec(cmd)
+end

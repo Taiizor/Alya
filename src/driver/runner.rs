@@ -16,6 +16,7 @@ pub fn compile_with_gcc(
 
     if matches!(os, OperatingSystem::Linux) {
         gcc_args.push("-no-pie");
+        gcc_args.push("-lm");
     }
 
     let gcc_result = Command::new("gcc").args(&gcc_args).output();

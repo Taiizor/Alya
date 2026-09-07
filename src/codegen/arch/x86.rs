@@ -7,7 +7,12 @@ pub fn emit_header(out: &mut String) {
     out.push_str(".extern getchar\n");
     out.push_str(".extern fflush\n");
     out.push_str(".extern calloc\n");
-    out.push_str(".extern realloc\n\n");
+    out.push_str(".extern realloc\n");
+    out.push_str(".extern time\n");
+    out.push_str(".extern getenv\n");
+    out.push_str(".extern system\n");
+    out.push_str(".extern Sleep\n");
+    out.push_str(".extern usleep\n\n");
     out.push_str(".text\n");
     out.push_str("main:\n");
     out.push_str("    push %ebp\n");

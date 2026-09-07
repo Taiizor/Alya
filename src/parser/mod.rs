@@ -76,6 +76,21 @@ pub fn resolve_imports(program: &mut Program, base_dir: &std::path::Path) -> Res
     Ok(())
 }
 
+fn get_embedded_stdlib(module: &str) -> Option<&'static str> {
+    let clean = module
+        .strip_prefix("std/")
+        .or_else(|| module.strip_prefix("std::"))
+        .unwrap_or(module);
+    let clean = clean.strip_suffix(".alya").unwrap_or(clean);
+    match clean {
+        "math" => Some(include_str!("../../stdlib/math.alya")),
+        "time" => Some(include_str!("../../stdlib/time.alya")),
+        "os" => Some(include_str!("../../stdlib/os.alya")),
+        "json" => Some(include_str!("../../stdlib/json.alya")),
+        _ => None,
+    }
+}
+
 fn resolve_stmt_imports(
     stmt: Stmt,
     current_dir: &std::path::Path,
@@ -94,9 +109,59 @@ fn resolve_stmt_imports(
             };
 
             let candidate = if target_path.exists() {
-                target_path
+                Some(target_path.clone())
             } else if target_path.with_extension("alya").exists() {
-                target_path.with_extension("alya")
+                Some(target_path.with_extension("alya"))
+            } else if normalized_path.starts_with("std/") || normalized_path.starts_with("std::") {
+                let clean = normalized_path
+                    .strip_prefix("std/")
+                    .or_else(|| normalized_path.strip_prefix("std::"))
+                    .unwrap_or(&normalized_path);
+                let std_dir = current_dir.join("stdlib").join(clean);
+                let std_root = std::path::Path::new("stdlib").join(clean);
+                if std_dir.exists() {
+                    Some(std_dir)
+                } else if std_dir.with_extension("alya").exists() {
+                    Some(std_dir.with_extension("alya"))
+                } else if std_root.exists() {
+                    Some(std_root)
+                } else if std_root.with_extension("alya").exists() {
+                    Some(std_root.with_extension("alya"))
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            let (canonical, source) = if let Some(cand) = candidate {
+                let canon = std::fs::canonicalize(&cand)
+                    .map_err(|e| format!("Failed to resolve path '{}': {}", cand.display(), e))?;
+                if visited.contains(&canon) {
+                    return Ok(());
+                }
+                let src = std::fs::read_to_string(&canon).map_err(|e| {
+                    format!(
+                        "Failed to read imported module '{}': {}",
+                        canon.display(),
+                        e
+                    )
+                })?;
+                (canon, src)
+            } else if normalized_path.starts_with("std/") || normalized_path.starts_with("std::") {
+                if let Some(src) = get_embedded_stdlib(&normalized_path) {
+                    let synthetic =
+                        std::path::PathBuf::from(format!("<embedded:{}>", normalized_path));
+                    if visited.contains(&synthetic) {
+                        return Ok(());
+                    }
+                    (synthetic, src.to_string())
+                } else {
+                    return Err(format!(
+                        "Cannot find standard library module '{}'",
+                        import_path_str
+                    ));
+                }
             } else {
                 return Err(format!(
                     "Cannot find imported module '{}' (looked at '{}')",
@@ -105,21 +170,7 @@ fn resolve_stmt_imports(
                 ));
             };
 
-            let canonical = std::fs::canonicalize(&candidate)
-                .map_err(|e| format!("Failed to resolve path '{}': {}", candidate.display(), e))?;
-
-            if visited.contains(&canonical) {
-                return Ok(());
-            }
             visited.insert(canonical.clone());
-
-            let source = std::fs::read_to_string(&canonical).map_err(|e| {
-                format!(
-                    "Failed to read imported module '{}': {}",
-                    canonical.display(),
-                    e
-                )
-            })?;
 
             let mut lexer = crate::lexer::Lexer::new(&source);
             let tokens = lexer.tokenize().map_err(|e| {

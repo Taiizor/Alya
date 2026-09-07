@@ -1,0 +1,52 @@
+# Alya Standard Library - Math Module
+# Provides common mathematical constants and utility functions.
+
+let PI = 3.141592653589793
+let E = 2.718281828459045
+let TAU = 6.283185307179586
+
+function deg_to_rad(deg)
+    return deg * (3.141592653589793 / 180.0)
+end
+
+function rad_to_deg(rad)
+    return rad * (180.0 / 3.141592653589793)
+end
+
+function clamp(val, min_val, max_val)
+    if val < min_val
+        return min_val
+    elif val > max_val
+        return max_val
+    end
+    return val
+end
+
+function sign(val)
+    if val > 0
+        return 1
+    elif val < 0
+        return -1
+    end
+    return 0
+end
+
+function is_even(n)
+    return n % 2 == 0
+end
+
+function is_odd(n)
+    return n % 2 != 0
+end
+
+function hypot(a, b)
+    return sqrt(a * a + b * b)
+end
+
+function round(val)
+    if val >= 0.0
+        return int(val + 0.5)
+    else
+        return int(val - 0.5)
+    end
+end

@@ -669,3 +669,75 @@ fn test_parse_struct_and_field_access() {
         other => panic!("Expected Stmt::Say(FieldAccess), got {:?}", other),
     }
 }
+
+#[test]
+fn test_resolve_embedded_stdlib_modules() {
+    let code = r#"
+import "std/math"
+import "std/time"
+import "std/os"
+import "std/json"
+say PI
+"#;
+    let mut lexer = Lexer::new(code);
+    let tokens = lexer.tokenize().expect("Tokenize failed");
+    let mut parser = Parser::new(tokens);
+    let mut ast = parser.parse().expect("Parse failed");
+
+    // Use a non-existent directory to force fallback to embedded stdlib
+    let dummy_dir = std::path::Path::new("non_existent_dir_for_test");
+    super::resolve_imports(&mut ast, dummy_dir).expect("Embedded stdlib resolution should succeed");
+
+    // Check that functions and constants from stdlib were imported
+    let has_hypot = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "hypot",
+        _ => false,
+    });
+    let has_now = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "now",
+        _ => false,
+    });
+    let has_env = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "env",
+        _ => false,
+    });
+    let has_json_bool = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "json_bool",
+        _ => false,
+    });
+
+    assert!(has_hypot, "Missing hypot from std/math");
+    assert!(has_now, "Missing now from std/time");
+    assert!(has_env, "Missing env from std/os");
+    assert!(has_json_bool, "Missing json_bool from std/json");
+}
+
+#[test]
+fn test_embedded_stdlib_deduplication() {
+    let code = r#"
+import "std/math"
+import "std/math"
+say PI
+"#;
+    let mut lexer = Lexer::new(code);
+    let tokens = lexer.tokenize().expect("Tokenize failed");
+    let mut parser = Parser::new(tokens);
+    let mut ast = parser.parse().expect("Parse failed");
+
+    let dummy_dir = std::path::Path::new("non_existent_dir_for_test");
+    super::resolve_imports(&mut ast, dummy_dir).expect("Embedded stdlib resolution should succeed");
+
+    let hypot_count = ast
+        .statements
+        .iter()
+        .filter(|s| match s {
+            Stmt::Function { name, .. } => name == "hypot",
+            _ => false,
+        })
+        .count();
+
+    assert_eq!(
+        hypot_count, 1,
+        "Duplicate import of std/math should only include hypot once"
+    );
+}

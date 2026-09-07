@@ -9,7 +9,11 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern _getchar\n");
         out.push_str(".extern _fflush\n");
         out.push_str(".extern _calloc\n");
-        out.push_str(".extern _realloc\n\n");
+        out.push_str(".extern _realloc\n");
+        out.push_str(".extern _time\n");
+        out.push_str(".extern _getenv\n");
+        out.push_str(".extern _system\n");
+        out.push_str(".extern _usleep\n\n");
         out.push_str(".text\n");
         out.push_str("_main:\n");
         out.push_str("    push %rbp\n");
@@ -23,7 +27,15 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern getchar\n");
         out.push_str(".extern fflush\n");
         out.push_str(".extern calloc\n");
-        out.push_str(".extern realloc\n\n");
+        out.push_str(".extern realloc\n");
+        out.push_str(".extern time\n");
+        out.push_str(".extern getenv\n");
+        out.push_str(".extern system\n");
+        if matches!(os, OperatingSystem::Windows) {
+            out.push_str(".extern Sleep\n\n");
+        } else {
+            out.push_str(".extern usleep\n\n");
+        }
         out.push_str(".text\n");
         out.push_str("main:\n");
         out.push_str("    push %rbp\n");

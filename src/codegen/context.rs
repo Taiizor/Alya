@@ -73,7 +73,11 @@ impl CodeGenContext {
     pub fn enter_function(&mut self) -> ScopeState {
         let mut fn_vars = HashMap::new();
         for (k, v) in &self.variables {
-            if k.starts_with("map_field_str:") || k.starts_with("map_str:") {
+            if k.starts_with("map_field_str:")
+                || k.starts_with("map_str:")
+                || k.starts_with("fn_ret_str:")
+                || k.starts_with("fn_ret_flt:")
+            {
                 fn_vars.insert(k.clone(), v.clone());
             }
         }

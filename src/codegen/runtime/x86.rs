@@ -1,4 +1,6 @@
-pub fn emit_x86_runtime(out: &mut String) {
+use crate::codegen::target::OperatingSystem;
+
+pub fn emit_x86_runtime(out: &mut String, os: OperatingSystem) {
     // alya_concat
     out.push_str("alya_concat:\n");
     out.push_str("    push %ebp\n");
@@ -2007,6 +2009,106 @@ pub fn emit_x86_runtime(out: &mut String) {
     out.push_str("    pop %edi\n");
     out.push_str("    pop %esi\n");
     out.push_str("    pop %ebx\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_time
+    out.push_str(".global fn_time\n");
+    out.push_str("fn_time:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    push $0\n");
+    out.push_str("    call time\n");
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_sleep
+    out.push_str(".global fn_sleep\n");
+    out.push_str("fn_sleep:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    push %eax\n");
+        out.push_str("    call Sleep\n");
+    } else {
+        out.push_str("    imul $1000, %eax\n");
+        out.push_str("    push %eax\n");
+        out.push_str("    call usleep\n");
+        out.push_str("    add $4, %esp\n");
+    }
+    out.push_str("    xor %eax, %eax\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_get_env
+    out.push_str(".global fn_get_env\n");
+    out.push_str("fn_get_env:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    push %ebx\n");
+    out.push_str("    push %edi\n");
+    out.push_str("    push %esi\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jz .L_x86_getenv_empty\n");
+    out.push_str("    push %eax\n");
+    out.push_str("    call getenv\n");
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jz .L_x86_getenv_empty\n");
+    out.push_str("    mov %eax, %esi\n");
+    out.push_str("    mov $alya_str_buf, %ebx\n");
+    out.push_str("    mov alya_str_idx, %edi\n");
+    out.push_str("    cmp $48000, %edi\n");
+    out.push_str("    jl .L_x86_getenv_buf_ok\n");
+    out.push_str("    xor %edi, %edi\n");
+    out.push_str(".L_x86_getenv_buf_ok:\n");
+    out.push_str("    lea (%ebx, %edi), %edx\n");
+    out.push_str(".L_x86_getenv_copy:\n");
+    out.push_str("    movb (%esi), %al\n");
+    out.push_str("    movb %al, (%ebx, %edi)\n");
+    out.push_str("    testb %al, %al\n");
+    out.push_str("    jz .L_x86_getenv_done\n");
+    out.push_str("    inc %esi\n");
+    out.push_str("    inc %edi\n");
+    out.push_str("    jmp .L_x86_getenv_copy\n");
+    out.push_str(".L_x86_getenv_done:\n");
+    out.push_str("    inc %edi\n");
+    out.push_str("    add $3, %edi\n");
+    out.push_str("    and $-4, %edi\n");
+    out.push_str("    mov %edi, alya_str_idx\n");
+    out.push_str("    mov %edx, %eax\n");
+    out.push_str("    jmp .L_x86_getenv_ret\n");
+    out.push_str(".L_x86_getenv_empty:\n");
+    out.push_str("    mov $alya_str_empty, %eax\n");
+    out.push_str(".L_x86_getenv_ret:\n");
+    out.push_str("    pop %esi\n");
+    out.push_str("    pop %edi\n");
+    out.push_str("    pop %ebx\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_system_exec
+    out.push_str(".global fn_system_exec\n");
+    out.push_str("fn_system_exec:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jz .L_x86_sysexec_empty\n");
+    out.push_str("    push %eax\n");
+    out.push_str("    call system\n");
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    jmp .L_x86_sysexec_ret\n");
+    out.push_str(".L_x86_sysexec_empty:\n");
+    out.push_str("    xor %eax, %eax\n");
+    out.push_str(".L_x86_sysexec_ret:\n");
     out.push_str("    mov %ebp, %esp\n");
     out.push_str("    pop %ebp\n");
     out.push_str("    ret\n\n");

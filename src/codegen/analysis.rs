@@ -6,7 +6,7 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
     match expr {
         Expr::String(_) => true,
         Expr::InterpolatedString(_) => true,
-        Expr::Call { name, .. }
+        Expr::Call { name, .. } => {
             if matches!(
                 name.as_str(),
                 "ask"
@@ -21,9 +21,12 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "chr"
                     | "char_from_code"
                     | "read_file"
-            ) =>
-        {
-            true
+                    | "get_env"
+                    | "env"
+            ) {
+                return true;
+            }
+            vars.contains_key(&format!("fn_ret_str:{}", name))
         }
         Expr::Identifier(name) => {
             if let Some(var_type) = vars.get(name) {
@@ -140,7 +143,9 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             expr,
         } => is_float_expr(expr, vars),
         Expr::Index { array, .. } => is_float_array(array, vars),
-        Expr::Call { name, .. } => name == "float",
+        Expr::Call { name, .. } => {
+            name == "float" || vars.contains_key(&format!("fn_ret_flt:{}", name))
+        }
         _ => false,
     }
 }
@@ -148,7 +153,7 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
 fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bool {
     match expr {
         Expr::String(_) | Expr::InterpolatedString(_) => true,
-        Expr::Call { name, .. }
+        Expr::Call { name, .. } => {
             if matches!(
                 name.as_str(),
                 "ask"
@@ -163,9 +168,12 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
                     | "chr"
                     | "char_from_code"
                     | "read_file"
-            ) =>
-        {
-            true
+                    | "get_env"
+                    | "env"
+            ) {
+                return true;
+            }
+            known_strings.contains(&format!("fn_ret_str:{}", name))
         }
         Expr::Identifier(name) => known_strings.contains(name),
         Expr::Binary {
@@ -200,6 +208,46 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
     }
 }
 
+fn expr_is_string_array(expr: &Expr, known_strings: &HashSet<String>) -> bool {
+    match expr {
+        Expr::Array(elems) => elems
+            .first()
+            .is_some_and(|e| expr_is_definitely_string(e, known_strings)),
+        Expr::Identifier(name) => known_strings.contains(&format!("arr_is_str:{}", name)),
+        Expr::Call { name, .. } if name == "split" || name == "args" => true,
+        _ => false,
+    }
+}
+
+fn stmts_return_string(stmts: &[Stmt], known_strings: &HashSet<String>) -> bool {
+    stmts.iter().any(|s| match s {
+        Stmt::Return(Some(expr)) => expr_is_definitely_string(expr, known_strings),
+        Stmt::If {
+            then_block,
+            else_block,
+            ..
+        } => {
+            stmts_return_string(then_block, known_strings)
+                || else_block
+                    .as_ref()
+                    .is_some_and(|eb| stmts_return_string(eb, known_strings))
+        }
+        Stmt::While { body, .. }
+        | Stmt::Repeat { body }
+        | Stmt::For { body, .. }
+        | Stmt::ForEach { body, .. } => stmts_return_string(body, known_strings),
+        Stmt::TryCatch {
+            try_block,
+            catch_block,
+            ..
+        } => {
+            stmts_return_string(try_block, known_strings)
+                || stmts_return_string(catch_block, known_strings)
+        }
+        _ => false,
+    })
+}
+
 fn collect_string_vars_from_stmts(stmts: &[Stmt], known_strings: &mut HashSet<String>) {
     for stmt in stmts {
         match stmt {
@@ -207,15 +255,7 @@ fn collect_string_vars_from_stmts(stmts: &[Stmt], known_strings: &mut HashSet<St
                 if expr_is_definitely_string(value, known_strings) {
                     known_strings.insert(name.clone());
                 }
-                let is_str_arr = match value {
-                    Expr::Array(elems) => elems
-                        .first()
-                        .is_some_and(|e| expr_is_definitely_string(e, known_strings)),
-                    Expr::Call { name: cname, .. } if cname == "split" || cname == "args" => true,
-                    Expr::Identifier(src) => known_strings.contains(&format!("arr_is_str:{}", src)),
-                    _ => false,
-                };
-                if is_str_arr {
+                if expr_is_string_array(value, known_strings) {
                     known_strings.insert(format!("arr_is_str:{}", name));
                 }
             }
@@ -248,23 +288,16 @@ fn collect_string_vars_from_stmts(stmts: &[Stmt], known_strings: &mut HashSet<St
                 iterable,
                 body,
             } => {
-                let is_str = match iterable {
-                    Expr::Array(elems) => elems
-                        .first()
-                        .is_some_and(|e| expr_is_definitely_string(e, known_strings)),
-                    Expr::Identifier(arr_name) => {
-                        known_strings.contains(&format!("arr_is_str:{}", arr_name))
-                    }
-                    Expr::Call { name, .. } if name == "split" || name == "args" => true,
-                    _ => false,
-                };
-                if is_str {
+                if expr_is_string_array(iterable, known_strings) {
                     known_strings.insert(var.clone());
                 }
                 collect_string_vars_from_stmts(body, known_strings);
             }
-            Stmt::Function { body, .. } => {
+            Stmt::Function { name, body, .. } => {
                 collect_string_vars_from_stmts(body, known_strings);
+                if stmts_return_string(body, known_strings) {
+                    known_strings.insert(format!("fn_ret_str:{}", name));
+                }
             }
             Stmt::IndexAssign {
                 array,
@@ -331,6 +364,18 @@ pub fn collect_known_string_vars(program: &Program) -> HashSet<String> {
         collect_string_vars_from_stmts(&program.statements, &mut known_strings);
         for (name, params, _) in &funcs {
             for (idx, param) in params.iter().enumerate() {
+                if !known_strings.contains(&format!("arr_is_str:{}", param)) {
+                    let is_str_arr = program.statements.iter().any(|s| {
+                        if let Some(arg) = find_call_arg(s, name, idx) {
+                            expr_is_string_array(arg, &known_strings)
+                        } else {
+                            false
+                        }
+                    });
+                    if is_str_arr {
+                        known_strings.insert(format!("arr_is_str:{}", param));
+                    }
+                }
                 if known_strings.contains(param) {
                     continue;
                 }
@@ -364,6 +409,17 @@ pub fn infer_param_is_string(func_name: &str, param_idx: usize, program: &Progra
     })
 }
 
+pub fn infer_param_is_string_array(func_name: &str, param_idx: usize, program: &Program) -> bool {
+    let known_strings = collect_known_string_vars(program);
+    program.statements.iter().any(|s| {
+        if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+            expr_is_string_array(arg, &known_strings)
+        } else {
+            false
+        }
+    })
+}
+
 fn expr_is_definitely_float(expr: &Expr, known_floats: &HashSet<String>) -> bool {
     match expr {
         Expr::Float(_) => true,
@@ -386,7 +442,9 @@ fn expr_is_definitely_float(expr: &Expr, known_floats: &HashSet<String>) -> bool
             op: UnaryOp::Negate,
             expr,
         } => expr_is_definitely_float(expr, known_floats),
-        Expr::Call { name, .. } => name == "float",
+        Expr::Call { name, .. } => {
+            name == "float" || known_floats.contains(&format!("fn_ret_flt:{}", name))
+        }
         Expr::Index { array, .. } => match &**array {
             Expr::Identifier(arr_name) => {
                 known_floats.contains(&format!("arr_is_flt:{}", arr_name))
@@ -397,6 +455,45 @@ fn expr_is_definitely_float(expr: &Expr, known_floats: &HashSet<String>) -> bool
     }
 }
 
+fn expr_is_float_array(expr: &Expr, known_floats: &HashSet<String>) -> bool {
+    match expr {
+        Expr::Array(elems) => elems
+            .first()
+            .is_some_and(|e| expr_is_definitely_float(e, known_floats)),
+        Expr::Identifier(name) => known_floats.contains(&format!("arr_is_flt:{}", name)),
+        _ => false,
+    }
+}
+
+fn stmts_return_float(stmts: &[Stmt], known_floats: &HashSet<String>) -> bool {
+    stmts.iter().any(|s| match s {
+        Stmt::Return(Some(expr)) => expr_is_definitely_float(expr, known_floats),
+        Stmt::If {
+            then_block,
+            else_block,
+            ..
+        } => {
+            stmts_return_float(then_block, known_floats)
+                || else_block
+                    .as_ref()
+                    .is_some_and(|eb| stmts_return_float(eb, known_floats))
+        }
+        Stmt::While { body, .. }
+        | Stmt::Repeat { body }
+        | Stmt::For { body, .. }
+        | Stmt::ForEach { body, .. } => stmts_return_float(body, known_floats),
+        Stmt::TryCatch {
+            try_block,
+            catch_block,
+            ..
+        } => {
+            stmts_return_float(try_block, known_floats)
+                || stmts_return_float(catch_block, known_floats)
+        }
+        _ => false,
+    })
+}
+
 fn collect_float_vars_from_stmts(stmts: &[Stmt], known_floats: &mut HashSet<String>) {
     for stmt in stmts {
         match stmt {
@@ -404,14 +501,7 @@ fn collect_float_vars_from_stmts(stmts: &[Stmt], known_floats: &mut HashSet<Stri
                 if expr_is_definitely_float(value, known_floats) {
                     known_floats.insert(name.clone());
                 }
-                let is_flt_arr = match value {
-                    Expr::Array(elems) => elems
-                        .first()
-                        .is_some_and(|e| expr_is_definitely_float(e, known_floats)),
-                    Expr::Identifier(src) => known_floats.contains(&format!("arr_is_flt:{}", src)),
-                    _ => false,
-                };
-                if is_flt_arr {
+                if expr_is_float_array(value, known_floats) {
                     known_floats.insert(format!("arr_is_flt:{}", name));
                 }
             }
@@ -441,22 +531,16 @@ fn collect_float_vars_from_stmts(stmts: &[Stmt], known_floats: &mut HashSet<Stri
                 iterable,
                 body,
             } => {
-                let is_flt = match iterable {
-                    Expr::Array(elems) => elems
-                        .first()
-                        .is_some_and(|e| expr_is_definitely_float(e, known_floats)),
-                    Expr::Identifier(arr_name) => {
-                        known_floats.contains(&format!("arr_is_flt:{}", arr_name))
-                    }
-                    _ => false,
-                };
-                if is_flt {
+                if expr_is_float_array(iterable, known_floats) {
                     known_floats.insert(var.clone());
                 }
                 collect_float_vars_from_stmts(body, known_floats);
             }
-            Stmt::Function { body, .. } => {
+            Stmt::Function { name, body, .. } => {
                 collect_float_vars_from_stmts(body, known_floats);
+                if stmts_return_float(body, known_floats) {
+                    known_floats.insert(format!("fn_ret_flt:{}", name));
+                }
             }
             _ => {}
         }
@@ -472,6 +556,18 @@ pub fn collect_known_float_vars(program: &Program) -> HashSet<String> {
         collect_float_vars_from_stmts(&program.statements, &mut known_floats);
         for (name, params, _) in &funcs {
             for (idx, param) in params.iter().enumerate() {
+                if !known_floats.contains(&format!("arr_is_flt:{}", param)) {
+                    let is_flt_arr = program.statements.iter().any(|s| {
+                        if let Some(arg) = find_call_arg(s, name, idx) {
+                            expr_is_float_array(arg, &known_floats)
+                        } else {
+                            false
+                        }
+                    });
+                    if is_flt_arr {
+                        known_floats.insert(format!("arr_is_flt:{}", param));
+                    }
+                }
                 if known_floats.contains(param) {
                     continue;
                 }
@@ -499,6 +595,17 @@ pub fn infer_param_is_float(func_name: &str, param_idx: usize, program: &Program
     program.statements.iter().any(|s| {
         if let Some(arg) = find_call_arg(s, func_name, param_idx) {
             expr_is_definitely_float(arg, &known_floats)
+        } else {
+            false
+        }
+    })
+}
+
+pub fn infer_param_is_float_array(func_name: &str, param_idx: usize, program: &Program) -> bool {
+    let known_floats = collect_known_float_vars(program);
+    program.statements.iter().any(|s| {
+        if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+            expr_is_float_array(arg, &known_floats)
         } else {
             false
         }

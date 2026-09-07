@@ -68,6 +68,7 @@ fn run_alya_code_with_input_and_args(
     }
     if matches!(os, OperatingSystem::Linux) {
         gcc.arg("-no-pie");
+        gcc.arg("-lm");
     }
 
     let gcc_out = gcc.output().expect("GCC invocation failed");
@@ -1189,5 +1190,53 @@ say data["tag"]
     if let Some((code, output)) = run_alya_code_full(code) {
         assert_eq!(code, 0);
         assert_eq!(output, concat!("init\n", "test_run\n", "test_run\n",));
+    }
+}
+
+#[test]
+fn test_e2e_stdlib_modules() {
+    let code = r#"
+import "std/math"
+import "std/time"
+import "std/os"
+import "std/json"
+
+say clamp(50, 0, 10)
+say hypot(3, 4)
+say is_even(10)
+say is_odd(7)
+
+let t = now()
+if t > 0
+    say 1
+else
+    say 0
+end
+delay(5)
+
+say json_number(42)
+say json_string("alya")
+say json_bool(1)
+say json_bool(0)
+let items = ["apple", "banana"]
+say json_array(items)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!(
+                "10\n",
+                "5\n",
+                "1\n",
+                "1\n",
+                "1\n",
+                "42\n",
+                "\"alya\"\n",
+                "true\n",
+                "false\n",
+                "[apple, banana]\n",
+            )
+        );
     }
 }

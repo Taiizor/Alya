@@ -1,0 +1,10 @@
+# Alya Standard Library - Time Module
+# Provides time querying and delay routines.
+
+function now()
+    return time()
+end
+
+function delay(ms)
+    return sleep(ms)
+end
