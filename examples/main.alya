@@ -1,0 +1,13 @@
+# Clean, expressive & type-safe
+function greet(user)
+    say "Hello, {user}! Welcome to Alya."
+end
+
+try
+    let name = ask "Enter name: "
+    greet(name)
+    let speed = 100 / 2
+    say "Speed: {speed} ops/sec"
+catch err
+    say "Handled safely: " + err
+end
