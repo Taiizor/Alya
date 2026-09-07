@@ -25,6 +25,7 @@ struct CodeGen {
     arch: Architecture,
     os: OperatingSystem,
     output: String,
+    #[allow(dead_code)]
     label_counter: usize,
     string_counter: usize,
     variables: HashMap<String, VarType>, // Variable name to type and location
@@ -49,6 +50,7 @@ impl CodeGen {
         self.output.push('\n');
     }
 
+    #[allow(dead_code)]
     fn next_label(&mut self) -> String {
         let label = format!(".L{}", self.label_counter);
         self.label_counter += 1;
@@ -61,12 +63,32 @@ impl CodeGen {
         label
     }
 
-    // Helper to adjust stack offset for Windows shadow space
-    fn adjust_offset_for_windows(&self, offset: i32) -> i32 {
-        if matches!(self.arch, Architecture::X64) && matches!(self.os, OperatingSystem::Windows) {
-            offset + 32  // Windows x64 requires 32-byte shadow space
-        } else {
-            offset
+    // Helper to emit call printf with proper stack alignment and shadow space
+    fn emit_call_printf(&mut self) {
+        match self.arch {
+            Architecture::ARM64 => {
+                self.emit("    bl printf");
+            }
+            Architecture::X64 => {
+                if matches!(self.os, OperatingSystem::Windows) {
+                    let padding = if self.stack_offset % 16 == 0 { 32 } else { 40 };
+                    self.emit(&format!("    sub ${}, %rsp", padding));
+                    self.emit("    call printf");
+                    self.emit(&format!("    add ${}, %rsp", padding));
+                } else {
+                    let misaligned = self.stack_offset % 16 != 0;
+                    if misaligned {
+                        self.emit("    sub $8, %rsp");
+                    }
+                    self.emit("    call printf");
+                    if misaligned {
+                        self.emit("    add $8, %rsp");
+                    }
+                }
+            }
+            Architecture::X86 => {
+                self.emit("    call printf");
+            }
         }
     }
 
@@ -101,9 +123,6 @@ impl CodeGen {
                 self.emit("main:");
                 self.emit("    push %rbp");
                 self.emit("    mov %rsp, %rbp");
-                if matches!(self.os, OperatingSystem::Windows) {
-                    self.emit("    sub $32, %rsp");
-                }
                 self.emit("");
             }
             Architecture::X86 => {
@@ -122,32 +141,20 @@ impl CodeGen {
     fn emit_footer(&mut self) {
         match self.arch {
             Architecture::ARM64 => {
-                // Clean up stack if we pushed variables
-                if self.stack_offset > 0 {
-                    self.emit(&format!("    add sp, sp, #{}", self.stack_offset));
-                }
                 self.emit("    mov w0, #0");
+                self.emit("    mov sp, x29");
                 self.emit("    ldp x29, x30, [sp], #16");
                 self.emit("    ret");
             }
             Architecture::X64 => {
-                // Clean up stack if we pushed variables
-                if self.stack_offset > 0 {
-                    self.emit(&format!("    add ${}, %rsp", self.stack_offset));
-                }
                 self.emit("    xor %rax, %rax");
-                if matches!(self.os, OperatingSystem::Windows) {
-                    self.emit("    add $32, %rsp");
-                }
+                self.emit("    mov %rbp, %rsp");
                 self.emit("    pop %rbp");
                 self.emit("    ret");
             }
             Architecture::X86 => {
-                // Clean up stack if we pushed variables
-                if self.stack_offset > 0 {
-                    self.emit(&format!("    add ${}, %esp", self.stack_offset));
-                }
                 self.emit("    xor %eax, %eax");
+                self.emit("    mov %ebp, %esp");
                 self.emit("    pop %ebp");
                 self.emit("    ret");
             }
@@ -208,8 +215,7 @@ impl CodeGen {
                                     self.emit(&format!("    str x0, [sp, #{}]", self.stack_offset - offset));
                                 }
                                 Architecture::X64 => {
-                                    let adjusted_offset = self.adjust_offset_for_windows(offset);
-                                    self.emit(&format!("    mov %rax, -{}(%rbp)", adjusted_offset));
+                                    self.emit(&format!("    mov %rax, -{}(%rbp)", offset));
                                 }
                                 Architecture::X86 => {
                                     self.emit(&format!("    mov %eax, -{}(%ebp)", offset));
@@ -247,22 +253,22 @@ impl CodeGen {
                     Architecture::ARM64 => {
                         self.emit(&format!("    adrp x0, {}@PAGE", label));
                         self.emit(&format!("    add x0, x0, {}@PAGEOFF", label));
-                        self.emit("    bl printf");
+                        self.emit_call_printf();
                     }
                     Architecture::X64 => {
                         if matches!(self.os, OperatingSystem::Windows) {
                             self.emit(&format!("    lea {}(%rip), %rcx", label));
                             self.emit("    xor %rax, %rax");
-                            self.emit("    call printf");
+                            self.emit_call_printf();
                         } else {
                             self.emit(&format!("    lea {}(%rip), %rdi", label));
                             self.emit("    xor %rax, %rax");
-                            self.emit("    call printf");
+                            self.emit_call_printf();
                         }
                     }
                     Architecture::X86 => {
                         self.emit(&format!("    push ${}", label));
-                        self.emit("    call printf");
+                        self.emit_call_printf();
                         self.emit("    add $4, %esp");
                     }
                 }
@@ -286,25 +292,25 @@ impl CodeGen {
                                     self.emit(&format!("    add x1, x1, {}@PAGEOFF", label));
                                     self.emit(&format!("    adrp x0, {}@PAGE", fmt_label));
                                     self.emit(&format!("    add x0, x0, {}@PAGEOFF", fmt_label));
-                                    self.emit("    bl printf");
+                                    self.emit_call_printf();
                                 }
                                 Architecture::X64 => {
                                     if matches!(self.os, OperatingSystem::Windows) {
                                         self.emit(&format!("    lea {}(%rip), %rcx", fmt_label));
                                         self.emit(&format!("    lea {}(%rip), %rdx", label));
                                         self.emit("    xor %rax, %rax");
-                                        self.emit("    call printf");
+                                        self.emit_call_printf();
                                     } else {
                                         self.emit(&format!("    lea {}(%rip), %rsi", label));
                                         self.emit(&format!("    lea {}(%rip), %rdi", fmt_label));
                                         self.emit("    xor %rax, %rax");
-                                        self.emit("    call printf");
+                                        self.emit_call_printf();
                                     }
                                 }
                                 Architecture::X86 => {
                                     self.emit(&format!("    push ${}", label));
                                     self.emit(&format!("    push ${}", fmt_label));
-                                    self.emit("    call printf");
+                                    self.emit_call_printf();
                                     self.emit("    add $8, %esp");
                                 }
                             }
@@ -326,26 +332,25 @@ impl CodeGen {
                                     self.emit(&format!("    ldr x1, [sp, #{}]", self.stack_offset - offset));
                                     self.emit(&format!("    adrp x0, {}@PAGE", fmt_label));
                                     self.emit(&format!("    add x0, x0, {}@PAGEOFF", fmt_label));
-                                    self.emit("    bl printf");
+                                    self.emit_call_printf();
                                 }
                                 Architecture::X64 => {
                                     if matches!(self.os, OperatingSystem::Windows) {
-                                        let adjusted_offset = self.adjust_offset_for_windows(offset);
-                                        self.emit(&format!("    mov -{}(%rbp), %rdx", adjusted_offset));
+                                        self.emit(&format!("    mov -{}(%rbp), %rdx", offset));
                                         self.emit(&format!("    lea {}(%rip), %rcx", fmt_label));
                                         self.emit("    xor %rax, %rax");
-                                        self.emit("    call printf");
+                                        self.emit_call_printf();
                                     } else {
                                         self.emit(&format!("    mov -{}(%rbp), %rsi", offset));
                                         self.emit(&format!("    lea {}(%rip), %rdi", fmt_label));
                                         self.emit("    xor %rax, %rax");
-                                        self.emit("    call printf");
+                                        self.emit_call_printf();
                                     }
                                 }
                                 Architecture::X86 => {
                                     self.emit(&format!("    push -{}(%ebp)", offset));
                                     self.emit(&format!("    push ${}", fmt_label));
-                                    self.emit("    call printf");
+                                    self.emit_call_printf();
                                     self.emit("    add $8, %esp");
                                 }
                             }
@@ -371,25 +376,25 @@ impl CodeGen {
                         self.emit(&format!("    mov x1, #{}", num_val));
                         self.emit(&format!("    adrp x0, {}@PAGE", fmt_label));
                         self.emit(&format!("    add x0, x0, {}@PAGEOFF", fmt_label));
-                        self.emit("    bl printf");
+                        self.emit_call_printf();
                     }
                     Architecture::X64 => {
                         if matches!(self.os, OperatingSystem::Windows) {
                             self.emit(&format!("    lea {}(%rip), %rcx", fmt_label));
                             self.emit(&format!("    mov ${}, %rdx", num_val));
                             self.emit("    xor %rax, %rax");
-                            self.emit("    call printf");
+                            self.emit_call_printf();
                         } else {
                             self.emit(&format!("    mov ${}, %rsi", num_val));
                             self.emit(&format!("    lea {}(%rip), %rdi", fmt_label));
                             self.emit("    xor %rax, %rax");
-                            self.emit("    call printf");
+                            self.emit_call_printf();
                         }
                     }
                     Architecture::X86 => {
                         self.emit(&format!("    push ${}", num_val));
                         self.emit(&format!("    push ${}", fmt_label));
-                        self.emit("    call printf");
+                        self.emit_call_printf();
                         self.emit("    add $8, %esp");
                     }
                 }
@@ -410,25 +415,25 @@ impl CodeGen {
                         self.emit("    mov x1, x0");
                         self.emit(&format!("    adrp x0, {}@PAGE", fmt_label));
                         self.emit(&format!("    add x0, x0, {}@PAGEOFF", fmt_label));
-                        self.emit("    bl printf");
+                        self.emit_call_printf();
                     }
                     Architecture::X64 => {
                         if matches!(self.os, OperatingSystem::Windows) {
                             self.emit("    mov %rax, %rdx");
                             self.emit(&format!("    lea {}(%rip), %rcx", fmt_label));
                             self.emit("    xor %rax, %rax");
-                            self.emit("    call printf");
+                            self.emit_call_printf();
                         } else {
                             self.emit("    mov %rax, %rsi");
                             self.emit(&format!("    lea {}(%rip), %rdi", fmt_label));
                             self.emit("    xor %rax, %rax");
-                            self.emit("    call printf");
+                            self.emit_call_printf();
                         }
                     }
                     Architecture::X86 => {
                         self.emit("    push %eax");
                         self.emit(&format!("    push ${}", fmt_label));
-                        self.emit("    call printf");
+                        self.emit_call_printf();
                         self.emit("    add $8, %esp");
                     }
                 }
@@ -465,8 +470,7 @@ impl CodeGen {
                                     self.emit(&format!("    ldr x0, [sp, #{}]", self.stack_offset - offset));
                                 }
                                 Architecture::X64 => {
-                                    let adjusted_offset = self.adjust_offset_for_windows(offset);
-                                    self.emit(&format!("    mov -{}(%rbp), %rax", adjusted_offset));
+                                    self.emit(&format!("    mov -{}(%rbp), %rax", offset));
                                 }
                                 Architecture::X86 => {
                                     self.emit(&format!("    mov -{}(%ebp), %eax", offset));

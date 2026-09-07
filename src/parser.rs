@@ -19,6 +19,7 @@ impl Parser {
         }
     }
 
+    #[allow(dead_code)]
     fn peek_token(&self) -> &Token {
         if self.position + 1 < self.tokens.len() {
             &self.tokens[self.position + 1]

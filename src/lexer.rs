@@ -5,7 +5,6 @@ pub enum TokenType {
     Let,        // let (variable declaration)
     If,         // if
     Else,       // else
-    ElseIf,     // else if
     While,      // while
     For,        // for
     In,         // in
