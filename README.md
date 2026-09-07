@@ -264,15 +264,26 @@ end
 say "Program resumes normally!"
 ```
 
-### 9. Arrays & Indexing
+### 9. Arrays & Dynamic Methods
 
 ```alya
-# Array declaration and literals
+# Array declaration and empty arrays
 let numbers = [10, 20, 30, 40]
+let empty = []
 say numbers           # [10, 20, 30, 40]
 
-# Length of an array
+# Length of an array (built-in function or method call)
 say len(numbers)      # 4
+say numbers.len()     # 4
+
+# Dynamic methods: push and pop (method syntax or UFCS)
+numbers.push(50)
+push(numbers, 60)
+say numbers           # [10, 20, 30, 40, 50, 60]
+
+let last = numbers.pop()
+say last              # 60
+say numbers           # [10, 20, 30, 40, 50]
 
 # Indexing (0-based read)
 say numbers[0]        # 10
@@ -281,7 +292,7 @@ say numbers[1]        # 20
 # Index assignment (write and compound operators)
 numbers[2] = 99
 numbers[0] += 5
-say numbers           # [15, 20, 99, 40]
+say numbers           # [15, 20, 99, 40, 50]
 
 # Safe bounds check
 try

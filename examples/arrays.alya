@@ -22,7 +22,17 @@ numbers[0] += 5
 say "Mutated array:"
 say numbers
 
-# 5. Traversal with while loop
+# 5. Dynamic methods: push and pop
+numbers.push(50)
+push(numbers, 60)
+say "After push operations:"
+say numbers
+let popped = numbers.pop()
+say "Popped element: {popped}"
+say "After pop:"
+say numbers
+
+# 6. Traversal with while loop
 say "Traversal with while loop:"
 let idx = 0
 let val = 0
@@ -32,14 +42,14 @@ while idx < len(numbers)
     idx += 1
 end
 
-# 6. Traversal and sum with for loop
+# 7. Traversal and sum with for loop
 let sum = 0
 for i in 0..(len(numbers) - 1)
     sum += numbers[i]
 end
 say "Sum of elements: {sum}"
 
-# 7. Safe bounds check with try/catch
+# 8. Safe bounds check with try/catch
 try
     let invalid = numbers[10]
     say invalid

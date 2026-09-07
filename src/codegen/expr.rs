@@ -136,6 +136,30 @@ impl CodeGen {
                     return;
                 }
 
+                if name == "push" && args.len() == 2 {
+                    self.generate_expression(&args[0]);
+                    arch::emit_push_temp(&mut self.output, self.arch);
+                    self.generate_expression(&args[1]);
+                    arch::emit_array_push(
+                        &mut self.output,
+                        self.arch,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                    return;
+                }
+
+                if name == "pop" && args.len() == 1 {
+                    self.generate_expression(&args[0]);
+                    arch::emit_array_pop(
+                        &mut self.output,
+                        self.arch,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                    return;
+                }
+
                 if name == "float" && args.len() == 1 {
                     self.generate_expression(&args[0]);
                     arch::emit_int_to_float(&mut self.output, self.arch);

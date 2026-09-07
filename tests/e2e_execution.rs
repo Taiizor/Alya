@@ -444,6 +444,52 @@ end
 }
 
 #[test]
+fn test_e2e_dynamic_arrays() {
+    let code = r#"
+let arr = []
+say len(arr)
+arr.push(10)
+arr.push(20)
+push(arr, 30)
+say len(arr)
+say arr
+let last = arr.pop()
+say last
+say len(arr)
+say arr
+let last2 = pop(arr)
+say last2
+say len(arr)
+say arr
+
+// Test growth beyond initial capacity 8
+let big = []
+for i in 1..15
+    big.push(i * 2)
+end
+say len(big)
+say big[0]
+say big[14]
+
+// Test pop on empty array caught by try/catch
+let empty = []
+try
+    empty.pop()
+    say "should not reach"
+catch err
+    say "caught empty pop: " + err
+end
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            "0\n3\n[10, 20, 30]\n30\n2\n[10, 20]\n20\n1\n[10]\n15\n2\n30\ncaught empty pop: index out of bounds\n"
+        );
+    }
+}
+
+#[test]
 fn test_e2e_module_import() {
     let pid = std::process::id();
     let mod_filename = format!("temp_imported_helper_{}.alya", pid);
@@ -628,4 +674,3 @@ say w_sum
         assert_eq!(output, "9\n8\n");
     }
 }
-

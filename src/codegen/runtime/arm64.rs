@@ -221,20 +221,89 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str(&format!("    bl {}exit\n\n", p));
 
     // alya_array_new
+    out.push_str(".align 2\n");
     out.push_str("alya_array_new:\n");
-    out.push_str("    stp x29, x30, [sp, #-32]!\n");
+    out.push_str("    stp x29, x30, [sp, #-48]!\n");
     out.push_str("    mov x29, sp\n");
-    out.push_str("    str x19, [sp, #16]\n");
+    out.push_str("    stp x19, x20, [sp, #16]\n");
+    out.push_str("    stp x21, x22, [sp, #32]\n");
     out.push_str("    mov x19, x0\n");
-    out.push_str("    add x0, x19, #1\n");
+    out.push_str("    mov x20, x0\n");
+    out.push_str("    cmp x20, #8\n");
+    out.push_str("    b.ge .L_arm64_new_cap_ok\n");
+    out.push_str("    mov x20, #8\n");
+    out.push_str("    b .L_arm64_new_alloc\n");
+    out.push_str(".L_arm64_new_cap_ok:\n");
+    out.push_str("    lsl x20, x20, #1\n");
+    out.push_str(".L_arm64_new_alloc:\n");
+    out.push_str("    mov x0, #1\n");
+    out.push_str("    mov x1, #24\n");
+    out.push_str(&format!("    bl {}calloc\n", p));
+    out.push_str("    mov x21, x0\n");
+    out.push_str("    mov x0, x20\n");
     out.push_str("    mov x1, #8\n");
     out.push_str(&format!("    bl {}calloc\n", p));
-    out.push_str("    str x19, [x0]\n");
-    out.push_str("    ldr x19, [sp, #16]\n");
-    out.push_str("    ldp x29, x30, [sp], #32\n");
+    out.push_str("    str x19, [x21]\n");
+    out.push_str("    str x20, [x21, #8]\n");
+    out.push_str("    str x0, [x21, #16]\n");
+    out.push_str("    mov x0, x21\n");
+    out.push_str("    ldp x21, x22, [sp, #32]\n");
+    out.push_str("    ldp x19, x20, [sp, #16]\n");
+    out.push_str("    ldp x29, x30, [sp], #48\n");
+    out.push_str("    ret\n\n");
+
+    // alya_array_push
+    out.push_str(".align 2\n");
+    out.push_str("alya_array_push:\n");
+    out.push_str("    stp x29, x30, [sp, #-48]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    stp x19, x20, [sp, #16]\n");
+    out.push_str("    stp x21, x22, [sp, #32]\n");
+    out.push_str("    mov x19, x0\n");
+    out.push_str("    mov x20, x1\n");
+    out.push_str("    ldr x21, [x19]\n");
+    out.push_str("    ldr x22, [x19, #8]\n");
+    out.push_str("    cmp x21, x22\n");
+    out.push_str("    b.lt .L_arm64_push_store\n");
+    out.push_str("    cbnz x22, .L_arm64_push_double\n");
+    out.push_str("    mov x22, #8\n");
+    out.push_str("    b .L_arm64_push_realloc\n");
+    out.push_str(".L_arm64_push_double:\n");
+    out.push_str("    lsl x22, x22, #1\n");
+    out.push_str(".L_arm64_push_realloc:\n");
+    out.push_str("    str x22, [x19, #8]\n");
+    out.push_str("    ldr x0, [x19, #16]\n");
+    out.push_str("    lsl x1, x22, #3\n");
+    out.push_str(&format!("    bl {}realloc\n", p));
+    out.push_str("    str x0, [x19, #16]\n");
+    out.push_str(".L_arm64_push_store:\n");
+    out.push_str("    ldr x2, [x19, #16]\n");
+    out.push_str("    str x20, [x2, x21, lsl #3]\n");
+    out.push_str("    add x21, x21, #1\n");
+    out.push_str("    str x21, [x19]\n");
+    out.push_str("    mov x0, x21\n");
+    out.push_str("    ldp x21, x22, [sp, #32]\n");
+    out.push_str("    ldp x19, x20, [sp, #16]\n");
+    out.push_str("    ldp x29, x30, [sp], #48\n");
+    out.push_str("    ret\n\n");
+
+    // alya_array_pop
+    out.push_str(".align 2\n");
+    out.push_str("alya_array_pop:\n");
+    out.push_str("    stp x29, x30, [sp, #-16]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    ldr x1, [x0]\n");
+    out.push_str("    cmp x1, #0\n");
+    out.push_str("    b.le alya_error_index_out_of_bounds\n");
+    out.push_str("    sub x1, x1, #1\n");
+    out.push_str("    str x1, [x0]\n");
+    out.push_str("    ldr x2, [x0, #16]\n");
+    out.push_str("    ldr x0, [x2, x1, lsl #3]\n");
+    out.push_str("    ldp x29, x30, [sp], #16\n");
     out.push_str("    ret\n\n");
 
     // alya_print_array
+    out.push_str(".align 2\n");
     out.push_str("alya_print_array:\n");
     out.push_str("    stp x29, x30, [sp, #-48]!\n");
     out.push_str("    mov x29, sp\n");
@@ -258,8 +327,8 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str(&format!("    bl {}printf\n", p));
     out.push_str(".L_arm64_arr_print_elem:\n");
     emit_adrp_add(out, "x0", "alya_fmt_arr_elem", os);
-    out.push_str("    add x22, x21, #1\n");
-    out.push_str("    ldr x1, [x19, x22, lsl #3]\n");
+    out.push_str("    ldr x22, [x19, #16]\n");
+    out.push_str("    ldr x1, [x22, x21, lsl #3]\n");
     if matches!(os, OperatingSystem::MacOS) {
         out.push_str("    sub sp, sp, #16\n");
         out.push_str("    str x1, [sp]\n");

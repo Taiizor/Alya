@@ -426,6 +426,32 @@ pub fn emit_array_set(out: &mut String, arch: Architecture) {
     }
 }
 
+pub fn emit_array_push(
+    out: &mut String,
+    arch: Architecture,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_array_push(out),
+        Architecture::X64 => x64::emit_array_push(out, stack_offset, os),
+        Architecture::X86 => x86::emit_array_push(out),
+    }
+}
+
+pub fn emit_array_pop(
+    out: &mut String,
+    arch: Architecture,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_array_pop(out),
+        Architecture::X64 => x64::emit_array_pop(out, stack_offset, os),
+        Architecture::X86 => x86::emit_array_pop(out),
+    }
+}
+
 pub fn emit_array_len(out: &mut String, arch: Architecture) {
     match arch {
         Architecture::ARM64 => arm64::emit_array_len(out),

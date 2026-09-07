@@ -65,10 +65,31 @@ impl Parser {
                                 }
                             };
                             self.advance();
-                            target = Expr::FieldAccess {
-                                object: Box::new(target),
-                                field,
-                            };
+                            if matches!(self.current_token().token_type, TokenType::LeftParen) {
+                                self.advance();
+                                let mut args = vec![target];
+                                if !matches!(self.current_token().token_type, TokenType::RightParen)
+                                {
+                                    loop {
+                                        args.push(self.parse_expression()?);
+                                        if matches!(
+                                            self.current_token().token_type,
+                                            TokenType::Comma
+                                        ) {
+                                            self.advance();
+                                        } else {
+                                            break;
+                                        }
+                                    }
+                                }
+                                self.expect(TokenType::RightParen)?;
+                                target = Expr::Call { name: field, args };
+                            } else {
+                                target = Expr::FieldAccess {
+                                    object: Box::new(target),
+                                    field,
+                                };
+                            }
                         }
                     }
 

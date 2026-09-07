@@ -246,6 +246,74 @@ pub fn infer_param_is_float(func_name: &str, param_idx: usize, program: &Program
     })
 }
 
+fn expr_is_definitely_array(expr: &Expr, known_arrays: &HashSet<String>) -> bool {
+    match expr {
+        Expr::Array(_) => true,
+        Expr::Identifier(name) => known_arrays.contains(name),
+        _ => false,
+    }
+}
+
+fn collect_array_vars_from_stmts(stmts: &[Stmt], known_arrays: &mut HashSet<String>) {
+    for stmt in stmts {
+        match stmt {
+            Stmt::Let { name, value, .. } | Stmt::Assign { name, value, .. }
+                if expr_is_definitely_array(value, known_arrays) =>
+            {
+                known_arrays.insert(name.clone());
+            }
+            Stmt::TryCatch {
+                try_block,
+                catch_block,
+                ..
+            } => {
+                collect_array_vars_from_stmts(try_block, known_arrays);
+                collect_array_vars_from_stmts(catch_block, known_arrays);
+            }
+            Stmt::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                collect_array_vars_from_stmts(then_block, known_arrays);
+                if let Some(else_stmts) = else_block {
+                    collect_array_vars_from_stmts(else_stmts, known_arrays);
+                }
+            }
+            Stmt::While { body, .. } | Stmt::Repeat { body } | Stmt::For { body, .. } => {
+                collect_array_vars_from_stmts(body, known_arrays);
+            }
+            Stmt::Function { body, .. } => {
+                collect_array_vars_from_stmts(body, known_arrays);
+            }
+            _ => {}
+        }
+    }
+}
+
+pub fn collect_known_array_vars(program: &Program) -> HashSet<String> {
+    let mut known_arrays = HashSet::new();
+    for _ in 0..4 {
+        let prev_len = known_arrays.len();
+        collect_array_vars_from_stmts(&program.statements, &mut known_arrays);
+        if known_arrays.len() == prev_len {
+            break;
+        }
+    }
+    known_arrays
+}
+
+pub fn infer_param_is_array(func_name: &str, param_idx: usize, program: &Program) -> bool {
+    let known_arrays = collect_known_array_vars(program);
+    program.statements.iter().any(|s| {
+        if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+            expr_is_definitely_array(arg, &known_arrays)
+        } else {
+            false
+        }
+    })
+}
+
 pub fn find_call_arg<'a>(stmt: &'a Stmt, func_name: &str, param_idx: usize) -> Option<&'a Expr> {
     match stmt {
         Stmt::Expr(expr) | Stmt::Say(expr) => find_call_arg_in_expr(expr, func_name, param_idx),

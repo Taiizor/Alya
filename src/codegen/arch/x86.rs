@@ -6,7 +6,8 @@ pub fn emit_header(out: &mut String) {
     out.push_str(".extern exit\n");
     out.push_str(".extern getchar\n");
     out.push_str(".extern fflush\n");
-    out.push_str(".extern calloc\n\n");
+    out.push_str(".extern calloc\n");
+    out.push_str(".extern realloc\n\n");
     out.push_str(".text\n");
     out.push_str("main:\n");
     out.push_str("    push %ebp\n");
@@ -351,7 +352,8 @@ pub fn emit_array_new(out: &mut String, count: usize) {
 
 pub fn emit_array_set_imm(out: &mut String, index: usize) {
     out.push_str("    mov (%esp), %edx\n");
-    out.push_str(&format!("    mov %eax, {}(%edx)\n", (index + 1) * 4));
+    out.push_str("    mov 8(%edx), %edx\n");
+    out.push_str(&format!("    mov %eax, {}(%edx)\n", index * 4));
 }
 
 pub fn emit_array_get(out: &mut String) {
@@ -361,7 +363,8 @@ pub fn emit_array_get(out: &mut String) {
     out.push_str("    jl alya_error_index_out_of_bounds\n");
     out.push_str("    cmp (%edx), %ecx\n");
     out.push_str("    jge alya_error_index_out_of_bounds\n");
-    out.push_str("    mov 4(%edx, %ecx, 4), %eax\n");
+    out.push_str("    mov 8(%edx), %edx\n");
+    out.push_str("    mov (%edx, %ecx, 4), %eax\n");
 }
 
 pub fn emit_array_set(out: &mut String) {
@@ -372,7 +375,22 @@ pub fn emit_array_set(out: &mut String) {
     out.push_str("    jl alya_error_index_out_of_bounds\n");
     out.push_str("    cmp (%edx), %eax\n");
     out.push_str("    jge alya_error_index_out_of_bounds\n");
-    out.push_str("    mov %ebx, 4(%edx, %eax, 4)\n");
+    out.push_str("    mov 8(%edx), %edx\n");
+    out.push_str("    mov %ebx, (%edx, %eax, 4)\n");
+}
+
+pub fn emit_array_push(out: &mut String) {
+    out.push_str("    pop %edx\n");
+    out.push_str("    push %eax\n");
+    out.push_str("    push %edx\n");
+    out.push_str("    call alya_array_push\n");
+    out.push_str("    add $8, %esp\n");
+}
+
+pub fn emit_array_pop(out: &mut String) {
+    out.push_str("    push %eax\n");
+    out.push_str("    call alya_array_pop\n");
+    out.push_str("    add $4, %esp\n");
 }
 
 pub fn emit_array_len(out: &mut String) {
