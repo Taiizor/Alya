@@ -4,7 +4,7 @@ use crate::lexer::Lexer;
 use crate::parser::Parser;
 use std::fs;
 use std::path::Path;
-use std::process::Command;
+pub mod runner;
 
 pub fn run(args: CliArgs) -> Result<(), String> {
     let source = fs::read_to_string(&args.input_file)
@@ -92,71 +92,17 @@ pub fn run(args: CliArgs) -> Result<(), String> {
             println!("Compiling to executable: {}", exe_file);
         }
 
-        let mut gcc_args = vec![asm_file.as_str(), "-o", exe_file.as_str()];
+        runner::compile_with_gcc(&asm_file, &exe_file, args.arch, args.os)?;
 
-        if matches!(args.arch, Architecture::X86) {
-            gcc_args.insert(0, "-m32");
-        }
-
-        if !matches!(args.os, OperatingSystem::Windows) {
-            gcc_args.push("-no-pie");
-        }
-
-        let gcc_result = Command::new("gcc")
-            .args(&gcc_args)
-            .output();
-
-        let _ = fs::remove_file(&asm_file);
-
-        match gcc_result {
-            Ok(output) => {
-                if !output.status.success() {
-                    return Err(format!(
-                        "GCC compilation failed:\n{}",
-                        String::from_utf8_lossy(&output.stderr)
-                    ));
-                }
-
-                if args.command == CommandKind::Run {
-                    let run_path = if cfg!(target_os = "windows") {
-                        format!(".\\{}", exe_file)
-                    } else {
-                        format!("./{}", exe_file)
-                    };
-
-                    let mut child = Command::new(&run_path)
-                        .stdin(std::process::Stdio::inherit())
-                        .stdout(std::process::Stdio::inherit())
-                        .stderr(std::process::Stdio::inherit())
-                        .spawn()
-                        .map_err(|e| format!("Error: Failed to execute '{}': {}", run_path, e))?;
-
-                    let status = child.wait().map_err(|e| format!("Execution error: {}", e))?;
-
-                    // If it was a temporary run (no explicit -o provided), delete the binary
-                    if args.output_file.is_none() {
-                        let _ = fs::remove_file(&exe_file);
-                    }
-
-                    if !status.success() {
-                        let code = status.code().unwrap_or(1);
-                        std::process::exit(code);
-                    }
-                } else if !args.quiet {
-                    println!("✓ Successfully compiled to {}", exe_file);
-                    println!("\nRun your program:");
-                    if cfg!(target_os = "windows") {
-                        println!("  .\\{}", exe_file);
-                    } else {
-                        println!("  ./{}", exe_file);
-                    }
-                }
-            }
-            Err(e) => {
-                return Err(format!(
-                    "Error: Failed to run GCC: {}\nMake sure GCC is installed and in your PATH.",
-                    e
-                ));
+        if args.command == CommandKind::Run {
+            runner::execute_binary(&exe_file, args.output_file.is_none())?;
+        } else if !args.quiet {
+            println!("✓ Successfully compiled to {}", exe_file);
+            println!("\nRun your program:");
+            if cfg!(target_os = "windows") {
+                println!("  .\\{}", exe_file);
+            } else {
+                println!("  ./{}", exe_file);
             }
         }
     } else if !args.quiet {

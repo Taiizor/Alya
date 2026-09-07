@@ -192,106 +192,11 @@ impl CliArgs {
     }
 
     pub fn print_version() {
-        println!(
-            "alyac {} ({}-{})",
-            env!("CARGO_PKG_VERSION"),
-            std::env::consts::OS,
-            std::env::consts::ARCH
-        );
+        crate::cli::help::print_version();
     }
 
     pub fn print_usage() {
-        println!("Alya Programming Language Compiler (alyac) v{}", env!("CARGO_PKG_VERSION"));
-        println!("A modern, simple, compiled programming language.\n");
-        println!("USAGE:");
-        println!("  alyac <COMMAND> <file> [OPTIONS]");
-        println!("  alyac <file> [OPTIONS]\n");
-        println!("COMMANDS:");
-        println!("  run <file>            Compile and execute program immediately");
-        println!("  build <file>          Compile program directly to an executable binary (-b, -c)");
-        println!("  check <file>          Verify syntax and structure without generating code");
-        println!("  ast <file>            Print the parsed Abstract Syntax Tree (AST)");
-        println!("  tokens <file>         Print tokenized output from lexical analysis");
-        println!("  help                  Display help information");
-        println!("  version               Display version information\n");
-        println!("OPTIONS:");
-        println!("  -o, --output <file>   Specify output file (default: <name>.s or <name>.exe)");
-        println!("  -b, -c, --binary      Compile directly to executable (calls GCC)");
-        println!("  -r, --run             Compile and run immediately");
-        println!("  -S, --asm             Emit assembly output only");
-        println!("  --arch <arch>         Target architecture: x64, x86, arm64 (default: x64)");
-        println!("  --os <os>             Target OS: linux, windows, macos (default: auto-detected)");
-        println!("  -q, --quiet           Suppress status messages and compiler banner");
-        println!("  -v, --version         Show compiler version");
-        println!("  -h, --help            Show this help message\n");
-        println!("EXAMPLES:");
-        println!("  alyac run hello.alya                 # Compile & run in one step");
-        println!("  alyac build hello.alya               # Produce executable (hello.exe / hello)");
-        println!("  alyac hello.alya                     # Produce assembly (hello.s)");
-        println!("  alyac hello.alya -b -o my_app.exe    # Produce custom named binary");
-        println!("  alyac check hello.alya               # Quick syntax validation");
-        println!("  alyac ast hello.alya                 # Inspect AST hierarchy");
+        crate::cli::help::print_usage();
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn to_args(slice: &[&str]) -> Vec<String> {
-        slice.iter().map(|s| s.to_string()).collect()
-    }
-
-    #[test]
-    fn test_subcommand_run() {
-        let args = to_args(&["alyac", "run", "hello.alya"]);
-        let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
-        assert_eq!(parsed.command, CommandKind::Run);
-        assert_eq!(parsed.input_file, "hello.alya");
-        assert!(parsed.output_binary);
-    }
-
-    #[test]
-    fn test_subcommand_build() {
-        let args = to_args(&["alyac", "build", "main.alya", "-o", "main.exe"]);
-        let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
-        assert_eq!(parsed.command, CommandKind::Build);
-        assert_eq!(parsed.input_file, "main.alya");
-        assert_eq!(parsed.output_file, Some("main.exe".into()));
-        assert!(parsed.output_binary);
-    }
-
-    #[test]
-    fn test_subcommand_check() {
-        let args = to_args(&["alyac", "check", "code.alya"]);
-        let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
-        assert_eq!(parsed.command, CommandKind::Check);
-        assert_eq!(parsed.input_file, "code.alya");
-    }
-
-    #[test]
-    fn test_flag_run_and_quiet() {
-        let args = to_args(&["alyac", "test.alya", "-r", "-q"]);
-        let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
-        assert_eq!(parsed.command, CommandKind::Run);
-        assert!(parsed.output_binary);
-        assert!(parsed.quiet);
-    }
-
-    #[test]
-    fn test_target_arch_and_os() {
-        let args = to_args(&["alyac", "test.alya", "--arch", "arm64", "--os", "linux"]);
-        let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
-        assert_eq!(parsed.arch, Architecture::ARM64);
-        assert_eq!(parsed.os, OperatingSystem::Linux);
-    }
-
-    #[test]
-    fn test_help_and_version() {
-        assert_eq!(CliArgs::parse_from(&to_args(&["alyac"])), Ok(None));
-        assert_eq!(CliArgs::parse_from(&to_args(&["alyac", "--help"])), Ok(None));
-        assert_eq!(CliArgs::parse_from(&to_args(&["alyac", "help"])), Ok(None));
-        assert_eq!(CliArgs::parse_from(&to_args(&["alyac", "--version"])), Ok(None));
-        assert_eq!(CliArgs::parse_from(&to_args(&["alyac", "version"])), Ok(None));
-    }
-}

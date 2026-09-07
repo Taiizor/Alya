@@ -3,6 +3,7 @@ pub mod arch;
 pub mod context;
 mod expr;
 pub mod runtime;
+mod say;
 mod stmt;
 pub mod target;
 #[cfg(test)]
