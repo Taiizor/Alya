@@ -150,6 +150,22 @@ impl Lexer {
                         column,
                     });
                 }
+                '[' => {
+                    self.advance();
+                    tokens.push(Token {
+                        token_type: TokenType::LeftBracket,
+                        line,
+                        column,
+                    });
+                }
+                ']' => {
+                    self.advance();
+                    tokens.push(Token {
+                        token_type: TokenType::RightBracket,
+                        line,
+                        column,
+                    });
+                }
                 '{' => {
                     self.advance();
                     tokens.push(Token {

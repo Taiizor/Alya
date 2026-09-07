@@ -312,4 +312,144 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
         out.push_str("    mov $1, %rdi\n");
         out.push_str(&format!("    call {}exit\n\n", p));
     }
+
+    // alya_array_new
+    out.push_str("alya_array_new:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %r12\n");
+    out.push_str("    push %r13\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rcx, %r12\n");
+        out.push_str("    lea 1(%r12), %rcx\n");
+        out.push_str("    mov $8, %rdx\n");
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    call calloc\n");
+        out.push_str("    add $32, %rsp\n");
+    } else {
+        out.push_str("    mov %rdi, %r12\n");
+        out.push_str("    lea 1(%r12), %rdi\n");
+        out.push_str("    mov $8, %rsi\n");
+        out.push_str(&format!("    call {}calloc\n", p));
+    }
+    out.push_str("    mov %r12, (%rax)\n");
+    out.push_str("    pop %r13\n");
+    out.push_str("    pop %r12\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // alya_print_array
+    out.push_str("alya_print_array:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %r12\n");
+    out.push_str("    push %r13\n");
+    out.push_str("    push %r14\n");
+    out.push_str("    push %rbx\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    mov %rcx, %r12\n");
+        out.push_str("    test %r12, %r12\n");
+        out.push_str("    jnz .L_x64_arr_not_null\n");
+        out.push_str("    lea alya_fmt_arr_empty(%rip), %rcx\n");
+        out.push_str("    call printf\n");
+        out.push_str("    jmp .L_x64_arr_exit\n");
+        out.push_str(".L_x64_arr_not_null:\n");
+        out.push_str("    mov (%r12), %r13\n");
+        out.push_str("    lea alya_fmt_arr_open(%rip), %rcx\n");
+        out.push_str("    call printf\n");
+        out.push_str("    xor %r14, %r14\n");
+        out.push_str(".L_x64_arr_loop:\n");
+        out.push_str("    cmp %r13, %r14\n");
+        out.push_str("    jge .L_x64_arr_close_call\n");
+        out.push_str("    test %r14, %r14\n");
+        out.push_str("    jz .L_x64_arr_print_elem\n");
+        out.push_str("    lea alya_fmt_arr_comma(%rip), %rcx\n");
+        out.push_str("    call printf\n");
+        out.push_str(".L_x64_arr_print_elem:\n");
+        out.push_str("    lea alya_fmt_arr_elem(%rip), %rcx\n");
+        out.push_str("    mov 8(%r12, %r14, 8), %rdx\n");
+        out.push_str("    call printf\n");
+        out.push_str("    inc %r14\n");
+        out.push_str("    jmp .L_x64_arr_loop\n");
+        out.push_str(".L_x64_arr_close_call:\n");
+        out.push_str("    lea alya_fmt_arr_close(%rip), %rcx\n");
+        out.push_str("    call printf\n");
+        out.push_str(".L_x64_arr_exit:\n");
+        out.push_str("    add $32, %rsp\n");
+    } else {
+        out.push_str("    mov %rdi, %r12\n");
+        out.push_str("    test %r12, %r12\n");
+        out.push_str("    jnz .L_x64_arr_not_null\n");
+        out.push_str("    lea alya_fmt_arr_empty(%rip), %rdi\n");
+        out.push_str("    xor %rax, %rax\n");
+        out.push_str(&format!("    call {}printf\n", p));
+        out.push_str("    jmp .L_x64_arr_exit\n");
+        out.push_str(".L_x64_arr_not_null:\n");
+        out.push_str("    mov (%r12), %r13\n");
+        out.push_str("    lea alya_fmt_arr_open(%rip), %rdi\n");
+        out.push_str("    xor %rax, %rax\n");
+        out.push_str(&format!("    call {}printf\n", p));
+        out.push_str("    xor %r14, %r14\n");
+        out.push_str(".L_x64_arr_loop:\n");
+        out.push_str("    cmp %r13, %r14\n");
+        out.push_str("    jge .L_x64_arr_close_call\n");
+        out.push_str("    test %r14, %r14\n");
+        out.push_str("    jz .L_x64_arr_print_elem\n");
+        out.push_str("    lea alya_fmt_arr_comma(%rip), %rdi\n");
+        out.push_str("    xor %rax, %rax\n");
+        out.push_str(&format!("    call {}printf\n", p));
+        out.push_str(".L_x64_arr_print_elem:\n");
+        out.push_str("    lea alya_fmt_arr_elem(%rip), %rdi\n");
+        out.push_str("    mov 8(%r12, %r14, 8), %rsi\n");
+        out.push_str("    xor %rax, %rax\n");
+        out.push_str(&format!("    call {}printf\n", p));
+        out.push_str("    inc %r14\n");
+        out.push_str("    jmp .L_x64_arr_loop\n");
+        out.push_str(".L_x64_arr_close_call:\n");
+        out.push_str("    lea alya_fmt_arr_close(%rip), %rdi\n");
+        out.push_str("    xor %rax, %rax\n");
+        out.push_str(&format!("    call {}printf\n", p));
+        out.push_str(".L_x64_arr_exit:\n");
+    }
+    out.push_str("    pop %rbx\n");
+    out.push_str("    pop %r14\n");
+    out.push_str("    pop %r13\n");
+    out.push_str("    pop %r12\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // alya_error_index_out_of_bounds
+    out.push_str("alya_error_index_out_of_bounds:\n");
+    out.push_str("    mov alya_catch_idx(%rip), %r8\n");
+    out.push_str("    test %r8, %r8\n");
+    out.push_str("    jz .L_x64_fatal_bounds\n");
+    out.push_str("    dec %r8\n");
+    out.push_str("    mov %r8, alya_catch_idx(%rip)\n");
+    out.push_str("    lea alya_str_bounds(%rip), %rax\n");
+    out.push_str("    mov %rax, alya_err_msg(%rip)\n");
+    out.push_str("    lea alya_catch_stack_sp(%rip), %r9\n");
+    out.push_str("    mov (%r9, %r8, 8), %rsp\n");
+    out.push_str("    lea alya_catch_stack_bp(%rip), %r9\n");
+    out.push_str("    mov (%r9, %r8, 8), %rbp\n");
+    out.push_str("    lea alya_catch_stack_handler(%rip), %r9\n");
+    out.push_str("    mov (%r9, %r8, 8), %r10\n");
+    out.push_str("    jmp *%r10\n");
+    out.push_str(".L_x64_fatal_bounds:\n");
+    out.push_str("    and $-16, %rsp\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    lea alya_fmt_bounds(%rip), %rcx\n");
+        out.push_str("    call printf\n");
+        out.push_str("    mov $1, %rcx\n");
+        out.push_str("    call exit\n\n");
+    } else {
+        out.push_str("    lea alya_fmt_bounds(%rip), %rdi\n");
+        out.push_str("    xor %rax, %rax\n");
+        out.push_str(&format!("    call {}printf\n", p));
+        out.push_str("    mov $1, %rdi\n");
+        out.push_str(&format!("    call {}exit\n\n", p));
+    }
 }

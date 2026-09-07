@@ -11,6 +11,11 @@ pub enum Stmt {
         name: String,
         value: Expr,
     },
+    IndexAssign {
+        array: Expr,
+        index: Expr,
+        value: Expr,
+    },
     If {
         condition: Expr,
         then_block: Vec<Stmt>,

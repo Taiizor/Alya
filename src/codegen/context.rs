@@ -5,6 +5,7 @@ pub enum VarType {
     Number(i32),         // Stack offset for numeric variables
     StringLabel(String), // Rodata label for string literals
     StringOffset(i32),   // Stack offset for string pointers
+    Array(i32),          // Stack offset for array pointers
 }
 
 #[derive(Debug, Clone)]

@@ -51,14 +51,16 @@ pub enum TokenType {
     Not,            // not, !
 
     // Delimiters
-    LeftParen,  // (
-    RightParen, // )
-    LeftBrace,  // {
-    RightBrace, // }
-    Comma,      // ,
-    Dot,        // .
-    DotDot,     // ..
-    Newline,    // \n
+    LeftParen,    // (
+    RightParen,   // )
+    LeftBracket,  // [
+    RightBracket, // ]
+    LeftBrace,    // {
+    RightBrace,   // }
+    Comma,        // ,
+    Dot,          // .
+    DotDot,       // ..
+    Newline,      // \n
 
     // Special
     Eof,
@@ -153,6 +155,8 @@ impl std::fmt::Display for TokenType {
             TokenType::Not => write!(f, "'not'"),
             TokenType::LeftParen => write!(f, "'('"),
             TokenType::RightParen => write!(f, "')'"),
+            TokenType::LeftBracket => write!(f, "'['"),
+            TokenType::RightBracket => write!(f, "']'"),
             TokenType::LeftBrace => write!(f, "'{{'"),
             TokenType::RightBrace => write!(f, "'}}'"),
             TokenType::Comma => write!(f, "','"),

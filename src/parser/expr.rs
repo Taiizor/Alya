@@ -122,8 +122,28 @@ impl Parser {
                     expr: Box::new(expr),
                 })
             }
-            _ => self.parse_primary(),
+            _ => self.parse_postfix(),
         }
+    }
+
+    fn parse_postfix(&mut self) -> Result<Expr, String> {
+        let mut expr = self.parse_primary()?;
+
+        loop {
+            if matches!(self.current_token().token_type, TokenType::LeftBracket) {
+                self.advance();
+                let index = self.parse_expression()?;
+                self.expect(TokenType::RightBracket)?;
+                expr = Expr::Index {
+                    array: Box::new(expr),
+                    index: Box::new(index),
+                };
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
     }
 
     fn parse_primary(&mut self) -> Result<Expr, String> {
@@ -196,6 +216,27 @@ impl Parser {
                 let expr = self.parse_expression()?;
                 self.expect(TokenType::RightParen)?;
                 Ok(expr)
+            }
+            TokenType::LeftBracket => {
+                self.advance();
+                self.skip_newlines();
+                let mut elements = Vec::new();
+                while !matches!(self.current_token().token_type, TokenType::RightBracket) {
+                    elements.push(self.parse_expression()?);
+                    self.skip_newlines();
+                    if matches!(self.current_token().token_type, TokenType::Comma) {
+                        self.advance();
+                        self.skip_newlines();
+                    } else if !matches!(self.current_token().token_type, TokenType::RightBracket) {
+                        return Err(format!(
+                            "Expected ',' or ']' after array element at line {}, column {}",
+                            self.current_token().line,
+                            self.current_token().column
+                        ));
+                    }
+                }
+                self.expect(TokenType::RightBracket)?;
+                Ok(Expr::Array(elements))
             }
             _ => Err(format!(
                 "Unexpected token {} at line {}, column {}",

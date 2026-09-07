@@ -17,6 +17,11 @@ pub enum Expr {
         args: Vec<Expr>,
     },
     InterpolatedString(Vec<Expr>),
+    Array(Vec<Expr>),
+    Index {
+        array: Box<Expr>,
+        index: Box<Expr>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -23,6 +23,16 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
     }
 }
 
+pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
+    match expr {
+        Expr::Array(_) => true,
+        Expr::Identifier(name) => {
+            matches!(vars.get(name), Some(VarType::Array(_)))
+        }
+        _ => false,
+    }
+}
+
 fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bool {
     match expr {
         Expr::String(_) | Expr::InterpolatedString(_) => true,
@@ -167,6 +177,13 @@ pub fn find_call_arg<'a>(stmt: &'a Stmt, func_name: &str, param_idx: usize) -> O
             }
             None
         }
+        Stmt::IndexAssign {
+            array,
+            index,
+            value,
+        } => find_call_arg_in_expr(array, func_name, param_idx)
+            .or_else(|| find_call_arg_in_expr(index, func_name, param_idx))
+            .or_else(|| find_call_arg_in_expr(value, func_name, param_idx)),
         _ => None,
     }
 }
@@ -181,6 +198,24 @@ fn find_call_arg_in_expr<'a>(
         Expr::Binary { left, right, .. } => find_call_arg_in_expr(left, func_name, param_idx)
             .or_else(|| find_call_arg_in_expr(right, func_name, param_idx)),
         Expr::Unary { expr, .. } => find_call_arg_in_expr(expr, func_name, param_idx),
+        Expr::Array(elements) => {
+            for elem in elements {
+                if let Some(arg) = find_call_arg_in_expr(elem, func_name, param_idx) {
+                    return Some(arg);
+                }
+            }
+            None
+        }
+        Expr::Index { array, index } => find_call_arg_in_expr(array, func_name, param_idx)
+            .or_else(|| find_call_arg_in_expr(index, func_name, param_idx)),
+        Expr::InterpolatedString(parts) => {
+            for part in parts {
+                if let Some(arg) = find_call_arg_in_expr(part, func_name, param_idx) {
+                    return Some(arg);
+                }
+            }
+            None
+        }
         _ => None,
     }
 }

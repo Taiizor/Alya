@@ -34,7 +34,8 @@
 ## Key Features
 
 - 🌟 **Expressive & Readable**: English-like keywords (`say`, `ask`, `when`, `repeat`, `function`).
-- 🛡️ **Exception Handling**: Built-in `try ... catch [err] ... end` support with runtime division/modulo by zero protection.
+- 📦 **Arrays & Indexing**: Dynamic array literals (`[1, 2, 3]`), 0-based indexing (`arr[i]`), element mutation (`arr[i] = val`, `arr[i] += 1`), length querying (`len(arr)`), and automatic bounds safety.
+- 🛡️ **Exception Handling**: Built-in `try ... catch [err] ... end` support with runtime division/modulo by zero and out-of-bounds protection.
 - ⚡ **Direct Native Codegen**: Emits clean, comment-annotated assembly for **x86 (32-bit)**, **x64 (64-bit)**, and **ARM64 (Apple Silicon & AArch64)**.
 - 🛠️ **Built-in Functions**: Math intrinsics (`abs`, `min`, `max`, `sqrt`, `pow`), formatting (`print`, `println`), string conversions (`str`, `int`), and string length (`len`).
 - 💬 **Flexible Comments**: Supports Python-style `#`, C-style `//`, and multiline `/* ... */` comments.
@@ -247,6 +248,33 @@ catch err
 end
 
 say "Program resumes normally!"
+```
+
+### 9. Arrays & Indexing
+
+```alya
+# Array declaration and literals
+let numbers = [10, 20, 30, 40]
+say numbers           # [10, 20, 30, 40]
+
+# Length of an array
+say len(numbers)      # 4
+
+# Indexing (0-based read)
+say numbers[0]        # 10
+say numbers[1]        # 20
+
+# Index assignment (write and compound operators)
+numbers[2] = 99
+numbers[0] += 5
+say numbers           # [15, 20, 99, 40]
+
+# Safe bounds check
+try
+    say numbers[10]
+catch err
+    say "Caught error: " + err    # Caught error: index out of bounds
+end
 ```
 
 ---

@@ -5,7 +5,8 @@ pub fn emit_header(out: &mut String) {
     out.push_str(".extern printf\n");
     out.push_str(".extern exit\n");
     out.push_str(".extern getchar\n");
-    out.push_str(".extern fflush\n\n");
+    out.push_str(".extern fflush\n");
+    out.push_str(".extern calloc\n\n");
     out.push_str(".text\n");
     out.push_str("main:\n");
     out.push_str("    push %ebp\n");
@@ -242,4 +243,53 @@ pub fn emit_catch_end(out: &mut String, stack_delta: i32) {
     if stack_delta > 0 {
         out.push_str(&format!("    add ${}, %esp\n", stack_delta));
     }
+}
+
+pub fn emit_pop_temp(out: &mut String) {
+    out.push_str("    pop %eax\n");
+}
+
+pub fn emit_array_new(out: &mut String, count: usize) {
+    out.push_str(&format!("    push ${}\n", count));
+    out.push_str("    call alya_array_new\n");
+    out.push_str("    add $4, %esp\n");
+}
+
+pub fn emit_array_set_imm(out: &mut String, index: usize) {
+    out.push_str("    mov (%esp), %edx\n");
+    out.push_str(&format!("    mov %eax, {}(%edx)\n", (index + 1) * 4));
+}
+
+pub fn emit_array_get(out: &mut String) {
+    out.push_str("    mov %eax, %ecx\n");
+    out.push_str("    pop %edx\n");
+    out.push_str("    test %ecx, %ecx\n");
+    out.push_str("    jl alya_error_index_out_of_bounds\n");
+    out.push_str("    cmp (%edx), %ecx\n");
+    out.push_str("    jge alya_error_index_out_of_bounds\n");
+    out.push_str("    mov 4(%edx, %ecx, 4), %eax\n");
+}
+
+pub fn emit_array_set(out: &mut String) {
+    out.push_str("    mov %eax, %ebx\n");
+    out.push_str("    pop %eax\n");
+    out.push_str("    pop %edx\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jl alya_error_index_out_of_bounds\n");
+    out.push_str("    cmp (%edx), %eax\n");
+    out.push_str("    jge alya_error_index_out_of_bounds\n");
+    out.push_str("    mov %ebx, 4(%edx, %eax, 4)\n");
+}
+
+pub fn emit_array_len(out: &mut String) {
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jz 1f\n");
+    out.push_str("    mov (%eax), %eax\n");
+    out.push_str("1:\n");
+}
+
+pub fn emit_print_array(out: &mut String) {
+    out.push_str("    push %eax\n");
+    out.push_str("    call alya_print_array\n");
+    out.push_str("    add $4, %esp\n");
 }

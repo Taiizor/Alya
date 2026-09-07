@@ -33,6 +33,102 @@ impl Parser {
                 };
                 self.advance();
 
+                if matches!(self.current_token().token_type, TokenType::LeftBracket) {
+                    let mut target = Expr::Identifier(ident);
+                    while matches!(self.current_token().token_type, TokenType::LeftBracket) {
+                        self.advance();
+                        let index = self.parse_expression()?;
+                        self.expect(TokenType::RightBracket)?;
+
+                        match self.current_token().token_type {
+                            TokenType::Assign => {
+                                self.advance();
+                                let value = self.parse_expression()?;
+                                return Ok(Stmt::IndexAssign {
+                                    array: target,
+                                    index,
+                                    value,
+                                });
+                            }
+                            TokenType::PlusAssign => {
+                                self.advance();
+                                let value = self.parse_expression()?;
+                                let read_expr = Expr::Index {
+                                    array: Box::new(target.clone()),
+                                    index: Box::new(index.clone()),
+                                };
+                                return Ok(Stmt::IndexAssign {
+                                    array: target,
+                                    index,
+                                    value: Expr::Binary {
+                                        left: Box::new(read_expr),
+                                        op: BinaryOp::Add,
+                                        right: Box::new(value),
+                                    },
+                                });
+                            }
+                            TokenType::MinusAssign => {
+                                self.advance();
+                                let value = self.parse_expression()?;
+                                let read_expr = Expr::Index {
+                                    array: Box::new(target.clone()),
+                                    index: Box::new(index.clone()),
+                                };
+                                return Ok(Stmt::IndexAssign {
+                                    array: target,
+                                    index,
+                                    value: Expr::Binary {
+                                        left: Box::new(read_expr),
+                                        op: BinaryOp::Subtract,
+                                        right: Box::new(value),
+                                    },
+                                });
+                            }
+                            TokenType::MultiplyAssign => {
+                                self.advance();
+                                let value = self.parse_expression()?;
+                                let read_expr = Expr::Index {
+                                    array: Box::new(target.clone()),
+                                    index: Box::new(index.clone()),
+                                };
+                                return Ok(Stmt::IndexAssign {
+                                    array: target,
+                                    index,
+                                    value: Expr::Binary {
+                                        left: Box::new(read_expr),
+                                        op: BinaryOp::Multiply,
+                                        right: Box::new(value),
+                                    },
+                                });
+                            }
+                            TokenType::DivideAssign => {
+                                self.advance();
+                                let value = self.parse_expression()?;
+                                let read_expr = Expr::Index {
+                                    array: Box::new(target.clone()),
+                                    index: Box::new(index.clone()),
+                                };
+                                return Ok(Stmt::IndexAssign {
+                                    array: target,
+                                    index,
+                                    value: Expr::Binary {
+                                        left: Box::new(read_expr),
+                                        op: BinaryOp::Divide,
+                                        right: Box::new(value),
+                                    },
+                                });
+                            }
+                            _ => {
+                                target = Expr::Index {
+                                    array: Box::new(target),
+                                    index: Box::new(index),
+                                };
+                            }
+                        }
+                    }
+                    return Ok(Stmt::Expr(target));
+                }
+
                 match self.current_token().token_type {
                     TokenType::Assign => {
                         self.advance();

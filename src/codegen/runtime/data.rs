@@ -50,6 +50,24 @@ pub fn emit_data_sections(out: &mut String, arch: Architecture, os: OperatingSys
         out.push_str("    .asciz \"Runtime error: division by zero\\n\"\n");
         out.push_str("alya_str_div_zero:\n");
         out.push_str("    .asciz \"division by zero\"\n");
+        out.push_str("alya_fmt_bounds:\n");
+        out.push_str("    .asciz \"Runtime error: index out of bounds\\n\"\n");
+        out.push_str("alya_str_bounds:\n");
+        out.push_str("    .asciz \"index out of bounds\"\n");
+        out.push_str("alya_fmt_arr_empty:\n");
+        out.push_str("    .asciz \"[]\\n\"\n");
+        out.push_str("alya_fmt_arr_open:\n");
+        out.push_str("    .asciz \"[\"\n");
+        out.push_str("alya_fmt_arr_close:\n");
+        out.push_str("    .asciz \"]\\n\"\n");
+        out.push_str("alya_fmt_arr_elem:\n");
+        if matches!(arch, Architecture::X86) {
+            out.push_str("    .asciz \"%d\"\n");
+        } else {
+            out.push_str("    .asciz \"%ld\"\n");
+        }
+        out.push_str("alya_fmt_arr_comma:\n");
+        out.push_str("    .asciz \", \"\n");
     } else {
         out.push_str("\n.section .rodata\n");
         out.push_str("alya_fmt_prompt:\n");
@@ -58,6 +76,24 @@ pub fn emit_data_sections(out: &mut String, arch: Architecture, os: OperatingSys
         out.push_str("    .string \"Runtime error: division by zero\\n\"\n");
         out.push_str("alya_str_div_zero:\n");
         out.push_str("    .string \"division by zero\"\n");
+        out.push_str("alya_fmt_bounds:\n");
+        out.push_str("    .string \"Runtime error: index out of bounds\\n\"\n");
+        out.push_str("alya_str_bounds:\n");
+        out.push_str("    .string \"index out of bounds\"\n");
+        out.push_str("alya_fmt_arr_empty:\n");
+        out.push_str("    .string \"[]\\n\"\n");
+        out.push_str("alya_fmt_arr_open:\n");
+        out.push_str("    .string \"[\"\n");
+        out.push_str("alya_fmt_arr_close:\n");
+        out.push_str("    .string \"]\\n\"\n");
+        out.push_str("alya_fmt_arr_elem:\n");
+        if matches!(arch, Architecture::X86) {
+            out.push_str("    .string \"%d\"\n");
+        } else {
+            out.push_str("    .string \"%ld\"\n");
+        }
+        out.push_str("alya_fmt_arr_comma:\n");
+        out.push_str("    .string \", \"\n");
     }
     out.push_str(".text\n");
 }

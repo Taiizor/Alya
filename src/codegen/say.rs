@@ -169,8 +169,28 @@ impl CodeGen {
                             );
                             self.output.push('\n');
                         }
+                        VarType::Array(offset) => {
+                            arch::emit_load_var(
+                                &mut self.output,
+                                self.arch,
+                                offset,
+                                self.ctx.stack_offset,
+                            );
+                            arch::emit_print_array(
+                                &mut self.output,
+                                self.arch,
+                                self.ctx.stack_offset,
+                                self.os,
+                            );
+                            self.output.push('\n');
+                        }
                     }
                 }
+            }
+            Expr::Array(_) => {
+                self.generate_expression(expr);
+                arch::emit_print_array(&mut self.output, self.arch, self.ctx.stack_offset, self.os);
+                self.output.push('\n');
             }
             Expr::Number(n) => {
                 let fmt_label = self.ctx.next_string_label();

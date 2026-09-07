@@ -224,6 +224,22 @@ fn get_expected_output(example_name: &str) -> Option<&'static str> {
 === Expression Precedence ===\n\
 (20 + 6) * 2 = 52\n",
         ),
+        "arrays.alya" => Some(concat!(
+            "Initial array:\n",
+            "[10, 20, 30, 40]\n",
+            "Array length: 4\n",
+            "First element: 10\n",
+            "Second element: 20\n",
+            "Mutated array:\n",
+            "[15, 20, 99, 40]\n",
+            "Traversal with while loop:\n",
+            "  Element at 0: 15\n",
+            "  Element at 1: 20\n",
+            "  Element at 2: 99\n",
+            "  Element at 3: 40\n",
+            "Sum of elements: 174\n",
+            "Caught error safely: index out of bounds\n",
+        )),
         "builtins.alya" => Some(
             "Length: 12\n\
 Absolute value: 25\n\

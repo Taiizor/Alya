@@ -323,3 +323,70 @@ pub fn emit_catch_end(out: &mut String, arch: Architecture, stack_delta: i32) {
         Architecture::X86 => x86::emit_catch_end(out, stack_delta),
     }
 }
+
+pub fn emit_pop_temp(out: &mut String, arch: Architecture) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_pop_temp(out),
+        Architecture::X64 => x64::emit_pop_temp(out),
+        Architecture::X86 => x86::emit_pop_temp(out),
+    }
+}
+
+pub fn emit_array_new(
+    out: &mut String,
+    arch: Architecture,
+    count: usize,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_array_new(out, count),
+        Architecture::X64 => x64::emit_array_new(out, count, stack_offset, os),
+        Architecture::X86 => x86::emit_array_new(out, count),
+    }
+}
+
+pub fn emit_array_set_imm(out: &mut String, arch: Architecture, index: usize) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_array_set_imm(out, index),
+        Architecture::X64 => x64::emit_array_set_imm(out, index),
+        Architecture::X86 => x86::emit_array_set_imm(out, index),
+    }
+}
+
+pub fn emit_array_get(out: &mut String, arch: Architecture) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_array_get(out),
+        Architecture::X64 => x64::emit_array_get(out),
+        Architecture::X86 => x86::emit_array_get(out),
+    }
+}
+
+pub fn emit_array_set(out: &mut String, arch: Architecture) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_array_set(out),
+        Architecture::X64 => x64::emit_array_set(out),
+        Architecture::X86 => x86::emit_array_set(out),
+    }
+}
+
+pub fn emit_array_len(out: &mut String, arch: Architecture) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_array_len(out),
+        Architecture::X64 => x64::emit_array_len(out),
+        Architecture::X86 => x86::emit_array_len(out),
+    }
+}
+
+pub fn emit_print_array(
+    out: &mut String,
+    arch: Architecture,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_print_array(out),
+        Architecture::X64 => x64::emit_print_array(out, stack_offset, os),
+        Architecture::X86 => x86::emit_print_array(out),
+    }
+}

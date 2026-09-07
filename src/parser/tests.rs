@@ -424,3 +424,77 @@ end
         other => panic!("Expected TryCatch, got {:?}", other),
     }
 }
+
+#[test]
+fn test_parse_arrays() {
+    let source = "let arr = [1, 2, 3]\nsay arr[0]\narr[1] = 42\nmatrix[0][1] = 99";
+    let mut lexer = crate::lexer::Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Failed to tokenize");
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().expect("Failed to parse");
+
+    assert_eq!(program.statements.len(), 4);
+
+    // let arr = [1, 2, 3]
+    match &program.statements[0] {
+        Stmt::Let { name, value } => {
+            assert_eq!(name, "arr");
+            match value {
+                Expr::Array(elements) => {
+                    assert_eq!(elements.len(), 3);
+                    assert_eq!(elements[0], Expr::Number(1.0));
+                    assert_eq!(elements[1], Expr::Number(2.0));
+                    assert_eq!(elements[2], Expr::Number(3.0));
+                }
+                other => panic!("Expected Expr::Array, got {:?}", other),
+            }
+        }
+        other => panic!("Expected Stmt::Let, got {:?}", other),
+    }
+
+    // say arr[0]
+    match &program.statements[1] {
+        Stmt::Say(Expr::Index { array, index }) => {
+            assert_eq!(**array, Expr::Identifier("arr".into()));
+            assert_eq!(**index, Expr::Number(0.0));
+        }
+        other => panic!("Expected Stmt::Say(Expr::Index), got {:?}", other),
+    }
+
+    // arr[1] = 42
+    match &program.statements[2] {
+        Stmt::IndexAssign {
+            array,
+            index,
+            value,
+        } => {
+            assert_eq!(*array, Expr::Identifier("arr".into()));
+            assert_eq!(*index, Expr::Number(1.0));
+            assert_eq!(*value, Expr::Number(42.0));
+        }
+        other => panic!("Expected Stmt::IndexAssign, got {:?}", other),
+    }
+
+    // matrix[0][1] = 99
+    match &program.statements[3] {
+        Stmt::IndexAssign {
+            array,
+            index,
+            value,
+        } => {
+            match array {
+                Expr::Index {
+                    array: inner_array,
+                    index: inner_index,
+                } => {
+                    assert_eq!(**inner_array, Expr::Identifier("matrix".into()));
+                    assert_eq!(**inner_index, Expr::Number(0.0));
+                }
+                other => panic!("Expected Expr::Index, got {:?}", other),
+            }
+            assert_eq!(*index, Expr::Number(1.0));
+            assert_eq!(*value, Expr::Number(99.0));
+        }
+        other => panic!("Expected Stmt::IndexAssign, got {:?}", other),
+    }
+}

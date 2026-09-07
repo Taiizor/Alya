@@ -1,6 +1,6 @@
 use super::CodeGen;
 use crate::ast::{BinaryOp, Expr};
-use crate::codegen::analysis::{escape_string, is_string_expr};
+use crate::codegen::analysis::{escape_string, is_array_expr, is_string_expr};
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
 use crate::codegen::target::Architecture;
@@ -23,7 +23,9 @@ impl CodeGen {
             Expr::Identifier(name) => {
                 if let Some(var_type) = self.ctx.variables.get(name).cloned() {
                     match var_type {
-                        VarType::Number(offset) | VarType::StringOffset(offset) => {
+                        VarType::Number(offset)
+                        | VarType::StringOffset(offset)
+                        | VarType::Array(offset) => {
                             arch::emit_load_var(
                                 &mut self.output,
                                 self.arch,
@@ -57,6 +59,13 @@ impl CodeGen {
                 arch::emit_unary_op(&mut self.output, self.arch, *op);
             }
             Expr::Call { name, args } => {
+                if name == "len" && args.len() == 1 && is_array_expr(&args[0], &self.ctx.variables)
+                {
+                    self.generate_expression(&args[0]);
+                    arch::emit_array_len(&mut self.output, self.arch);
+                    return;
+                }
+
                 match self.arch {
                     Architecture::X86 => {
                         for arg in args.iter().rev() {
@@ -79,6 +88,30 @@ impl CodeGen {
                     self.ctx.stack_offset,
                     self.os,
                 );
+            }
+            Expr::Array(elements) => {
+                arch::emit_array_new(
+                    &mut self.output,
+                    self.arch,
+                    elements.len(),
+                    self.ctx.stack_offset,
+                    self.os,
+                );
+                arch::emit_push_temp(&mut self.output, self.arch);
+
+                for (i, elem) in elements.iter().enumerate() {
+                    self.generate_expression(elem);
+                    arch::emit_array_set_imm(&mut self.output, self.arch, i);
+                }
+
+                arch::emit_pop_temp(&mut self.output, self.arch);
+            }
+            Expr::Index { array, index } => {
+                self.generate_expression(array);
+                arch::emit_push_temp(&mut self.output, self.arch);
+
+                self.generate_expression(index);
+                arch::emit_array_get(&mut self.output, self.arch);
             }
             Expr::InterpolatedString(parts) => {
                 if parts.is_empty() {

@@ -174,3 +174,29 @@ fn test_tokenize_compound_and_logical_operators() {
         ]
     );
 }
+
+#[test]
+fn test_tokenize_brackets() {
+    let source = "[1, 2, 3] arr[0]";
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Tokenization failed");
+
+    let types: Vec<_> = tokens.into_iter().map(|t| t.token_type).collect();
+    assert_eq!(
+        types,
+        vec![
+            TokenType::LeftBracket,
+            TokenType::Number(1.0),
+            TokenType::Comma,
+            TokenType::Number(2.0),
+            TokenType::Comma,
+            TokenType::Number(3.0),
+            TokenType::RightBracket,
+            TokenType::Identifier("arr".into()),
+            TokenType::LeftBracket,
+            TokenType::Number(0.0),
+            TokenType::RightBracket,
+            TokenType::Eof,
+        ]
+    );
+}

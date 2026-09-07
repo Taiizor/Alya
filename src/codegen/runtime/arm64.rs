@@ -219,4 +219,83 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str(&format!("    bl {}printf\n", p));
     out.push_str("    mov w0, #1\n");
     out.push_str(&format!("    bl {}exit\n\n", p));
+
+    // alya_array_new
+    out.push_str("alya_array_new:\n");
+    out.push_str("    stp x29, x30, [sp, #-32]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    str x19, [sp, #16]\n");
+    out.push_str("    mov x19, x0\n");
+    out.push_str("    add x0, x19, #1\n");
+    out.push_str("    mov x1, #8\n");
+    out.push_str(&format!("    bl {}calloc\n", p));
+    out.push_str("    str x19, [x0]\n");
+    out.push_str("    ldr x19, [sp, #16]\n");
+    out.push_str("    ldp x29, x30, [sp], #32\n");
+    out.push_str("    ret\n\n");
+
+    // alya_print_array
+    out.push_str("alya_print_array:\n");
+    out.push_str("    stp x29, x30, [sp, #-48]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    stp x19, x20, [sp, #16]\n");
+    out.push_str("    stp x21, x22, [sp, #32]\n");
+    out.push_str("    mov x19, x0\n");
+    out.push_str("    cbnz x19, .L_arm64_arr_not_null\n");
+    emit_adrp_add(out, "x0", "alya_fmt_arr_empty", os);
+    out.push_str(&format!("    bl {}printf\n", p));
+    out.push_str("    b .L_arm64_arr_exit\n");
+    out.push_str(".L_arm64_arr_not_null:\n");
+    out.push_str("    ldr x20, [x19]\n");
+    emit_adrp_add(out, "x0", "alya_fmt_arr_open", os);
+    out.push_str(&format!("    bl {}printf\n", p));
+    out.push_str("    mov x21, #0\n");
+    out.push_str(".L_arm64_arr_loop:\n");
+    out.push_str("    cmp x21, x20\n");
+    out.push_str("    b.ge .L_arm64_arr_close_call\n");
+    out.push_str("    cbz x21, .L_arm64_arr_print_elem\n");
+    emit_adrp_add(out, "x0", "alya_fmt_arr_comma", os);
+    out.push_str(&format!("    bl {}printf\n", p));
+    out.push_str(".L_arm64_arr_print_elem:\n");
+    emit_adrp_add(out, "x0", "alya_fmt_arr_elem", os);
+    out.push_str("    add x22, x21, #1\n");
+    out.push_str("    ldr x1, [x19, x22, lsl #3]\n");
+    out.push_str(&format!("    bl {}printf\n", p));
+    out.push_str("    add x21, x21, #1\n");
+    out.push_str("    b .L_arm64_arr_loop\n");
+    out.push_str(".L_arm64_arr_close_call:\n");
+    emit_adrp_add(out, "x0", "alya_fmt_arr_close", os);
+    out.push_str(&format!("    bl {}printf\n", p));
+    out.push_str(".L_arm64_arr_exit:\n");
+    out.push_str("    ldp x21, x22, [sp, #32]\n");
+    out.push_str("    ldp x19, x20, [sp, #16]\n");
+    out.push_str("    ldp x29, x30, [sp], #48\n");
+    out.push_str("    ret\n\n");
+
+    // alya_error_index_out_of_bounds
+    out.push_str("alya_error_index_out_of_bounds:\n");
+    emit_adrp_add(out, "x9", "alya_catch_idx", os);
+    out.push_str("    ldr x10, [x9]\n");
+    out.push_str("    cbz x10, .L_arm_fatal_bounds\n");
+    out.push_str("    sub x10, x10, #1\n");
+    out.push_str("    str x10, [x9]\n");
+    emit_adrp_add(out, "x11", "alya_str_bounds", os);
+    emit_adrp_add(out, "x12", "alya_err_msg", os);
+    out.push_str("    str x11, [x12]\n");
+    emit_adrp_add(out, "x11", "alya_catch_stack_sp", os);
+    out.push_str("    ldr x13, [x11, x10, lsl #3]\n");
+    out.push_str("    mov sp, x13\n");
+    emit_adrp_add(out, "x11", "alya_catch_stack_bp", os);
+    out.push_str("    ldr x29, [x11, x10, lsl #3]\n");
+    emit_adrp_add(out, "x11", "alya_catch_stack_handler", os);
+    out.push_str("    ldr x14, [x11, x10, lsl #3]\n");
+    out.push_str("    br x14\n");
+    out.push_str(".L_arm_fatal_bounds:\n");
+    out.push_str("    mov x19, sp\n");
+    out.push_str("    and x19, x19, #~15\n");
+    out.push_str("    mov sp, x19\n");
+    emit_adrp_add(out, "x0", "alya_fmt_bounds", os);
+    out.push_str(&format!("    bl {}printf\n", p));
+    out.push_str("    mov w0, #1\n");
+    out.push_str(&format!("    bl {}exit\n\n", p));
 }

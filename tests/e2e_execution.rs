@@ -401,3 +401,43 @@ say pow(10, 0)
         assert_eq!(output, "4\n5\n1\n0\n256\n125\n1\n");
     }
 }
+
+#[test]
+fn test_e2e_arrays() {
+    let code = r#"
+let arr = [10, 20, 30]
+say len(arr)
+say arr[0]
+say arr[1]
+say arr[2]
+arr[1] = 99
+arr[0] += 5
+say arr
+let sum = 0
+for i in 0..(len(arr) - 1)
+    sum += arr[i]
+end
+say sum
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(output, "3\n10\n20\n30\n[15, 99, 30]\n144\n");
+    }
+}
+
+#[test]
+fn test_e2e_array_bounds_catch() {
+    let code = r#"
+let arr = [1, 2, 3]
+try
+    let x = arr[5]
+    say x
+catch err
+    say "caught: " + err
+end
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(output, "caught: index out of bounds\n");
+    }
+}

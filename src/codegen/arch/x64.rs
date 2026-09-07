@@ -7,7 +7,8 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern _printf\n");
         out.push_str(".extern _exit\n");
         out.push_str(".extern _getchar\n");
-        out.push_str(".extern _fflush\n\n");
+        out.push_str(".extern _fflush\n");
+        out.push_str(".extern _calloc\n\n");
         out.push_str(".text\n");
         out.push_str("_main:\n");
         out.push_str("    push %rbp\n");
@@ -17,7 +18,8 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern printf\n");
         out.push_str(".extern exit\n");
         out.push_str(".extern getchar\n");
-        out.push_str(".extern fflush\n\n");
+        out.push_str(".extern fflush\n");
+        out.push_str(".extern calloc\n\n");
         out.push_str(".text\n");
         out.push_str("main:\n");
         out.push_str("    push %rbp\n");
@@ -432,5 +434,82 @@ pub fn emit_catch_load_err(out: &mut String) {
 pub fn emit_catch_end(out: &mut String, stack_delta: i32) {
     if stack_delta > 0 {
         out.push_str(&format!("    add ${}, %rsp\n", stack_delta));
+    }
+}
+
+pub fn emit_pop_temp(out: &mut String) {
+    out.push_str("    pop %rax\n");
+}
+
+pub fn emit_array_new(out: &mut String, count: usize, stack_offset: i32, os: OperatingSystem) {
+    if matches!(os, OperatingSystem::Windows) {
+        let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
+        out.push_str(&format!("    mov ${}, %rcx\n", count));
+        out.push_str(&format!("    sub ${}, %rsp\n", padding));
+        out.push_str("    call alya_array_new\n");
+        out.push_str(&format!("    add ${}, %rsp\n", padding));
+    } else {
+        let misaligned = stack_offset % 16 != 0;
+        if misaligned {
+            out.push_str("    sub $8, %rsp\n");
+        }
+        out.push_str(&format!("    mov ${}, %rdi\n", count));
+        out.push_str("    call alya_array_new\n");
+        if misaligned {
+            out.push_str("    add $8, %rsp\n");
+        }
+    }
+}
+
+pub fn emit_array_set_imm(out: &mut String, index: usize) {
+    out.push_str("    mov (%rsp), %rdx\n");
+    out.push_str(&format!("    movq %rax, {}(%rdx)\n", (index + 1) * 8));
+}
+
+pub fn emit_array_get(out: &mut String) {
+    out.push_str("    mov %rax, %rcx\n");
+    out.push_str("    pop %rdx\n");
+    out.push_str("    test %rcx, %rcx\n");
+    out.push_str("    jl alya_error_index_out_of_bounds\n");
+    out.push_str("    cmpq (%rdx), %rcx\n");
+    out.push_str("    jge alya_error_index_out_of_bounds\n");
+    out.push_str("    movq 8(%rdx, %rcx, 8), %rax\n");
+}
+
+pub fn emit_array_set(out: &mut String) {
+    out.push_str("    mov %rax, %r8\n");
+    out.push_str("    pop %rax\n");
+    out.push_str("    pop %rdx\n");
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jl alya_error_index_out_of_bounds\n");
+    out.push_str("    cmpq (%rdx), %rax\n");
+    out.push_str("    jge alya_error_index_out_of_bounds\n");
+    out.push_str("    movq %r8, 8(%rdx, %rax, 8)\n");
+}
+
+pub fn emit_array_len(out: &mut String) {
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jz 1f\n");
+    out.push_str("    movq (%rax), %rax\n");
+    out.push_str("1:\n");
+}
+
+pub fn emit_print_array(out: &mut String, stack_offset: i32, os: OperatingSystem) {
+    if matches!(os, OperatingSystem::Windows) {
+        let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
+        out.push_str("    mov %rax, %rcx\n");
+        out.push_str(&format!("    sub ${}, %rsp\n", padding));
+        out.push_str("    call alya_print_array\n");
+        out.push_str(&format!("    add ${}, %rsp\n", padding));
+    } else {
+        let misaligned = stack_offset % 16 != 0;
+        if misaligned {
+            out.push_str("    sub $8, %rsp\n");
+        }
+        out.push_str("    mov %rax, %rdi\n");
+        out.push_str("    call alya_print_array\n");
+        if misaligned {
+            out.push_str("    add $8, %rsp\n");
+        }
     }
 }

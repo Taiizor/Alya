@@ -19,8 +19,27 @@ impl CodeGen {
                         .variables
                         .insert(name.clone(), VarType::StringLabel(label));
                 }
+                Expr::Array(_) => {
+                    self.generate_expression(value);
+
+                    arch::emit_allocate_var(
+                        &mut self.output,
+                        self.arch,
+                        &mut self.ctx.stack_offset,
+                    );
+
+                    self.ctx
+                        .variables
+                        .insert(name.clone(), VarType::Array(self.ctx.stack_offset));
+                }
                 _ => {
                     let is_str = is_string_expr(value, &self.ctx.variables);
+                    let is_arr = match value {
+                        Expr::Identifier(ident) => {
+                            matches!(self.ctx.variables.get(ident), Some(VarType::Array(_)))
+                        }
+                        _ => false,
+                    };
                     self.generate_expression(value);
 
                     arch::emit_allocate_var(
@@ -33,6 +52,10 @@ impl CodeGen {
                         self.ctx
                             .variables
                             .insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
+                    } else if is_arr {
+                        self.ctx
+                            .variables
+                            .insert(name.clone(), VarType::Array(self.ctx.stack_offset));
                     } else {
                         self.ctx
                             .variables
@@ -45,7 +68,9 @@ impl CodeGen {
 
                 if let Some(var_type) = self.ctx.variables.get(name).cloned() {
                     match var_type {
-                        VarType::Number(offset) | VarType::StringOffset(offset) => {
+                        VarType::Number(offset)
+                        | VarType::StringOffset(offset)
+                        | VarType::Array(offset) => {
                             arch::emit_store_var(
                                 &mut self.output,
                                 self.arch,
@@ -56,6 +81,20 @@ impl CodeGen {
                         VarType::StringLabel(_) => {}
                     }
                 }
+            }
+            Stmt::IndexAssign {
+                array,
+                index,
+                value,
+            } => {
+                self.generate_expression(array);
+                arch::emit_push_temp(&mut self.output, self.arch);
+
+                self.generate_expression(index);
+                arch::emit_push_temp(&mut self.output, self.arch);
+
+                self.generate_expression(value);
+                arch::emit_array_set(&mut self.output, self.arch);
             }
             Stmt::Expr(expr) => {
                 self.generate_expression(expr);
