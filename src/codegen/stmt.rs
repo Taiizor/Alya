@@ -7,6 +7,7 @@ use crate::codegen::context::VarType;
 impl CodeGen {
     pub(crate) fn generate_statement(&mut self, stmt: &Stmt) {
         match stmt {
+            Stmt::Import(_) => {}
             Stmt::Say(expr) => self.generate_say(expr),
             Stmt::Let { name, value } => match value {
                 Expr::String(s) => {

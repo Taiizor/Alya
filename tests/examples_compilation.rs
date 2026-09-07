@@ -32,9 +32,15 @@ fn test_all_examples_compile_to_assembly() {
 
         // 2. Parser
         let mut parser = Parser::new(tokens);
-        let ast = parser
+        let mut ast = parser
             .parse()
             .unwrap_or_else(|e| panic!("Parser failed for '{}': {}", example_name, e));
+
+        let base_dir = std::path::Path::new(&path)
+            .parent()
+            .unwrap_or_else(|| std::path::Path::new("."));
+        alya::parser::resolve_imports(&mut ast, base_dir)
+            .unwrap_or_else(|e| panic!("Import resolution failed for '{}': {}", example_name, e));
 
         // 3. Codegen for x64
         let x64_asm = codegen::generate(&ast, Architecture::X64, OperatingSystem::Windows);
@@ -133,9 +139,15 @@ fn test_all_examples_execute_with_gcc() {
             .tokenize()
             .unwrap_or_else(|e| panic!("Lexer failed for '{}': {}", example_name, e));
         let mut parser = Parser::new(tokens);
-        let ast = parser
+        let mut ast = parser
             .parse()
             .unwrap_or_else(|e| panic!("Parser failed for '{}': {}", example_name, e));
+
+        let base_dir = std::path::Path::new(&path)
+            .parent()
+            .unwrap_or_else(|| std::path::Path::new("."));
+        alya::parser::resolve_imports(&mut ast, base_dir)
+            .unwrap_or_else(|e| panic!("Import resolution failed for '{}': {}", example_name, e));
 
         let asm_code = codegen::generate(&ast, arch, os);
         let pid = std::process::id();
@@ -347,6 +359,7 @@ Repeat broke at r = 4\n",
             "Enter name: Hello, TestUser! Welcome to Alya.\n\
 Speed: 50 ops/sec\n",
         ),
+        "math_utils.alya" => Some(""),
         "modern_features.alya" => Some(
             "Calculated score: 46\n\
 Access granted!\n\
@@ -354,6 +367,12 @@ Length of greeting: 13\n\
 Absolute value of -42: 42\n\
 Minimum of 10 and 20: 10\n\
 Maximum of 10 and 20: 20\n",
+        ),
+        "modules.alya" => Some(
+            "=== Modules & Imports ===\n\
+Sum: 16\n\
+Product: 48\n\
+Square of 12: 144\n",
         ),
         "pattern_matching.alya" => Some(
             "=== HTTP Status Code Resolver ===\n\

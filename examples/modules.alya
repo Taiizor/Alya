@@ -1,0 +1,15 @@
+import "math_utils.alya"
+
+say "=== Modules & Imports ==="
+
+let x = 12
+let y = 4
+
+let sum = add(x, y)
+say "Sum: {sum}"
+
+let product = multiply(x, y)
+say "Product: {product}"
+
+let sq = square(x)
+say "Square of 12: {sq}"

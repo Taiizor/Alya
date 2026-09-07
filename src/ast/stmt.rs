@@ -2,6 +2,7 @@ use super::expr::Expr;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
+    Import(String),
     Say(Expr),
     Let {
         name: String,

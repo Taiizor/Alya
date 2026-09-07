@@ -3,7 +3,7 @@ pub mod stmt;
 #[cfg(test)]
 mod tests;
 
-use crate::ast::Program;
+use crate::ast::{Program, Stmt};
 use crate::lexer::{Token, TokenType};
 
 pub struct Parser {
@@ -62,4 +62,89 @@ impl Parser {
             self.advance();
         }
     }
+}
+
+pub fn resolve_imports(program: &mut Program, base_dir: &std::path::Path) -> Result<(), String> {
+    let mut visited = std::collections::HashSet::new();
+    let mut resolved_stmts = Vec::new();
+
+    for stmt in std::mem::take(&mut program.statements) {
+        resolve_stmt_imports(stmt, base_dir, &mut visited, &mut resolved_stmts)?;
+    }
+
+    program.statements = resolved_stmts;
+    Ok(())
+}
+
+fn resolve_stmt_imports(
+    stmt: Stmt,
+    current_dir: &std::path::Path,
+    visited: &mut std::collections::HashSet<std::path::PathBuf>,
+    out: &mut Vec<Stmt>,
+) -> Result<(), String> {
+    match stmt {
+        Stmt::Import(import_path_str) => {
+            let path = std::path::Path::new(&import_path_str);
+            let target_path = if path.is_absolute() {
+                path.to_path_buf()
+            } else {
+                current_dir.join(path)
+            };
+
+            let candidate = if target_path.exists() {
+                target_path
+            } else if target_path.with_extension("alya").exists() {
+                target_path.with_extension("alya")
+            } else {
+                return Err(format!(
+                    "Cannot find imported module '{}' (looked at '{}')",
+                    import_path_str,
+                    target_path.display()
+                ));
+            };
+
+            let canonical = std::fs::canonicalize(&candidate)
+                .map_err(|e| format!("Failed to resolve path '{}': {}", candidate.display(), e))?;
+
+            if visited.contains(&canonical) {
+                return Ok(());
+            }
+            visited.insert(canonical.clone());
+
+            let source = std::fs::read_to_string(&canonical).map_err(|e| {
+                format!(
+                    "Failed to read imported module '{}': {}",
+                    canonical.display(),
+                    e
+                )
+            })?;
+
+            let mut lexer = crate::lexer::Lexer::new(&source);
+            let tokens = lexer.tokenize().map_err(|e| {
+                format!(
+                    "Lexer error in imported module '{}': {}",
+                    canonical.display(),
+                    e
+                )
+            })?;
+
+            let mut parser = Parser::new(tokens);
+            let sub_program = parser.parse().map_err(|e| {
+                format!(
+                    "Parser error in imported module '{}': {}",
+                    canonical.display(),
+                    e
+                )
+            })?;
+
+            let sub_dir = canonical.parent().unwrap_or(current_dir);
+            for sub_stmt in sub_program.statements {
+                resolve_stmt_imports(sub_stmt, sub_dir, visited, out)?;
+            }
+        }
+        other => {
+            out.push(other);
+        }
+    }
+    Ok(())
 }

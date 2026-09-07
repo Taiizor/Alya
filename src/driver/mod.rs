@@ -31,9 +31,15 @@ pub fn run(args: CliArgs) -> Result<(), String> {
 
     // 2. Syntactic Analysis (Parsing)
     let mut parser = Parser::new(tokens);
-    let ast = parser
+    let mut ast = parser
         .parse()
         .map_err(|e| crate::diagnostics::render_error(&args.input_file, &source, &e))?;
+
+    let base_dir = Path::new(&args.input_file)
+        .parent()
+        .unwrap_or_else(|| Path::new("."));
+    crate::parser::resolve_imports(&mut ast, base_dir)
+        .map_err(|e| format!("Module import error in '{}': {}", args.input_file, e))?;
 
     if args.command == CommandKind::EmitAst {
         println!("{:#?}", ast);

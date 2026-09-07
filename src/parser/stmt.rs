@@ -7,6 +7,7 @@ impl Parser {
         self.skip_newlines();
 
         match &self.current_token().token_type {
+            TokenType::Import => self.parse_import(),
             TokenType::Say => self.parse_say(),
             TokenType::Let => self.parse_let(),
             TokenType::If => self.parse_if(),
@@ -196,6 +197,24 @@ impl Parser {
                 Ok(Stmt::Expr(expr))
             }
         }
+    }
+
+    fn parse_import(&mut self) -> Result<Stmt, String> {
+        self.advance(); // skip 'import'
+
+        let path = match &self.current_token().token_type {
+            TokenType::String(s) => s.clone(),
+            _ => {
+                return Err(format!(
+                    "Expected string literal after 'import' at line {}, column {}",
+                    self.current_token().line,
+                    self.current_token().column
+                ))
+            }
+        };
+        self.advance();
+
+        Ok(Stmt::Import(path))
     }
 
     fn parse_say(&mut self) -> Result<Stmt, String> {

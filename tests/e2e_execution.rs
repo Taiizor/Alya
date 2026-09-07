@@ -17,7 +17,8 @@ fn run_alya_code_with_input(source: &str, input: Option<&str>) -> Option<(i32, S
     let mut lexer = Lexer::new(source);
     let tokens = lexer.tokenize().expect("Lexer error");
     let mut parser = Parser::new(tokens);
-    let ast = parser.parse().expect("Parser error");
+    let mut ast = parser.parse().expect("Parser error");
+    let _ = alya::parser::resolve_imports(&mut ast, std::path::Path::new("."));
 
     let os = if cfg!(target_os = "windows") {
         OperatingSystem::Windows
@@ -439,5 +440,35 @@ end
     if let Some((code, output)) = run_alya_code_full(code) {
         assert_eq!(code, 0);
         assert_eq!(output, "caught: index out of bounds\n");
+    }
+}
+
+#[test]
+fn test_e2e_module_import() {
+    let pid = std::process::id();
+    let mod_filename = format!("temp_imported_helper_{}.alya", pid);
+    let mod_content = r#"
+function compute_bonus(salary)
+    return salary * 2
+end
+"#;
+    fs::write(&mod_filename, mod_content).expect("Failed to write temporary module file");
+
+    let main_code = format!(
+        r#"
+import "{}"
+let base = 1000
+let total = compute_bonus(base)
+say total
+"#,
+        mod_filename
+    );
+
+    let res = run_alya_code_full(&main_code);
+    let _ = fs::remove_file(&mod_filename);
+
+    if let Some((code, output)) = res {
+        assert_eq!(code, 0);
+        assert_eq!(output, "2000\n");
     }
 }

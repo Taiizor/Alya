@@ -21,6 +21,7 @@ pub enum TokenType {
     Ask,      // ask (input)
     Try,      // try
     Catch,    // catch
+    Import,   // import
 
     // Literals
     Number(f64),
@@ -89,6 +90,7 @@ impl TokenType {
             "ask" => TokenType::Ask,
             "try" => TokenType::Try,
             "catch" => TokenType::Catch,
+            "import" => TokenType::Import,
             "true" => TokenType::True,
             "false" => TokenType::False,
             "and" => TokenType::And,
@@ -129,6 +131,7 @@ impl std::fmt::Display for TokenType {
             TokenType::Ask => write!(f, "'ask'"),
             TokenType::Try => write!(f, "'try'"),
             TokenType::Catch => write!(f, "'catch'"),
+            TokenType::Import => write!(f, "'import'"),
             TokenType::Number(n) => write!(f, "number '{}'", n),
             TokenType::String(s) => write!(f, "\"{}\"", s),
             TokenType::Identifier(s) => write!(f, "identifier '{}'", s),

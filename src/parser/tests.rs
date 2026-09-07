@@ -498,3 +498,45 @@ fn test_parse_arrays() {
         other => panic!("Expected Stmt::IndexAssign, got {:?}", other),
     }
 }
+
+#[test]
+fn test_parse_import() {
+    let source = "import \"math_utils.alya\"\nsay 42";
+    let mut lexer = crate::lexer::Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Failed to tokenize");
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().expect("Failed to parse");
+
+    assert_eq!(program.statements.len(), 2);
+    match &program.statements[0] {
+        Stmt::Import(path) => assert_eq!(path, "math_utils.alya"),
+        other => panic!("Expected Stmt::Import, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_resolve_imports_temporary_files() {
+    use std::fs;
+    let temp_dir = std::env::temp_dir().join(format!("alya_import_test_{}", std::process::id()));
+    let _ = fs::create_dir_all(&temp_dir);
+
+    let helper_path = temp_dir.join("helper.alya");
+    fs::write(&helper_path, "function get_val()\n    return 42\nend\n").unwrap();
+
+    let main_source = "import \"helper.alya\"\nlet ans = get_val()\nsay ans";
+    let mut lexer = crate::lexer::Lexer::new(main_source);
+    let tokens = lexer.tokenize().expect("Failed to tokenize");
+    let mut parser = Parser::new(tokens);
+    let mut program = parser.parse().expect("Failed to parse");
+
+    super::resolve_imports(&mut program, &temp_dir).expect("Failed to resolve imports");
+
+    // After resolution, import is replaced by the function definition from helper.alya
+    assert_eq!(program.statements.len(), 3);
+    match &program.statements[0] {
+        Stmt::Function { name, .. } => assert_eq!(name, "get_val"),
+        other => panic!("Expected Stmt::Function, got {:?}", other),
+    }
+
+    let _ = fs::remove_dir_all(&temp_dir);
+}

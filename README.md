@@ -34,6 +34,7 @@
 ## Key Features
 
 - 🌟 **Expressive & Readable**: English-like keywords (`say`, `ask`, `when`, `repeat`, `function`).
+- 📁 **Modules & Imports**: Split code cleanly across multiple files with `import "module.alya"`, complete with circular dependency prevention.
 - 📦 **Arrays & Indexing**: Dynamic array literals (`[1, 2, 3]`), 0-based indexing (`arr[i]`), element mutation (`arr[i] = val`, `arr[i] += 1`), length querying (`len(arr)`), and automatic bounds safety.
 - 🛡️ **Exception Handling**: Built-in `try ... catch [err] ... end` support with runtime division/modulo by zero and out-of-bounds protection.
 - ⚡ **Direct Native Codegen**: Emits clean, comment-annotated assembly for **x86 (32-bit)**, **x64 (64-bit)**, and **ARM64 (Apple Silicon & AArch64)**.
@@ -277,6 +278,30 @@ catch err
 end
 ```
 
+### 10. Modules & File Imports
+
+Split large codebases across multiple files and import functions and variables using `import`:
+
+```alya
+# math_utils.alya
+function add(a, b)
+    return a + b
+end
+
+function multiply(a, b)
+    return a * b
+end
+```
+
+```alya
+# main.alya
+import "math_utils.alya"
+
+let total = add(10, 20)
+let product = multiply(total, 2)
+say product    # 60
+```
+
 ---
 
 ## Platform & Architecture Matrix
@@ -302,7 +327,7 @@ Alya/
 │   ├── workflows/             # CI and Automated Release workflows
 │   ├── ISSUE_TEMPLATE/        # Bug report and Feature request forms
 │   └── PULL_REQUEST_TEMPLATE.md
-├── examples/                  # 18 rich example programs
+├── examples/                  # 21 rich example programs
 ├── src/
 │   ├── cli/                   # Argument parser, help, and commands
 │   ├── codegen/               # Assembly code generator (x86, x64, ARM64)
