@@ -71,8 +71,14 @@ impl CodeGenContext {
     }
 
     pub fn enter_function(&mut self) -> ScopeState {
+        let mut fn_vars = HashMap::new();
+        for (k, v) in &self.variables {
+            if k.starts_with("map_field_str:") || k.starts_with("map_str:") {
+                fn_vars.insert(k.clone(), v.clone());
+            }
+        }
         let saved = ScopeState {
-            variables: std::mem::take(&mut self.variables),
+            variables: std::mem::replace(&mut self.variables, fn_vars),
             stack_offset: self.stack_offset,
             loop_stack: std::mem::take(&mut self.loop_stack),
         };

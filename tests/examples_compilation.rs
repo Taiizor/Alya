@@ -199,6 +199,7 @@ fn test_all_examples_execute_with_gcc() {
             .wait_with_output()
             .expect("Failed to wait on example execution");
         let _ = fs::remove_file(&temp_exe);
+        let _ = fs::remove_file("mini_output.s");
 
         assert!(
             output.status.success(),
@@ -454,6 +455,21 @@ Keys count: 2\n\
 Values count: 2\n\
 Total score: 183\n",
         ),
+        "mini_compiler.alya" => Some(concat!(
+            "==================================================\n",
+            "      Alya Mini-Compiler (Written in Alya)        \n",
+            "==================================================\n",
+            "No file provided. Compiling embedded demo program:\n",
+            "1. Tokenizing source code...\n",
+            "   Generated 53 tokens.\n",
+            "2. Parsing and generating x64 Assembly...\n",
+            "3. Writing native assembly to mini_output.s...\n\n",
+            "[SUCCESS] Compilation complete!\n",
+            "To produce a native standalone binary, run:\n",
+            "   gcc mini_output.s -o mini_program.exe\n",
+            "   ./mini_program.exe\n",
+            "==================================================\n",
+        )),
         "modern_features.alya" => Some(
             "Calculated score: 46\n\
 Access granted!\n\

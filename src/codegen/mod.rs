@@ -13,7 +13,8 @@ pub use target::{Architecture, OperatingSystem};
 
 use crate::ast::*;
 use analysis::{
-    infer_param_is_array, infer_param_is_float, infer_param_is_string, infer_param_struct_type,
+    collect_known_string_vars, infer_param_is_array, infer_param_is_float, infer_param_is_map,
+    infer_param_is_string, infer_param_struct_type,
 };
 use context::{CodeGenContext, VarType};
 
@@ -45,6 +46,15 @@ impl CodeGen {
                         fields: fields.clone(),
                     },
                 );
+            }
+        }
+
+        let known_strings = collect_known_string_vars(program);
+        for s in &known_strings {
+            if s.starts_with("map_field_str:") || s.starts_with("map_str:") {
+                self.ctx
+                    .variables
+                    .insert(s.clone(), VarType::StringOffset(0));
             }
         }
 
@@ -98,6 +108,7 @@ impl CodeGen {
             let is_str = infer_param_is_string(name, i, program);
             let is_flt = infer_param_is_float(name, i, program);
             let is_arr = infer_param_is_array(name, i, program);
+            let is_map = infer_param_is_map(name, i, program);
             let struct_type = infer_param_struct_type(name, i, program);
             if let Some(sname) = struct_type {
                 self.ctx.variables.insert(
@@ -119,6 +130,10 @@ impl CodeGen {
                 self.ctx
                     .variables
                     .insert(param.clone(), VarType::Array(self.ctx.stack_offset));
+            } else if is_map {
+                self.ctx
+                    .variables
+                    .insert(param.clone(), VarType::Map(self.ctx.stack_offset));
             } else {
                 self.ctx
                     .variables

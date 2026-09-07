@@ -598,6 +598,67 @@ pub fn emit_x86_runtime(out: &mut String) {
     out.push_str("    pop %ebp\n");
     out.push_str("    ret\n\n");
 
+    // fn_str
+    out.push_str(".global fn_str\n");
+    out.push_str("fn_str:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    push %ebx\n");
+    out.push_str("    push %edi\n");
+    out.push_str("    push %esi\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    mov $alya_str_buf, %ecx\n");
+    out.push_str("    mov alya_str_idx, %ebx\n");
+    out.push_str("    cmp $48000, %ebx\n");
+    out.push_str("    jl .L_x86_str_buf_ok\n");
+    out.push_str("    xor %ebx, %ebx\n");
+    out.push_str(".L_x86_str_buf_ok:\n");
+    out.push_str("    lea (%ecx, %ebx), %edi\n");
+    out.push_str("    mov %edi, %esi\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jnz .L_x86_str_chk_neg\n");
+    out.push_str("    movb $'0', (%edi)\n");
+    out.push_str("    movb $0, 1(%edi)\n");
+    out.push_str("    add $2, %edi\n");
+    out.push_str("    jmp .L_x86_str_finish\n");
+    out.push_str(".L_x86_str_chk_neg:\n");
+    out.push_str("    jns .L_x86_str_pos\n");
+    out.push_str("    movb $'-', (%edi)\n");
+    out.push_str("    inc %edi\n");
+    out.push_str("    neg %eax\n");
+    out.push_str(".L_x86_str_pos:\n");
+    out.push_str("    xor %ecx, %ecx\n");
+    out.push_str("    mov $10, %ebx\n");
+    out.push_str(".L_x86_str_div_loop:\n");
+    out.push_str("    xor %edx, %edx\n");
+    out.push_str("    div %ebx\n");
+    out.push_str("    add $'0', %dl\n");
+    out.push_str("    push %edx\n");
+    out.push_str("    inc %ecx\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jnz .L_x86_str_div_loop\n");
+    out.push_str(".L_x86_str_copy_loop:\n");
+    out.push_str("    pop %edx\n");
+    out.push_str("    movb %dl, (%edi)\n");
+    out.push_str("    inc %edi\n");
+    out.push_str("    dec %ecx\n");
+    out.push_str("    jnz .L_x86_str_copy_loop\n");
+    out.push_str("    movb $0, (%edi)\n");
+    out.push_str("    inc %edi\n");
+    out.push_str(".L_x86_str_finish:\n");
+    out.push_str("    mov $alya_str_buf, %ecx\n");
+    out.push_str("    sub %ecx, %edi\n");
+    out.push_str("    add $3, %edi\n");
+    out.push_str("    and $-4, %edi\n");
+    out.push_str("    mov %edi, alya_str_idx\n");
+    out.push_str("    mov %esi, %eax\n");
+    out.push_str("    pop %esi\n");
+    out.push_str("    pop %edi\n");
+    out.push_str("    pop %ebx\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
     // fn_is_digit
     out.push_str("fn_is_digit:\n");
     out.push_str("    push %ebp\n");
@@ -1412,7 +1473,10 @@ pub fn emit_x86_runtime(out: &mut String) {
     out.push_str("    pop %ebp\n");
     out.push_str("    ret\n\n");
 
-    // alya_map_key_eq
+    // alya_map_key_eq / fn_streq
+    out.push_str(".global fn_streq\n");
+    out.push_str("fn_streq:\n");
+    out.push_str(".global alya_map_key_eq\n");
     out.push_str("alya_map_key_eq:\n");
     out.push_str("    push %ebp\n");
     out.push_str("    mov %esp, %ebp\n");

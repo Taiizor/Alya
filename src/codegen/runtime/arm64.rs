@@ -524,6 +524,69 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    ldp x29, x30, [sp], #32\n");
     out.push_str("    ret\n\n");
 
+    // fn_str
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_str\n");
+    out.push_str("fn_str:\n");
+    out.push_str("    stp x29, x30, [sp, #-48]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    stp x19, x20, [sp, #16]\n");
+    out.push_str("    stp x21, x22, [sp, #32]\n");
+    out.push_str("    mov x19, x0\n");
+    emit_adrp_add(out, "x1", "alya_str_buf", os);
+    emit_adrp_add(out, "x2", "alya_str_idx", os);
+    out.push_str("    ldr x3, [x2]\n");
+    out.push_str("    mov x4, #48000\n");
+    out.push_str("    cmp x3, x4\n");
+    out.push_str("    b.lt .L_arm64_str_buf_ok\n");
+    out.push_str("    mov x3, #0\n");
+    out.push_str(".L_arm64_str_buf_ok:\n");
+    out.push_str("    add x20, x1, x3\n");
+    out.push_str("    mov x21, x20\n");
+    out.push_str("    cbnz x19, .L_arm64_str_chk_neg\n");
+    out.push_str("    mov w5, #'0'\n");
+    out.push_str("    strb w5, [x20]\n");
+    out.push_str("    strb wzr, [x20, #1]\n");
+    out.push_str("    add x20, x20, #2\n");
+    out.push_str("    b .L_arm64_str_finish\n");
+    out.push_str(".L_arm64_str_chk_neg:\n");
+    out.push_str("    cmp x19, #0\n");
+    out.push_str("    b.ge .L_arm64_str_pos\n");
+    out.push_str("    mov w5, #'-'\n");
+    out.push_str("    strb w5, [x20], #1\n");
+    out.push_str("    neg x19, x19\n");
+    out.push_str(".L_arm64_str_pos:\n");
+    out.push_str("    sub sp, sp, #32\n");
+    out.push_str("    mov x22, #0\n");
+    out.push_str("    mov x6, #10\n");
+    out.push_str(".L_arm64_str_div_loop:\n");
+    out.push_str("    udiv x7, x19, x6\n");
+    out.push_str("    msub x8, x7, x6, x19\n");
+    out.push_str("    add w8, w8, #'0'\n");
+    out.push_str("    strb w8, [sp, x22]\n");
+    out.push_str("    add x22, x22, #1\n");
+    out.push_str("    mov x19, x7\n");
+    out.push_str("    cbnz x19, .L_arm64_str_div_loop\n");
+    out.push_str(".L_arm64_str_copy_loop:\n");
+    out.push_str("    sub x22, x22, #1\n");
+    out.push_str("    ldrb w8, [sp, x22]\n");
+    out.push_str("    strb w8, [x20], #1\n");
+    out.push_str("    cbnz x22, .L_arm64_str_copy_loop\n");
+    out.push_str("    add sp, sp, #32\n");
+    out.push_str("    strb wzr, [x20], #1\n");
+    out.push_str(".L_arm64_str_finish:\n");
+    emit_adrp_add(out, "x1", "alya_str_buf", os);
+    emit_adrp_add(out, "x2", "alya_str_idx", os);
+    out.push_str("    sub x3, x20, x1\n");
+    out.push_str("    add x3, x3, #7\n");
+    out.push_str("    and x3, x3, #~7\n");
+    out.push_str("    str x3, [x2]\n");
+    out.push_str("    mov x0, x21\n");
+    out.push_str("    ldp x21, x22, [sp, #32]\n");
+    out.push_str("    ldp x19, x20, [sp, #16]\n");
+    out.push_str("    ldp x29, x30, [sp], #48\n");
+    out.push_str("    ret\n\n");
+
     // fn_is_digit
     out.push_str(".align 2\n");
     out.push_str("fn_is_digit:\n");
@@ -1254,8 +1317,10 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_arm64_mhash_done:\n");
     out.push_str("    ret\n\n");
 
-    // alya_map_key_eq
+    // alya_map_key_eq / fn_streq
     out.push_str(".align 2\n");
+    out.push_str(".global fn_streq\n");
+    out.push_str("fn_streq:\n");
     out.push_str(".global alya_map_key_eq\n");
     out.push_str("alya_map_key_eq:\n");
     out.push_str("    cmp x0, x1\n");

@@ -71,6 +71,14 @@ impl CodeGen {
                     return;
                 }
 
+                if matches!(op, BinaryOp::Equal | BinaryOp::NotEqual)
+                    && (is_string_expr(left, &self.ctx.variables)
+                        || is_string_expr(right, &self.ctx.variables))
+                {
+                    self.generate_string_equality(left, right, *op);
+                    return;
+                }
+
                 let left_is_float = is_float_expr(left, &self.ctx.variables);
                 let right_is_float = is_float_expr(right, &self.ctx.variables);
                 let is_float = left_is_float || right_is_float;
@@ -175,6 +183,12 @@ impl CodeGen {
                 if name == "int" && args.len() == 1 {
                     self.generate_expression(&args[0]);
                     arch::emit_float_to_int(&mut self.output, self.arch);
+                    return;
+                }
+
+                if name == "str" && args.len() == 1 && is_string_expr(&args[0], &self.ctx.variables)
+                {
+                    self.generate_expression(&args[0]);
                     return;
                 }
 
@@ -364,12 +378,28 @@ impl CodeGen {
                     self.generate_expression(&Expr::String(String::new()));
                 } else {
                     let mut iter = parts.iter();
-                    let mut acc = iter.next().unwrap().clone();
+                    let first = iter.next().unwrap();
+                    let mut acc = if is_string_expr(first, &self.ctx.variables) {
+                        first.clone()
+                    } else {
+                        Expr::Call {
+                            name: "str".into(),
+                            args: vec![first.clone()],
+                        }
+                    };
                     for next in iter {
+                        let next_expr = if is_string_expr(next, &self.ctx.variables) {
+                            next.clone()
+                        } else {
+                            Expr::Call {
+                                name: "str".into(),
+                                args: vec![next.clone()],
+                            }
+                        };
                         acc = Expr::Binary {
                             left: Box::new(acc),
                             op: BinaryOp::Add,
-                            right: Box::new(next.clone()),
+                            right: Box::new(next_expr),
                         };
                     }
                     self.generate_expression(&acc);
@@ -379,10 +409,38 @@ impl CodeGen {
     }
 
     pub(crate) fn generate_string_concat(&mut self, left: &Expr, right: &Expr) {
+        if is_string_expr(left, &self.ctx.variables) {
+            self.generate_expression(left);
+        } else {
+            self.generate_expression(&Expr::Call {
+                name: "str".into(),
+                args: vec![left.clone()],
+            });
+        }
+        arch::emit_push_temp(&mut self.output, self.arch);
+
+        if is_string_expr(right, &self.ctx.variables) {
+            self.generate_expression(right);
+        } else {
+            self.generate_expression(&Expr::Call {
+                name: "str".into(),
+                args: vec![right.clone()],
+            });
+        }
+        arch::emit_string_concat_call(&mut self.output, self.arch, self.ctx.stack_offset, self.os);
+    }
+
+    pub(crate) fn generate_string_equality(&mut self, left: &Expr, right: &Expr, op: BinaryOp) {
         self.generate_expression(left);
         arch::emit_push_temp(&mut self.output, self.arch);
 
         self.generate_expression(right);
-        arch::emit_string_concat_call(&mut self.output, self.arch, self.ctx.stack_offset, self.os);
+        arch::emit_string_equality_call(
+            &mut self.output,
+            self.arch,
+            op,
+            self.ctx.stack_offset,
+            self.os,
+        );
     }
 }

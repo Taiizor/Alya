@@ -811,3 +811,33 @@ pub fn emit_for_each_load_element(
     out.push_str("    movq (%rdx, %rcx, 8), %rax\n");
     out.push_str(&format!("    movq %rax, -{}(%rbp)\n", var_offset));
 }
+
+pub fn emit_string_equality_call(
+    out: &mut String,
+    op: BinaryOp,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rax, %rdx\n");
+        out.push_str("    pop %rcx\n");
+        let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
+        out.push_str(&format!("    sub ${}, %rsp\n", padding));
+        out.push_str("    call fn_streq\n");
+        out.push_str(&format!("    add ${}, %rsp\n", padding));
+    } else {
+        out.push_str("    mov %rax, %rsi\n");
+        out.push_str("    pop %rdi\n");
+        let misaligned = stack_offset % 16 != 0;
+        if misaligned {
+            out.push_str("    sub $8, %rsp\n");
+        }
+        out.push_str("    call fn_streq\n");
+        if misaligned {
+            out.push_str("    add $8, %rsp\n");
+        }
+    }
+    if matches!(op, BinaryOp::NotEqual) {
+        out.push_str("    xor $1, %rax\n");
+    }
+}

@@ -32,7 +32,21 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                 false
             }
         }
-        Expr::Index { array, .. } => is_string_array(array, vars) || is_string_expr(array, vars),
+        Expr::Index { array, index } => {
+            if let Expr::String(field) = &**index {
+                let key = format!("map_field_str:{}", field);
+                if vars.contains_key(&key) {
+                    return true;
+                }
+            }
+            if let (Expr::Identifier(obj_name), Expr::String(field)) = (&**array, &**index) {
+                let key = format!("map_str:{}.{}", obj_name, field);
+                if vars.contains_key(&key) {
+                    return true;
+                }
+            }
+            is_string_array(array, vars) || is_string_expr(array, vars)
+        }
         Expr::FieldAccess { object, field } => {
             if let Expr::Identifier(obj_name) = &**object {
                 let key = format!("{}.{}", obj_name, field);
@@ -162,14 +176,26 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
             expr_is_definitely_string(left, known_strings)
                 || expr_is_definitely_string(right, known_strings)
         }
-        Expr::Index { array, .. } => match &**array {
-            Expr::Identifier(arr_name) => {
-                known_strings.contains(&format!("arr_is_str:{}", arr_name))
-                    || known_strings.contains(arr_name)
+        Expr::Index { array, index } => {
+            if let Expr::String(field) = &**index {
+                if known_strings.contains(&format!("map_field_str:{}", field)) {
+                    return true;
+                }
             }
-            Expr::Call { name, .. } if name == "split" || name == "args" => true,
-            _ => expr_is_definitely_string(array, known_strings),
-        },
+            if let (Expr::Identifier(map_name), Expr::String(field)) = (&**array, &**index) {
+                if known_strings.contains(&format!("map_str:{}.{}", map_name, field)) {
+                    return true;
+                }
+            }
+            match &**array {
+                Expr::Identifier(arr_name) => {
+                    known_strings.contains(&format!("arr_is_str:{}", arr_name))
+                        || known_strings.contains(arr_name)
+                }
+                Expr::Call { name, .. } if name == "split" || name == "args" => true,
+                _ => expr_is_definitely_string(array, known_strings),
+            }
+        }
         _ => false,
     }
 }
@@ -240,6 +266,57 @@ fn collect_string_vars_from_stmts(stmts: &[Stmt], known_strings: &mut HashSet<St
             Stmt::Function { body, .. } => {
                 collect_string_vars_from_stmts(body, known_strings);
             }
+            Stmt::IndexAssign {
+                array,
+                index,
+                value,
+            } if expr_is_definitely_string(value, known_strings) => {
+                if let Expr::String(field) = index {
+                    known_strings.insert(format!("map_field_str:{}", field));
+                }
+                if let (Expr::Identifier(map_name), Expr::String(field)) = (array, index) {
+                    known_strings.insert(format!("map_str:{}.{}", map_name, field));
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+fn collect_function_defs<'a>(
+    stmts: &'a [Stmt],
+    defs: &mut Vec<(&'a str, &'a [String], &'a [Stmt])>,
+) {
+    for stmt in stmts {
+        match stmt {
+            Stmt::Function { name, params, body } => {
+                defs.push((name.as_str(), params.as_slice(), body.as_slice()));
+                collect_function_defs(body, defs);
+            }
+            Stmt::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                collect_function_defs(then_block, defs);
+                if let Some(eb) = else_block {
+                    collect_function_defs(eb, defs);
+                }
+            }
+            Stmt::While { body, .. }
+            | Stmt::For { body, .. }
+            | Stmt::ForEach { body, .. }
+            | Stmt::Repeat { body } => {
+                collect_function_defs(body, defs);
+            }
+            Stmt::TryCatch {
+                try_block,
+                catch_block,
+                ..
+            } => {
+                collect_function_defs(try_block, defs);
+                collect_function_defs(catch_block, defs);
+            }
             _ => {}
         }
     }
@@ -247,9 +324,28 @@ fn collect_string_vars_from_stmts(stmts: &[Stmt], known_strings: &mut HashSet<St
 
 pub fn collect_known_string_vars(program: &Program) -> HashSet<String> {
     let mut known_strings = HashSet::new();
-    for _ in 0..4 {
+    let mut funcs = Vec::new();
+    collect_function_defs(&program.statements, &mut funcs);
+    for _ in 0..8 {
         let prev_len = known_strings.len();
         collect_string_vars_from_stmts(&program.statements, &mut known_strings);
+        for (name, params, _) in &funcs {
+            for (idx, param) in params.iter().enumerate() {
+                if known_strings.contains(param) {
+                    continue;
+                }
+                let is_str_arg = program.statements.iter().any(|s| {
+                    if let Some(arg) = find_call_arg(s, name, idx) {
+                        expr_is_definitely_string(arg, &known_strings)
+                    } else {
+                        false
+                    }
+                });
+                if is_str_arg {
+                    known_strings.insert(param.clone());
+                }
+            }
+        }
         if known_strings.len() == prev_len {
             break;
         }
@@ -369,9 +465,28 @@ fn collect_float_vars_from_stmts(stmts: &[Stmt], known_floats: &mut HashSet<Stri
 
 pub fn collect_known_float_vars(program: &Program) -> HashSet<String> {
     let mut known_floats = HashSet::new();
-    for _ in 0..4 {
+    let mut funcs = Vec::new();
+    collect_function_defs(&program.statements, &mut funcs);
+    for _ in 0..8 {
         let prev_len = known_floats.len();
         collect_float_vars_from_stmts(&program.statements, &mut known_floats);
+        for (name, params, _) in &funcs {
+            for (idx, param) in params.iter().enumerate() {
+                if known_floats.contains(param) {
+                    continue;
+                }
+                let is_flt_arg = program.statements.iter().any(|s| {
+                    if let Some(arg) = find_call_arg(s, name, idx) {
+                        expr_is_definitely_float(arg, &known_floats)
+                    } else {
+                        false
+                    }
+                });
+                if is_flt_arg {
+                    known_floats.insert(param.clone());
+                }
+            }
+        }
         if known_floats.len() == prev_len {
             break;
         }
@@ -441,9 +556,28 @@ fn collect_array_vars_from_stmts(stmts: &[Stmt], known_arrays: &mut HashSet<Stri
 
 pub fn collect_known_array_vars(program: &Program) -> HashSet<String> {
     let mut known_arrays = HashSet::new();
-    for _ in 0..4 {
+    let mut funcs = Vec::new();
+    collect_function_defs(&program.statements, &mut funcs);
+    for _ in 0..8 {
         let prev_len = known_arrays.len();
         collect_array_vars_from_stmts(&program.statements, &mut known_arrays);
+        for (name, params, _) in &funcs {
+            for (idx, param) in params.iter().enumerate() {
+                if known_arrays.contains(param) {
+                    continue;
+                }
+                let is_arr_arg = program.statements.iter().any(|s| {
+                    if let Some(arg) = find_call_arg(s, name, idx) {
+                        expr_is_definitely_array(arg, &known_arrays)
+                    } else {
+                        false
+                    }
+                });
+                if is_arr_arg {
+                    known_arrays.insert(param.clone());
+                }
+            }
+        }
         if known_arrays.len() == prev_len {
             break;
         }
@@ -456,6 +590,96 @@ pub fn infer_param_is_array(func_name: &str, param_idx: usize, program: &Program
     program.statements.iter().any(|s| {
         if let Some(arg) = find_call_arg(s, func_name, param_idx) {
             expr_is_definitely_array(arg, &known_arrays)
+        } else {
+            false
+        }
+    })
+}
+
+fn expr_is_definitely_map(expr: &Expr, known_maps: &HashSet<String>) -> bool {
+    match expr {
+        Expr::Call { name, .. } if name == "map" => true,
+        Expr::Identifier(name) => known_maps.contains(name),
+        _ => false,
+    }
+}
+
+fn collect_map_vars_from_stmts(stmts: &[Stmt], known_maps: &mut HashSet<String>) {
+    for stmt in stmts {
+        match stmt {
+            Stmt::Let { name, value, .. } | Stmt::Assign { name, value, .. }
+                if expr_is_definitely_map(value, known_maps) =>
+            {
+                known_maps.insert(name.clone());
+            }
+            Stmt::TryCatch {
+                try_block,
+                catch_block,
+                ..
+            } => {
+                collect_map_vars_from_stmts(try_block, known_maps);
+                collect_map_vars_from_stmts(catch_block, known_maps);
+            }
+            Stmt::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                collect_map_vars_from_stmts(then_block, known_maps);
+                if let Some(else_stmts) = else_block {
+                    collect_map_vars_from_stmts(else_stmts, known_maps);
+                }
+            }
+            Stmt::While { body, .. }
+            | Stmt::Repeat { body }
+            | Stmt::For { body, .. }
+            | Stmt::ForEach { body, .. } => {
+                collect_map_vars_from_stmts(body, known_maps);
+            }
+            Stmt::Function { body, .. } => {
+                collect_map_vars_from_stmts(body, known_maps);
+            }
+            _ => {}
+        }
+    }
+}
+
+pub fn collect_known_map_vars(program: &Program) -> HashSet<String> {
+    let mut known_maps = HashSet::new();
+    let mut funcs = Vec::new();
+    collect_function_defs(&program.statements, &mut funcs);
+    for _ in 0..8 {
+        let prev_len = known_maps.len();
+        collect_map_vars_from_stmts(&program.statements, &mut known_maps);
+        for (name, params, _) in &funcs {
+            for (idx, param) in params.iter().enumerate() {
+                if known_maps.contains(param) {
+                    continue;
+                }
+                let is_map_arg = program.statements.iter().any(|s| {
+                    if let Some(arg) = find_call_arg(s, name, idx) {
+                        expr_is_definitely_map(arg, &known_maps)
+                    } else {
+                        false
+                    }
+                });
+                if is_map_arg {
+                    known_maps.insert(param.clone());
+                }
+            }
+        }
+        if known_maps.len() == prev_len {
+            break;
+        }
+    }
+    known_maps
+}
+
+pub fn infer_param_is_map(func_name: &str, param_idx: usize, program: &Program) -> bool {
+    let known_maps = collect_known_map_vars(program);
+    program.statements.iter().any(|s| {
+        if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+            expr_is_definitely_map(arg, &known_maps)
         } else {
             false
         }
@@ -536,6 +760,21 @@ pub fn find_call_arg<'a>(stmt: &'a Stmt, func_name: &str, param_idx: usize) -> O
         Stmt::FieldAssign { object, value, .. } => {
             find_call_arg_in_expr(object, func_name, param_idx)
                 .or_else(|| find_call_arg_in_expr(value, func_name, param_idx))
+        }
+        Stmt::Return(opt_expr) => {
+            if let Some(expr) = opt_expr {
+                find_call_arg_in_expr(expr, func_name, param_idx)
+            } else {
+                None
+            }
+        }
+        Stmt::Function { body, .. } => {
+            for s in body {
+                if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+                    return Some(arg);
+                }
+            }
+            None
         }
         _ => None,
     }

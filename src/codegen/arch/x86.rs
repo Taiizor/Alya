@@ -461,3 +461,12 @@ pub fn emit_for_each_load_element(
     out.push_str("    movl (%edx, %ecx, 4), %eax\n");
     out.push_str(&format!("    movl %eax, -{}(%ebp)\n", var_offset));
 }
+
+pub fn emit_string_equality_call(out: &mut String, op: BinaryOp) {
+    out.push_str("    push %eax\n");
+    out.push_str("    call fn_streq\n");
+    out.push_str("    add $8, %esp\n");
+    if matches!(op, BinaryOp::NotEqual) {
+        out.push_str("    xor $1, %eax\n");
+    }
+}

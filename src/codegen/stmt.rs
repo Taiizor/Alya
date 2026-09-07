@@ -20,9 +20,15 @@ impl CodeGen {
                     self.output.push_str(&format!("{}:\n", label));
                     self.emit_string_directive(&escape_string(s));
                     self.output.push_str(".text\n");
+                    arch::emit_load_str_label(&mut self.output, self.arch, &label, self.os);
+                    arch::emit_allocate_var(
+                        &mut self.output,
+                        self.arch,
+                        &mut self.ctx.stack_offset,
+                    );
                     self.ctx
                         .variables
-                        .insert(name.clone(), VarType::StringLabel(label));
+                        .insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
                 }
                 Expr::Array(elements) => {
                     let is_str_arr = elements
@@ -329,6 +335,20 @@ impl CodeGen {
                         self.ctx.stack_offset,
                         self.os,
                     );
+                    if is_string_expr(value, &self.ctx.variables) {
+                        if let Expr::String(field) = index {
+                            self.ctx.variables.insert(
+                                format!("map_field_str:{}", field),
+                                VarType::StringOffset(0),
+                            );
+                        }
+                        if let (Expr::Identifier(map_name), Expr::String(field)) = (array, index) {
+                            self.ctx.variables.insert(
+                                format!("map_str:{}.{}", map_name, field),
+                                VarType::StringOffset(0),
+                            );
+                        }
+                    }
                 } else {
                     self.generate_expression(array);
                     arch::emit_push_temp(&mut self.output, self.arch);

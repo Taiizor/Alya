@@ -635,3 +635,12 @@ pub fn emit_for_each_load_element(
     out.push_str("    ldr x0, [x3, x2, lsl #3]\n");
     emit_arm64_store_x29_offset(out, "x0", var_offset, "x9");
 }
+
+pub fn emit_string_equality_call(out: &mut String, op: BinaryOp) {
+    out.push_str("    mov x1, x0\n");
+    out.push_str("    ldr x0, [sp], #16\n");
+    out.push_str("    bl fn_streq\n");
+    if matches!(op, BinaryOp::NotEqual) {
+        out.push_str("    eor x0, x0, #1\n");
+    }
+}
