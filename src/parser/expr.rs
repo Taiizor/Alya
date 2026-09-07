@@ -339,47 +339,80 @@ fn parse_interpolated_string(s: &str) -> Option<Vec<Expr>> {
     let mut current_lit = String::new();
     let mut chars = s.chars().peekable();
     let mut has_interpolation = false;
+    let mut has_escaped = false;
 
     while let Some(ch) = chars.next() {
         if ch == '{' {
-            let mut var_name = String::new();
+            if chars.peek() == Some(&'{') {
+                chars.next();
+                current_lit.push('{');
+                has_escaped = true;
+                continue;
+            }
+
+            let mut expr_str = String::new();
+            let mut depth = 1;
+            let mut in_str = false;
+            let mut in_escape = false;
             let mut found_close = false;
-            while let Some(&next_ch) = chars.peek() {
-                if next_ch == '}' {
-                    chars.next();
-                    found_close = true;
-                    break;
-                } else if next_ch.is_alphanumeric() || next_ch == '_' || next_ch == '.' {
-                    var_name.push(next_ch);
-                    chars.next();
+
+            for c in chars.by_ref() {
+                if in_escape {
+                    expr_str.push(c);
+                    in_escape = false;
+                } else if c == '\\' && in_str {
+                    expr_str.push(c);
+                    in_escape = true;
+                } else if c == '"' {
+                    in_str = !in_str;
+                    expr_str.push(c);
+                } else if !in_str && c == '{' {
+                    depth += 1;
+                    expr_str.push(c);
+                } else if !in_str && c == '}' {
+                    depth -= 1;
+                    if depth == 0 {
+                        found_close = true;
+                        break;
+                    } else {
+                        expr_str.push(c);
+                    }
                 } else {
-                    break;
+                    expr_str.push(c);
                 }
             }
 
-            if found_close && !var_name.is_empty() {
+            let mut parsed_expr = None;
+            if found_close && !expr_str.trim().is_empty() {
+                let mut sub_lexer = crate::lexer::Lexer::new(&expr_str);
+                if let Ok(sub_tokens) = sub_lexer.tokenize() {
+                    let mut sub_parser = Parser::new(sub_tokens);
+                    if let Ok(expr) = sub_parser.parse_expression() {
+                        if sub_parser.current_token().token_type == TokenType::Eof {
+                            parsed_expr = Some(expr);
+                        }
+                    }
+                }
+            }
+
+            if let Some(expr) = parsed_expr {
                 has_interpolation = true;
                 if !current_lit.is_empty() {
                     parts.push(Expr::String(current_lit.clone()));
                     current_lit.clear();
                 }
-                if var_name.contains('.') {
-                    let subparts: Vec<&str> = var_name.split('.').collect();
-                    let mut expr = Expr::Identifier(subparts[0].to_string());
-                    for &field in &subparts[1..] {
-                        expr = Expr::FieldAccess {
-                            object: Box::new(expr),
-                            field: field.to_string(),
-                        };
-                    }
-                    parts.push(expr);
-                } else {
-                    parts.push(Expr::Identifier(var_name));
-                }
+                parts.push(expr);
             } else {
                 current_lit.push('{');
-                current_lit.push_str(&var_name);
+                current_lit.push_str(&expr_str);
+                if found_close {
+                    current_lit.push('}');
+                }
             }
+        } else if ch == '}' && chars.peek() == Some(&'}') {
+            chars.next();
+            current_lit.push('}');
+            has_escaped = true;
         } else {
             current_lit.push(ch);
         }
@@ -389,7 +422,7 @@ fn parse_interpolated_string(s: &str) -> Option<Vec<Expr>> {
         parts.push(Expr::String(current_lit));
     }
 
-    if has_interpolation {
+    if has_interpolation || has_escaped {
         Some(parts)
     } else {
         None

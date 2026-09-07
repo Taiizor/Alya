@@ -14,3 +14,6 @@ say "Product: {product}"
 
 let sq = square(x)
 say "Square of 12: {sq}"
+
+# Function call inside string interpolation
+say "Inline call: {add(1, 1)}"

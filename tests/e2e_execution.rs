@@ -187,11 +187,23 @@ say multiply(7, 6)
 #[test]
 fn test_e2e_string_interpolation() {
     let code = r#"
+function calc(a, b)
+    return a * b + 2
+end
+
 let name = "Alya"
 say "Welcome to {name}!"
+say "Call: {calc(3, 4)}"
+say "Math: {10 + 5 * 2}"
+let greeting = "   hello   "
+say "Method: {greeting.trim().upper()}"
+say "Escaped: {{bracket}}"
 "#;
     if let Some(output) = run_alya_code(code) {
-        assert_eq!(output, "Welcome to Alya!\n");
+        assert_eq!(
+            output,
+            "Welcome to Alya!\nCall: 14\nMath: 20\nMethod: HELLO\nEscaped: {bracket}\n"
+        );
     }
 }
 

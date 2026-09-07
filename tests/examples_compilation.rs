@@ -397,7 +397,8 @@ Maximum of 10 and 20: 20\n",
             "=== Modules & Imports ===\n\
 Sum: 16\n\
 Product: 48\n\
-Square of 12: 144\n",
+Square of 12: 144\n\
+Inline call: 2\n",
         ),
         "pattern_matching.alya" => Some(
             "=== HTTP Status Code Resolver ===\n\
