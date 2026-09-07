@@ -85,7 +85,13 @@ impl CliArgs {
         let mut input_file = None;
         let mut output_file = None;
         let mut quiet = false;
-        let mut arch = Architecture::X64;
+        let mut arch = if cfg!(target_arch = "aarch64") {
+            Architecture::ARM64
+        } else if cfg!(target_arch = "x86") {
+            Architecture::X86
+        } else {
+            Architecture::X64
+        };
         let mut os = if cfg!(target_os = "windows") {
             OperatingSystem::Windows
         } else if cfg!(target_os = "macos") {

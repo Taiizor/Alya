@@ -43,7 +43,7 @@ impl CodeGen {
             }
         }
 
-        arch::emit_header(&mut self.output, self.arch);
+        arch::emit_header(&mut self.output, self.arch, self.os);
 
         for stmt in top_level {
             self.generate_statement(stmt);
@@ -99,6 +99,23 @@ impl CodeGen {
         arch::emit_function_epilogue(&mut self.output, self.arch);
 
         self.ctx.exit_function(saved);
+    }
+
+    pub(crate) fn emit_rodata_section(&mut self) {
+        if matches!(self.os, OperatingSystem::MacOS) {
+            self.output
+                .push_str(".section __TEXT,__cstring,cstring_literals\n");
+        } else {
+            self.output.push_str(".section .rodata\n");
+        }
+    }
+
+    pub(crate) fn emit_string_directive(&mut self, text: &str) {
+        if matches!(self.os, OperatingSystem::MacOS) {
+            self.output.push_str(&format!("    .asciz \"{}\"\n", text));
+        } else {
+            self.output.push_str(&format!("    .string \"{}\"\n", text));
+        }
     }
 }
 

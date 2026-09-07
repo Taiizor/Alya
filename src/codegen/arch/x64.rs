@@ -1,16 +1,28 @@
 use crate::ast::{BinaryOp, UnaryOp};
 use crate::codegen::target::OperatingSystem;
 
-pub fn emit_header(out: &mut String) {
-    out.push_str(".global main\n");
-    out.push_str(".extern printf\n");
-    out.push_str(".extern exit\n");
-    out.push_str(".extern getchar\n");
-    out.push_str(".extern fflush\n\n");
-    out.push_str(".text\n");
-    out.push_str("main:\n");
-    out.push_str("    push %rbp\n");
-    out.push_str("    mov %rsp, %rbp\n\n");
+pub fn emit_header(out: &mut String, os: OperatingSystem) {
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str(".globl _main\n");
+        out.push_str(".extern _printf\n");
+        out.push_str(".extern _exit\n");
+        out.push_str(".extern _getchar\n");
+        out.push_str(".extern _fflush\n\n");
+        out.push_str(".text\n");
+        out.push_str("_main:\n");
+        out.push_str("    push %rbp\n");
+        out.push_str("    mov %rsp, %rbp\n\n");
+    } else {
+        out.push_str(".global main\n");
+        out.push_str(".extern printf\n");
+        out.push_str(".extern exit\n");
+        out.push_str(".extern getchar\n");
+        out.push_str(".extern fflush\n\n");
+        out.push_str(".text\n");
+        out.push_str("main:\n");
+        out.push_str("    push %rbp\n");
+        out.push_str("    mov %rsp, %rbp\n\n");
+    }
 }
 
 pub fn emit_footer(out: &mut String) {
@@ -21,6 +33,11 @@ pub fn emit_footer(out: &mut String) {
 }
 
 pub fn emit_call_printf(out: &mut String, stack_offset: i32, os: OperatingSystem) {
+    let p = if matches!(os, OperatingSystem::MacOS) {
+        "_"
+    } else {
+        ""
+    };
     if matches!(os, OperatingSystem::Windows) {
         let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
         out.push_str(&format!("    sub ${}, %rsp\n", padding));
@@ -31,7 +48,7 @@ pub fn emit_call_printf(out: &mut String, stack_offset: i32, os: OperatingSystem
         if misaligned {
             out.push_str("    sub $8, %rsp\n");
         }
-        out.push_str("    call printf\n");
+        out.push_str(&format!("    call {}printf\n", p));
         if misaligned {
             out.push_str("    add $8, %rsp\n");
         }

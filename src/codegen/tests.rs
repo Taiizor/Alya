@@ -90,3 +90,27 @@ fn test_codegen_function_definition() {
     assert!(asm.contains("fn_my_func:"));
     assert!(asm.contains("ret"));
 }
+
+#[test]
+fn test_codegen_macos_arm64_header_and_sections() {
+    let program = simple_program(Stmt::Say(Expr::String("Hello Mac".into())));
+    let asm = generate(&program, Architecture::ARM64, OperatingSystem::MacOS);
+
+    assert!(asm.contains(".globl _main"));
+    assert!(asm.contains("_main:"));
+    assert!(asm.contains(".section __TEXT,__cstring,cstring_literals"));
+    assert!(asm.contains(".asciz \"Hello Mac\\n\""));
+    assert!(asm.contains("_printf"));
+}
+
+#[test]
+fn test_codegen_macos_x64_header_and_sections() {
+    let program = simple_program(Stmt::Say(Expr::String("Hello Mac".into())));
+    let asm = generate(&program, Architecture::X64, OperatingSystem::MacOS);
+
+    assert!(asm.contains(".globl _main"));
+    assert!(asm.contains("_main:"));
+    assert!(asm.contains(".section __TEXT,__cstring,cstring_literals"));
+    assert!(asm.contains(".asciz \"Hello Mac\\n\""));
+    assert!(asm.contains("_printf"));
+}

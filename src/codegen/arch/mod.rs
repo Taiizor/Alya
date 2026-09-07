@@ -5,10 +5,10 @@ pub mod x86;
 use crate::ast::{BinaryOp, UnaryOp};
 use crate::codegen::target::{Architecture, OperatingSystem};
 
-pub fn emit_header(out: &mut String, arch: Architecture) {
+pub fn emit_header(out: &mut String, arch: Architecture, os: OperatingSystem) {
     match arch {
-        Architecture::ARM64 => arm64::emit_header(out),
-        Architecture::X64 => x64::emit_header(out),
+        Architecture::ARM64 => arm64::emit_header(out, os),
+        Architecture::X64 => x64::emit_header(out, os),
         Architecture::X86 => x86::emit_header(out),
     }
 }
@@ -29,9 +29,9 @@ pub fn emit_load_num(out: &mut String, arch: Architecture, val: i64) {
     }
 }
 
-pub fn emit_load_str_label(out: &mut String, arch: Architecture, label: &str) {
+pub fn emit_load_str_label(out: &mut String, arch: Architecture, label: &str, os: OperatingSystem) {
     match arch {
-        Architecture::ARM64 => arm64::emit_load_str_label(out, label),
+        Architecture::ARM64 => arm64::emit_load_str_label(out, label, os),
         Architecture::X64 => x64::emit_load_str_label(out, label),
         Architecture::X86 => x86::emit_load_str_label(out, label),
     }
@@ -179,7 +179,7 @@ pub fn emit_say_str(
     os: OperatingSystem,
 ) {
     match arch {
-        Architecture::ARM64 => arm64::emit_say_str(out, label, fmt_label),
+        Architecture::ARM64 => arm64::emit_say_str(out, label, fmt_label, os),
         Architecture::X64 => x64::emit_say_str(out, label, fmt_label, stack_offset, os),
         Architecture::X86 => x86::emit_say_str(out, label, fmt_label),
     }
@@ -193,7 +193,7 @@ pub fn emit_say_str_lit(
     os: OperatingSystem,
 ) {
     match arch {
-        Architecture::ARM64 => arm64::emit_say_str_lit(out, label),
+        Architecture::ARM64 => arm64::emit_say_str_lit(out, label, os),
         Architecture::X64 => x64::emit_say_str_lit(out, label, stack_offset, os),
         Architecture::X86 => x86::emit_say_str_lit(out, label),
     }
@@ -208,7 +208,7 @@ pub fn emit_say_offset(
     os: OperatingSystem,
 ) {
     match arch {
-        Architecture::ARM64 => arm64::emit_say_offset(out, offset, stack_offset, fmt_label),
+        Architecture::ARM64 => arm64::emit_say_offset(out, offset, stack_offset, fmt_label, os),
         Architecture::X64 => x64::emit_say_offset(out, offset, fmt_label, stack_offset, os),
         Architecture::X86 => x86::emit_say_offset(out, offset, fmt_label),
     }
@@ -223,7 +223,7 @@ pub fn emit_say_num_const(
     os: OperatingSystem,
 ) {
     match arch {
-        Architecture::ARM64 => arm64::emit_say_num_const(out, val, fmt_label),
+        Architecture::ARM64 => arm64::emit_say_num_const(out, val, fmt_label, os),
         Architecture::X64 => x64::emit_say_num_const(out, val, fmt_label, stack_offset, os),
         Architecture::X86 => x86::emit_say_num_const(out, val, fmt_label),
     }
@@ -237,7 +237,7 @@ pub fn emit_say_acc(
     os: OperatingSystem,
 ) {
     match arch {
-        Architecture::ARM64 => arm64::emit_say_acc(out, fmt_label),
+        Architecture::ARM64 => arm64::emit_say_acc(out, fmt_label, os),
         Architecture::X64 => x64::emit_say_acc(out, fmt_label, stack_offset, os),
         Architecture::X86 => x86::emit_say_acc(out, fmt_label),
     }
@@ -252,7 +252,7 @@ pub fn emit_say_interpolated(
     os: OperatingSystem,
 ) {
     match arch {
-        Architecture::ARM64 => arm64::emit_say_interpolated_pop_and_call(out, fmt_label, count),
+        Architecture::ARM64 => arm64::emit_say_interpolated_pop_and_call(out, fmt_label, count, os),
         Architecture::X64 => {
             x64::emit_say_interpolated_pop_and_call(out, fmt_label, count, stack_offset, os)
         }
@@ -273,17 +273,28 @@ pub fn emit_string_concat_call(
     }
 }
 
-pub fn emit_try_begin(out: &mut String, arch: Architecture, catch_label: &str) {
+pub fn emit_try_begin(
+    out: &mut String,
+    arch: Architecture,
+    catch_label: &str,
+    os: OperatingSystem,
+) {
     match arch {
-        Architecture::ARM64 => arm64::emit_try_begin(out, catch_label),
+        Architecture::ARM64 => arm64::emit_try_begin(out, catch_label, os),
         Architecture::X64 => x64::emit_try_begin(out, catch_label),
         Architecture::X86 => x86::emit_try_begin(out, catch_label),
     }
 }
 
-pub fn emit_try_end(out: &mut String, arch: Architecture, end_label: &str, stack_delta: i32) {
+pub fn emit_try_end(
+    out: &mut String,
+    arch: Architecture,
+    end_label: &str,
+    stack_delta: i32,
+    os: OperatingSystem,
+) {
     match arch {
-        Architecture::ARM64 => arm64::emit_try_end(out, end_label, stack_delta),
+        Architecture::ARM64 => arm64::emit_try_end(out, end_label, stack_delta, os),
         Architecture::X64 => x64::emit_try_end(out, end_label, stack_delta),
         Architecture::X86 => x86::emit_try_end(out, end_label, stack_delta),
     }
@@ -297,9 +308,9 @@ pub fn emit_catch_begin(out: &mut String, arch: Architecture, catch_label: &str)
     }
 }
 
-pub fn emit_catch_load_err(out: &mut String, arch: Architecture) {
+pub fn emit_catch_load_err(out: &mut String, arch: Architecture, os: OperatingSystem) {
     match arch {
-        Architecture::ARM64 => arm64::emit_catch_load_err(out),
+        Architecture::ARM64 => arm64::emit_catch_load_err(out, os),
         Architecture::X64 => x64::emit_catch_load_err(out),
         Architecture::X86 => x86::emit_catch_load_err(out),
     }

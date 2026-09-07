@@ -11,10 +11,9 @@ impl CodeGen {
             Stmt::Let { name, value } => match value {
                 Expr::String(s) => {
                     let label = self.ctx.next_string_label();
-                    self.output.push_str(".section .rodata\n");
+                    self.emit_rodata_section();
                     self.output.push_str(&format!("{}:\n", label));
-                    self.output
-                        .push_str(&format!("    .string \"{}\"\n", escape_string(s)));
+                    self.emit_string_directive(&escape_string(s));
                     self.output.push_str(".text\n");
                     self.ctx
                         .variables
@@ -204,14 +203,14 @@ impl CodeGen {
                 let saved_stack_offset = self.ctx.stack_offset;
                 let saved_variables = self.ctx.variables.clone();
 
-                arch::emit_try_begin(&mut self.output, self.arch, &catch_label);
+                arch::emit_try_begin(&mut self.output, self.arch, &catch_label, self.os);
 
                 for s in try_block {
                     self.generate_statement(s);
                 }
 
                 let try_delta = self.ctx.stack_offset - saved_stack_offset;
-                arch::emit_try_end(&mut self.output, self.arch, &end_label, try_delta);
+                arch::emit_try_end(&mut self.output, self.arch, &end_label, try_delta, self.os);
 
                 // At catch entry, runtime SP has been restored to saved_stack_offset.
                 self.ctx.stack_offset = saved_stack_offset;
@@ -219,7 +218,7 @@ impl CodeGen {
                 arch::emit_catch_begin(&mut self.output, self.arch, &catch_label);
 
                 if let Some(name) = catch_var {
-                    arch::emit_catch_load_err(&mut self.output, self.arch);
+                    arch::emit_catch_load_err(&mut self.output, self.arch, self.os);
                     arch::emit_allocate_var(
                         &mut self.output,
                         self.arch,

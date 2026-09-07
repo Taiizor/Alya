@@ -8,13 +8,6 @@ use std::sync::atomic::{AtomicU64, Ordering};
 static TEST_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 fn run_alya_code_with_input(source: &str, input: Option<&str>) -> Option<(i32, String)> {
-    // E2E assembly & linking requires GCC with GNU/ELF toolchain (Windows or Linux).
-    // On macOS, default Apple clang uses Mach-O format and requires Darwin-specific runtime.
-    if cfg!(target_os = "macos") {
-        eprintln!("Skipping E2E test on macOS: Apple Clang requires Mach-O toolchain.");
-        return None;
-    }
-
     // Check if gcc is available
     if Command::new("gcc").arg("--version").output().is_err() {
         eprintln!("Skipping E2E test: GCC is not available in PATH.");
@@ -28,11 +21,21 @@ fn run_alya_code_with_input(source: &str, input: Option<&str>) -> Option<(i32, S
 
     let os = if cfg!(target_os = "windows") {
         OperatingSystem::Windows
+    } else if cfg!(target_os = "macos") {
+        OperatingSystem::MacOS
     } else {
         OperatingSystem::Linux
     };
 
-    let asm_code = codegen::generate(&ast, Architecture::X64, os);
+    let arch = if cfg!(target_arch = "aarch64") {
+        Architecture::ARM64
+    } else if cfg!(target_arch = "x86") {
+        Architecture::X86
+    } else {
+        Architecture::X64
+    };
+
+    let asm_code = codegen::generate(&ast, arch, os);
 
     let pid = std::process::id();
     let id = TEST_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
@@ -47,7 +50,10 @@ fn run_alya_code_with_input(source: &str, input: Option<&str>) -> Option<(i32, S
 
     let mut gcc = Command::new("gcc");
     gcc.arg(&asm_path).arg("-o").arg(&exe_path);
-    if !matches!(os, OperatingSystem::Windows) {
+    if matches!(arch, Architecture::X86) {
+        gcc.arg("-m32");
+    }
+    if matches!(os, OperatingSystem::Linux) {
         gcc.arg("-no-pie");
     }
 

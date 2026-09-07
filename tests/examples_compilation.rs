@@ -64,16 +64,27 @@ fn test_all_examples_compile_to_assembly() {
             "Empty arm64 assembly generated for '{}'",
             example_name
         );
+
+        // 6. Codegen for macOS arm64
+        let macos_arm64 = codegen::generate(&ast, Architecture::ARM64, OperatingSystem::MacOS);
+        assert!(
+            macos_arm64.contains(".globl _main"),
+            "Missing _main in macOS ARM64 for '{}'",
+            example_name
+        );
+
+        // 7. Codegen for macOS x64
+        let macos_x64 = codegen::generate(&ast, Architecture::X64, OperatingSystem::MacOS);
+        assert!(
+            macos_x64.contains(".globl _main"),
+            "Missing _main in macOS x64 for '{}'",
+            example_name
+        );
     }
 }
 
 #[test]
 fn test_all_examples_execute_with_gcc() {
-    if cfg!(target_os = "macos") {
-        eprintln!("Skipping GCC execution on macOS: Apple Clang requires Mach-O toolchain.");
-        return;
-    }
-
     if std::process::Command::new("gcc")
         .arg("--version")
         .output()
@@ -98,8 +109,18 @@ fn test_all_examples_execute_with_gcc() {
 
     let os = if cfg!(target_os = "windows") {
         OperatingSystem::Windows
+    } else if cfg!(target_os = "macos") {
+        OperatingSystem::MacOS
     } else {
         OperatingSystem::Linux
+    };
+
+    let arch = if cfg!(target_arch = "aarch64") {
+        Architecture::ARM64
+    } else if cfg!(target_arch = "x86") {
+        Architecture::X86
+    } else {
+        Architecture::X64
     };
 
     for (idx, example_name) in examples.iter().enumerate() {
@@ -116,7 +137,7 @@ fn test_all_examples_execute_with_gcc() {
             .parse()
             .unwrap_or_else(|e| panic!("Parser failed for '{}': {}", example_name, e));
 
-        let asm_code = codegen::generate(&ast, Architecture::X64, os);
+        let asm_code = codegen::generate(&ast, arch, os);
         let pid = std::process::id();
         let temp_asm = format!("temp_ex_test_{}_{}.s", pid, idx);
         let temp_exe = if cfg!(target_os = "windows") {
@@ -129,7 +150,10 @@ fn test_all_examples_execute_with_gcc() {
 
         let mut gcc = std::process::Command::new("gcc");
         gcc.arg(&temp_asm).arg("-o").arg(&temp_exe);
-        if !matches!(os, OperatingSystem::Windows) {
+        if matches!(arch, Architecture::X86) {
+            gcc.arg("-m32");
+        }
+        if matches!(os, OperatingSystem::Linux) {
             gcc.arg("-no-pie");
         }
         let gcc_status = gcc.status().expect("Failed to run gcc");

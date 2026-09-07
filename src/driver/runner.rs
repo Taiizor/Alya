@@ -14,7 +14,7 @@ pub fn compile_with_gcc(
         gcc_args.insert(0, "-m32");
     }
 
-    if !matches!(os, OperatingSystem::Windows) {
+    if matches!(os, OperatingSystem::Linux) {
         gcc_args.push("-no-pie");
     }
 

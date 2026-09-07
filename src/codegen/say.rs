@@ -10,10 +10,9 @@ impl CodeGen {
         match expr {
             Expr::String(s) => {
                 let label = self.ctx.next_string_label();
-                self.output.push_str(".section .rodata\n");
+                self.emit_rodata_section();
                 self.output.push_str(&format!("{}:\n", label));
-                self.output
-                    .push_str(&format!("    .string \"{}\\n\"\n", escape_string(s)));
+                self.emit_string_directive(&format!("{}\\n", escape_string(s)));
                 self.output.push_str(".text\n");
 
                 arch::emit_say_str_lit(
@@ -47,10 +46,9 @@ impl CodeGen {
                 format_str.push_str("\\n");
 
                 let fmt_label = self.ctx.next_string_label();
-                self.output.push_str(".section .rodata\n");
+                self.emit_rodata_section();
                 self.output.push_str(&format!("{}:\n", fmt_label));
-                self.output
-                    .push_str(&format!("    .string \"{}\"\n", format_str));
+                self.emit_string_directive(&format_str);
                 self.output.push_str(".text\n");
 
                 match self.arch {
@@ -85,9 +83,9 @@ impl CodeGen {
                 {
                     self.generate_string_concat(left, right);
                     let fmt_label = self.ctx.next_string_label();
-                    self.output.push_str(".section .rodata\n");
+                    self.emit_rodata_section();
                     self.output.push_str(&format!("{}:\n", fmt_label));
-                    self.output.push_str("    .string \"%s\\n\"\n");
+                    self.emit_string_directive("%s\\n");
                     self.output.push_str(".text\n");
 
                     arch::emit_say_acc(
@@ -103,9 +101,9 @@ impl CodeGen {
                 self.generate_expression(expr);
 
                 let fmt_label = self.ctx.next_string_label();
-                self.output.push_str(".section .rodata\n");
+                self.emit_rodata_section();
                 self.output.push_str(&format!("{}:\n", fmt_label));
-                self.output.push_str("    .string \"%ld\\n\"\n");
+                self.emit_string_directive("%ld\\n");
                 self.output.push_str(".text\n");
 
                 arch::emit_say_acc(
@@ -122,9 +120,9 @@ impl CodeGen {
                     match var_type {
                         VarType::StringLabel(label) => {
                             let fmt_label = self.ctx.next_string_label();
-                            self.output.push_str(".section .rodata\n");
+                            self.emit_rodata_section();
                             self.output.push_str(&format!("{}:\n", fmt_label));
-                            self.output.push_str("    .string \"%s\\n\"\n");
+                            self.emit_string_directive("%s\\n");
                             self.output.push_str(".text\n");
 
                             arch::emit_say_str(
@@ -139,9 +137,9 @@ impl CodeGen {
                         }
                         VarType::StringOffset(offset) => {
                             let fmt_label = self.ctx.next_string_label();
-                            self.output.push_str(".section .rodata\n");
+                            self.emit_rodata_section();
                             self.output.push_str(&format!("{}:\n", fmt_label));
-                            self.output.push_str("    .string \"%s\\n\"\n");
+                            self.emit_string_directive("%s\\n");
                             self.output.push_str(".text\n");
 
                             arch::emit_say_offset(
@@ -156,9 +154,9 @@ impl CodeGen {
                         }
                         VarType::Number(offset) => {
                             let fmt_label = self.ctx.next_string_label();
-                            self.output.push_str(".section .rodata\n");
+                            self.emit_rodata_section();
                             self.output.push_str(&format!("{}:\n", fmt_label));
-                            self.output.push_str("    .string \"%ld\\n\"\n");
+                            self.emit_string_directive("%ld\\n");
                             self.output.push_str(".text\n");
 
                             arch::emit_say_offset(
@@ -176,9 +174,9 @@ impl CodeGen {
             }
             Expr::Number(n) => {
                 let fmt_label = self.ctx.next_string_label();
-                self.output.push_str(".section .rodata\n");
+                self.emit_rodata_section();
                 self.output.push_str(&format!("{}:\n", fmt_label));
-                self.output.push_str("    .string \"%ld\\n\"\n");
+                self.emit_string_directive("%ld\\n");
                 self.output.push_str(".text\n");
 
                 arch::emit_say_num_const(
@@ -196,12 +194,12 @@ impl CodeGen {
                 self.generate_expression(expr);
 
                 let fmt_label = self.ctx.next_string_label();
-                self.output.push_str(".section .rodata\n");
+                self.emit_rodata_section();
                 self.output.push_str(&format!("{}:\n", fmt_label));
                 if is_str {
-                    self.output.push_str("    .string \"%s\\n\"\n");
+                    self.emit_string_directive("%s\\n");
                 } else {
-                    self.output.push_str("    .string \"%ld\\n\"\n");
+                    self.emit_string_directive("%ld\\n");
                 }
                 self.output.push_str(".text\n");
 

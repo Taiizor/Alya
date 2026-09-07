@@ -126,6 +126,12 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
 
+    let p = if matches!(os, OperatingSystem::MacOS) {
+        "_"
+    } else {
+        ""
+    };
+
     // fn_exit
     out.push_str("fn_exit:\n");
     out.push_str("    push %rbp\n");
@@ -135,7 +141,7 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
         out.push_str("    call exit\n");
     } else {
         out.push_str("    sub $8, %rsp\n");
-        out.push_str("    call exit\n");
+        out.push_str(&format!("    call {}exit\n", p));
     }
 
     // fn_ask
@@ -163,9 +169,9 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
         out.push_str("    mov %rdi, %rsi\n");
         out.push_str("    lea alya_fmt_prompt(%rip), %rdi\n");
         out.push_str("    xor %rax, %rax\n");
-        out.push_str("    call printf\n");
+        out.push_str(&format!("    call {}printf\n", p));
         out.push_str("    xor %rdi, %rdi\n");
-        out.push_str("    call fflush\n");
+        out.push_str(&format!("    call {}fflush\n", p));
     }
     out.push_str(".L_x64_ask_read:\n");
     out.push_str("    lea alya_str_buf(%rip), %rbx\n");
@@ -177,7 +183,7 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    lea (%rbx, %rsi), %r12\n");
     out.push_str("    mov %r12, %r13\n");
     out.push_str(".L_x64_ask_loop:\n");
-    out.push_str("    call getchar\n");
+    out.push_str(&format!("    call {}getchar\n", p));
     out.push_str("    cmp $-1, %rax\n");
     out.push_str("    je .L_x64_ask_done\n");
     out.push_str("    cmp $10, %rax\n");
@@ -233,8 +239,8 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
     } else {
         out.push_str("    lea alya_fmt_div_zero(%rip), %rdi\n");
         out.push_str("    xor %rax, %rax\n");
-        out.push_str("    call printf\n");
+        out.push_str(&format!("    call {}printf\n", p));
         out.push_str("    mov $1, %rdi\n");
-        out.push_str("    call exit\n\n");
+        out.push_str(&format!("    call {}exit\n\n", p));
     }
 }

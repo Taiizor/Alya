@@ -13,13 +13,12 @@ impl CodeGen {
             }
             Expr::String(s) => {
                 let label = self.ctx.next_string_label();
-                self.output.push_str(".section .rodata\n");
+                self.emit_rodata_section();
                 self.output.push_str(&format!("{}:\n", label));
-                self.output
-                    .push_str(&format!("    .string \"{}\"\n", escape_string(s)));
+                self.emit_string_directive(&escape_string(s));
                 self.output.push_str(".text\n");
 
-                arch::emit_load_str_label(&mut self.output, self.arch, &label);
+                arch::emit_load_str_label(&mut self.output, self.arch, &label, self.os);
             }
             Expr::Identifier(name) => {
                 if let Some(var_type) = self.ctx.variables.get(name).cloned() {
@@ -33,7 +32,7 @@ impl CodeGen {
                             );
                         }
                         VarType::StringLabel(label) => {
-                            arch::emit_load_str_label(&mut self.output, self.arch, &label);
+                            arch::emit_load_str_label(&mut self.output, self.arch, &label, self.os);
                         }
                     }
                 }
