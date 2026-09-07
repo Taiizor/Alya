@@ -69,6 +69,11 @@ fn test_all_examples_compile_to_assembly() {
 
 #[test]
 fn test_all_examples_execute_with_gcc() {
+    if cfg!(target_os = "macos") {
+        eprintln!("Skipping GCC execution on macOS: Apple Clang requires Mach-O toolchain.");
+        return;
+    }
+
     if std::process::Command::new("gcc")
         .arg("--version")
         .output()

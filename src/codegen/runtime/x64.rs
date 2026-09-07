@@ -146,7 +146,8 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    push %rsi\n");
     out.push_str("    push %rdi\n");
     out.push_str("    push %r12\n");
-    out.push_str("    sub $48, %rsp\n");
+    out.push_str("    push %r13\n");
+    out.push_str("    sub $56, %rsp\n");
     if matches!(os, OperatingSystem::Windows) {
         out.push_str("    mov %rcx, %rdi\n");
         out.push_str("    test %rdi, %rdi\n");
@@ -174,7 +175,7 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    xor %rsi, %rsi\n");
     out.push_str(".L_x64_ask_buf_ok:\n");
     out.push_str("    lea (%rbx, %rsi), %r12\n");
-    out.push_str("    mov %r12, %rdi\n");
+    out.push_str("    mov %r12, %r13\n");
     out.push_str(".L_x64_ask_loop:\n");
     out.push_str("    call getchar\n");
     out.push_str("    cmp $-1, %rax\n");
@@ -183,18 +184,20 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str("    je .L_x64_ask_done\n");
     out.push_str("    cmp $13, %rax\n");
     out.push_str("    je .L_x64_ask_loop\n");
-    out.push_str("    movb %al, (%rdi)\n");
-    out.push_str("    inc %rdi\n");
+    out.push_str("    movb %al, (%r13)\n");
+    out.push_str("    inc %r13\n");
     out.push_str("    jmp .L_x64_ask_loop\n");
     out.push_str(".L_x64_ask_done:\n");
-    out.push_str("    movb $0, (%rdi)\n");
-    out.push_str("    inc %rdi\n");
-    out.push_str("    sub %rbx, %rdi\n");
-    out.push_str("    add $7, %rdi\n");
-    out.push_str("    and $-8, %rdi\n");
-    out.push_str("    mov %rdi, alya_str_idx(%rip)\n");
+    out.push_str("    movb $0, (%r13)\n");
+    out.push_str("    inc %r13\n");
+    out.push_str("    lea alya_str_buf(%rip), %rbx\n");
+    out.push_str("    sub %rbx, %r13\n");
+    out.push_str("    add $7, %r13\n");
+    out.push_str("    and $-8, %r13\n");
+    out.push_str("    mov %r13, alya_str_idx(%rip)\n");
     out.push_str("    mov %r12, %rax\n");
-    out.push_str("    add $48, %rsp\n");
+    out.push_str("    add $56, %rsp\n");
+    out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
     out.push_str("    pop %rdi\n");
     out.push_str("    pop %rsi\n");

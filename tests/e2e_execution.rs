@@ -8,6 +8,13 @@ use std::sync::atomic::{AtomicU64, Ordering};
 static TEST_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 fn run_alya_code_with_input(source: &str, input: Option<&str>) -> Option<(i32, String)> {
+    // E2E assembly & linking requires GCC with GNU/ELF toolchain (Windows or Linux).
+    // On macOS, default Apple clang uses Mach-O format and requires Darwin-specific runtime.
+    if cfg!(target_os = "macos") {
+        eprintln!("Skipping E2E test on macOS: Apple Clang requires Mach-O toolchain.");
+        return None;
+    }
+
     // Check if gcc is available
     if Command::new("gcc").arg("--version").output().is_err() {
         eprintln!("Skipping E2E test: GCC is not available in PATH.");
