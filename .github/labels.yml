@@ -1,0 +1,110 @@
+# Centralized GitHub Labels Configuration for Alya
+# Synchronized automatically by .github/workflows/labels.yml
+
+- name: "type: bug"
+  color: "d73a4a"
+  description: "Something is broken or not working as expected"
+
+- name: "type: feature"
+  color: "a2eeef"
+  description: "New feature or functionality proposal"
+
+- name: "type: enhancement"
+  color: "5319e7"
+  description: "Improvement or optimization to existing code"
+
+- name: "type: docs"
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+
+- name: "type: refactor"
+  color: "e99695"
+  description: "Code change that neither fixes a bug nor adds a feature"
+
+- name: "type: test"
+  color: "c2e0c6"
+  description: "Adding missing tests or correcting existing tests"
+
+- name: "type: maintenance"
+  color: "cfd3d7"
+  description: "Repository maintenance, dependencies, or configuration"
+
+- name: "area: codegen"
+  color: "fbca04"
+  description: "Assembly code generation and instruction emission"
+
+- name: "area: parser"
+  color: "e11d48"
+  description: "Syntax parsing, AST nodes, and grammar"
+
+- name: "area: lexer"
+  color: "f97316"
+  description: "Tokenization, scanning, and lexer diagnostics"
+
+- name: "area: runtime"
+  color: "e4e669"
+  description: "Runtime safety routines, memory buffers, and built-ins"
+
+- name: "area: cli"
+  color: "1d76db"
+  description: "Compiler CLI, flags, commands, and runner"
+
+- name: "area: diagnostics"
+  color: "f43f5e"
+  description: "Error reporting, formatting, and source highlights"
+
+- name: "area: ci"
+  color: "000000"
+  description: "GitHub Actions workflows, build scripts, and releases"
+
+- name: "area: examples"
+  color: "0e8a16"
+  description: "Sample programs and learning materials in examples/"
+
+- name: "arch: x86"
+  color: "bfdadc"
+  description: "32-bit x86 architecture specific"
+
+- name: "arch: x64"
+  color: "c5def5"
+  description: "64-bit x86_64 architecture specific"
+
+- name: "arch: arm64"
+  color: "d4c5f9"
+  description: "ARM64 / Apple Silicon / AArch64 architecture specific"
+
+- name: "os: linux"
+  color: "fef2c0"
+  description: "Linux OS specific (ELF64)"
+
+- name: "os: macos"
+  color: "ededed"
+  description: "macOS platform specific (Mach-O)"
+
+- name: "os: windows"
+  color: "c2e0c6"
+  description: "Windows OS specific (PE/COFF, MinGW)"
+
+- name: "status: in-progress"
+  color: "f9d0c4"
+  description: "Work is actively underway"
+
+- name: "status: review-needed"
+  color: "fbca04"
+  description: "Changes are ready and awaiting maintainer review"
+
+- name: "status: blocked"
+  color: "b60205"
+  description: "Waiting on external dependencies or blockers"
+
+- name: "good first issue"
+  color: "7057ff"
+  description: "Good for newcomers"
+
+- name: "help wanted"
+  color: "008672"
+  description: "Extra attention is needed"
+
+- name: "question"
+  color: "d876e3"
+  description: "Further information is requested"

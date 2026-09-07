@@ -1,7 +1,7 @@
 name: 🐛 Bug Report
 description: Report an issue or unexpected behavior in the Alya compiler
 title: "[Bug]: "
-labels: ["bug"]
+labels: ["type: bug"]
 body:
   - type: markdown
     attributes:
@@ -36,9 +36,9 @@ body:
       label: Target Architecture
       description: Target CPU architecture being compiled for
       options:
-        - x64 (x86_64)
         - x86 (i686 / 32-bit)
-        - ARM64 (aarch64)
+        - x64 (x86_64)
+        - ARM64 (Apple Silicon / aarch64)
     validations:
       required: true
 

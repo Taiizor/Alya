@@ -1,0 +1,70 @@
+# Configuration for actions/labeler
+# Automatically applies labels to Pull Requests based on changed files
+
+"type: docs":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "*.md"
+          - "docs/**"
+          - "LICENSE"
+
+"type: test":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "tests/**"
+          - "src/**/tests.rs"
+
+"area: ci":
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+
+"area: examples":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "examples/**"
+
+"area: codegen":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/codegen/**"
+
+"area: lexer":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/lexer/**"
+
+"area: parser":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/parser/**"
+          - "src/ast/**"
+
+"area: cli":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/cli/**"
+          - "src/main.rs"
+
+"area: diagnostics":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/diagnostics/**"
+
+"arch: x86":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/codegen/arch/x86.rs"
+          - "src/codegen/runtime/x86.rs"
+
+"arch: x64":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/codegen/arch/x64.rs"
+          - "src/codegen/runtime/x64.rs"
+
+"arch: arm64":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/codegen/arch/arm64.rs"
+          - "src/codegen/runtime/arm64.rs"
