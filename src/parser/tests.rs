@@ -542,6 +542,41 @@ fn test_resolve_imports_temporary_files() {
 }
 
 #[test]
+fn test_resolve_imports_subdirectory_and_backslash_normalization() {
+    use std::fs;
+    let temp_dir =
+        std::env::temp_dir().join(format!("alya_import_sub_test_{}", std::process::id()));
+    let sub_dir = temp_dir.join("sub");
+    let _ = fs::create_dir_all(&sub_dir);
+
+    let helper_path = sub_dir.join("calc.alya");
+    fs::write(
+        &helper_path,
+        "function calc_sum(a, b)\n    return a + b\nend\n",
+    )
+    .unwrap();
+
+    // Test both forward slash and backslash in import path (duplicate is deduplicated)
+    let main_source =
+        "import \"sub/calc.alya\"\nimport \"sub\\\\calc.alya\"\nlet ans = calc_sum(1, 2)\nsay ans";
+    let mut lexer = crate::lexer::Lexer::new(main_source);
+    let tokens = lexer.tokenize().expect("Failed to tokenize");
+    let mut parser = Parser::new(tokens);
+    let mut program = parser.parse().expect("Failed to parse");
+
+    super::resolve_imports(&mut program, &temp_dir).expect("Failed to resolve imports");
+
+    // The function is imported and duplicate avoided
+    assert_eq!(program.statements.len(), 3);
+    match &program.statements[0] {
+        Stmt::Function { name, .. } => assert_eq!(name, "calc_sum"),
+        other => panic!("Expected Stmt::Function, got {:?}", other),
+    }
+
+    let _ = fs::remove_dir_all(&temp_dir);
+}
+
+#[test]
 fn test_parse_struct_and_field_access() {
     let source = "struct Point\n  x\n  y\nend\nlet p = Point { x: 10, y: 20 }\np.x = 99\nsay p.x";
     let mut lexer = crate::lexer::Lexer::new(source);

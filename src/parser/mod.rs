@@ -84,7 +84,9 @@ fn resolve_stmt_imports(
 ) -> Result<(), String> {
     match stmt {
         Stmt::Import(import_path_str) => {
-            let path = std::path::Path::new(&import_path_str);
+            // Normalize path separators to '/' so Windows-style '\' works across Linux, macOS, and Windows
+            let normalized_path = import_path_str.replace('\\', "/");
+            let path = std::path::Path::new(&normalized_path);
             let target_path = if path.is_absolute() {
                 path.to_path_buf()
             } else {
