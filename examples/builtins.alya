@@ -40,3 +40,10 @@ say "Contains 'Language': {has_word}"
 let part = clean.substring(0, 4)
 say "Substring: " + part
 
+# 7. String split and join
+let parts = "apple,banana,orange".split(",")
+say "Split count: {parts.len()}"
+let rejoined = parts.join(" - ")
+say "Joined: " + rejoined
+
+

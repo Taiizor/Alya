@@ -269,7 +269,9 @@ Trimmed: Alya Programming Language\n\
 Uppercase: ALYA PROGRAMMING LANGUAGE\n\
 Lowercase: alya programming language\n\
 Contains 'Language': 1\n\
-Substring: Alya\n",
+Substring: Alya\n\
+Split count: 3\n\
+Joined: apple - banana - orange\n",
         ),
         "calculator.alya" => Some(
             "=== Simple Calculator ===\n\
@@ -284,6 +286,10 @@ Modulo:         15 % 7 = 1\n\
 (15 - 7) / 2 = 4\n\
 100 / 4 - 5 = 20\n\
 (3 + 5) * (10 - 2) = 64\n",
+        ),
+        "cli_args.alya" => Some(
+            "=== Command-Line Arguments ===\n\
+Argument count: 0\n",
         ),
         "comments.alya" => Some("Sum: 30\n"),
         "compound_operators.alya" => Some(
@@ -379,7 +385,12 @@ Repeat broke at r = 4\n\
 === Loop with Continue ===\n\
 Odd number: 1\n\
 Odd number: 3\n\
-Odd number: 5\n",
+Odd number: 5\n\
+\n\
+=== For-Each Array Iteration ===\n\
+Fruit: apple\n\
+Fruit: banana\n\
+Fruit: cherry\n",
         ),
         "main.alya" => Some(
             "Enter name: Hello, TestUser! Welcome to Alya.\n\

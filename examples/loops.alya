@@ -48,3 +48,11 @@ for num in 1..6
     say "Odd number: {num}"
 end
 
+# 6. For-each loop (array iteration)
+say "\n=== For-Each Array Iteration ==="
+let fruits = ["apple", "banana", "cherry"]
+for f in fruits
+    say "Fruit: {f}"
+end
+
+

@@ -35,12 +35,12 @@
 
 - 🌟 **Expressive & Readable**: English-like keywords (`say`, `ask`, `when`, `repeat`, `function`).
 - 📁 **Modules & Imports**: Split code cleanly across multiple files with `import "module.alya"`, complete with circular dependency prevention.
-- 📦 **Arrays & Indexing**: Dynamic array literals (`[1, 2, 3]`), 0-based indexing (`arr[i]`), element mutation (`arr[i] = val`, `arr[i] += 1`), length querying (`len(arr)`), and automatic bounds safety.
+- 📦 **Arrays & Iteration**: Dynamic array literals (`[1, 2, 3]`), 0-based indexing (`arr[i]`), mutation (`arr[i] = val`), direct iteration (`for item in arr ... end`), querying (`len(arr)`), and automatic bounds safety.
 - 🏗️ **Structs & Custom Types**: Custom composite types (`struct Point ... end`), named and positional constructors (`Point { x: 1, y: 2 }` / `Point(1, 2)`), field access (`p.x`), mutation (`p.x = 100`, `p.x += 5`), and formatted printing.
 - 🔢 **Floating-Point Numbers**: First-class 64-bit IEEE 754 float support (`f64`), mixed integer-float arithmetic, built-in `float()` and `int()` casting, and formatted output.
 - 🛡️ **Exception Handling**: Built-in `try ... catch [err] ... end` support with runtime division/modulo by zero and out-of-bounds protection.
 - ⚡ **Direct Native Codegen**: Emits clean, comment-annotated assembly for **x86 (32-bit)**, **x64 (64-bit)**, and **ARM64 (Apple Silicon & AArch64)**.
-- 🛠️ **Built-in Functions & Methods**: Math intrinsics (`abs`, `min`, `max`, `sqrt`, `pow`), string helpers (`trim`, `upper`, `lower`, `contains`, `substring`/`substr`), array operations (`push`, `pop`), formatting (`print`, `println`), string conversions (`str`, `int`), and length (`len`).
+- 🛠️ **Built-in Functions & Methods**: Math intrinsics (`abs`, `min`, `max`, `sqrt`, `pow`), string helpers (`trim`, `upper`, `lower`, `contains`, `substring`/`substr`, `split`, `join`), CLI args (`args()`), dynamic arrays (`push`, `pop`), formatting (`print`, `println`), and conversions (`str`, `int`).
 - 💬 **Flexible Comments**: Supports Python-style `#`, C-style `//`, and multiline `/* ... */` comments.
 - 🔄 **Compound Operators**: Native `+=`, `-=`, `*=`, and `/=` assignments.
 - 🎯 **Rich CLI**: Subcommands for direct execution (`run`), building binaries (`build`), syntax validation (`check`), and AST/token visualization (`ast`, `tokens`).
@@ -178,6 +178,11 @@ say greeting.trim().upper()         # "HELLO, ALYA!"
 say greeting.trim().lower()         # "hello, alya!"
 say greeting.contains("Alya")       # 1
 say greeting.trim().substring(0, 5) # "Hello"
+
+# String splitting & joining
+let csv = "apple,banana,cherry"
+let fruits = csv.split(",")         # ["apple", "banana", "cherry"]
+say fruits.join(" - ")              # "apple - banana - cherry"
 ```
 
 ### 4. Interactive User Input
@@ -211,6 +216,12 @@ end
 # For Loop (Range)
 for i in 1..5
     say i
+end
+
+# For-each Loop (Array Iteration)
+let items = ["apple", "banana", "cherry"]
+for item in items
+    say item
 end
 
 # Repeat Loop
@@ -378,6 +389,25 @@ let p2 = Point(3, 4)
 say distance_squared(p2)    # 25
 ```
 
+### 13. Command-Line Arguments (`args()`)
+
+Access command-line arguments passed to your program as a native dynamic array of strings:
+
+```alya
+let arguments = args()
+say "Arguments count: {arguments.len()}"
+
+for arg in arguments
+    say "Argument: {arg}"
+end
+```
+
+Execute with custom arguments using the `--` separator:
+
+```bash
+alyac run script.alya -- hello world 42
+```
+
 ---
 
 ## Platform & Architecture Matrix
@@ -403,7 +433,7 @@ Alya/
 │   ├── workflows/             # CI and Automated Release workflows
 │   ├── ISSUE_TEMPLATE/        # Bug report and Feature request forms
 │   └── PULL_REQUEST_TEMPLATE.md
-├── examples/                  # 22 rich example programs and modules
+├── examples/                  # 23 rich example programs and modules
 ├── src/
 │   ├── cli/                   # Argument parser, help, and commands
 │   ├── codegen/               # Assembly code generator (x86, x64, ARM64)
