@@ -65,6 +65,39 @@ pub enum TokenType {
     Eof,
 }
 
+impl TokenType {
+    pub fn from_identifier(ident: &str) -> Self {
+        match ident {
+            "say" => TokenType::Say,
+            "let" => TokenType::Let,
+            "if" => TokenType::If,
+            "else" => TokenType::Else,
+            "elif" => TokenType::Elif,
+            "while" => TokenType::While,
+            "for" => TokenType::For,
+            "in" => TokenType::In,
+            "function" => TokenType::Function,
+            "end" => TokenType::End,
+            "return" => TokenType::Return,
+            "when" => TokenType::When,
+            "is" => TokenType::Is,
+            "then" => TokenType::Then,
+            "repeat" => TokenType::Repeat,
+            "break" => TokenType::Break,
+            "continue" => TokenType::Continue,
+            "ask" => TokenType::Ask,
+            "try" => TokenType::Try,
+            "catch" => TokenType::Catch,
+            "true" => TokenType::True,
+            "false" => TokenType::False,
+            "and" => TokenType::And,
+            "or" => TokenType::Or,
+            "not" => TokenType::Not,
+            _ => TokenType::Identifier(ident.to_string()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,

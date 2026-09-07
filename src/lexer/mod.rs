@@ -1,6 +1,8 @@
-pub mod token;
+mod cursor;
+mod reader;
 #[cfg(test)]
 mod tests;
+pub mod token;
 
 pub use token::{Token, TokenType};
 
@@ -19,140 +21,6 @@ impl Lexer {
             line: 1,
             column: 1,
         }
-    }
-
-    fn current_char(&self) -> Option<char> {
-        if self.position < self.input.len() {
-            Some(self.input[self.position])
-        } else {
-            None
-        }
-    }
-
-    fn peek_char(&self) -> Option<char> {
-        if self.position + 1 < self.input.len() {
-            Some(self.input[self.position + 1])
-        } else {
-            None
-        }
-    }
-
-    fn advance(&mut self) {
-        if self.position < self.input.len() {
-            if self.input[self.position] == '\n' {
-                self.line += 1;
-                self.column = 1;
-            } else {
-                self.column += 1;
-            }
-            self.position += 1;
-        }
-    }
-
-    fn skip_whitespace(&mut self) {
-        while let Some(ch) = self.current_char() {
-            if ch == ' ' || ch == '\t' || ch == '\r' {
-                self.advance();
-            } else {
-                break;
-            }
-        }
-    }
-
-    fn skip_comment(&mut self) {
-        while let Some(ch) = self.current_char() {
-            if ch == '\n' {
-                break;
-            }
-            self.advance();
-        }
-    }
-
-    fn skip_multiline_comment(&mut self) -> Result<(), String> {
-        let start_line = self.line;
-        let start_col = self.column;
-        while let Some(ch) = self.current_char() {
-            if ch == '*' && self.peek_char() == Some('/') {
-                self.advance(); // skip '*'
-                self.advance(); // skip '/'
-                return Ok(());
-            }
-            self.advance();
-        }
-        Err(format!(
-            "Unclosed multiline comment starting at line {}, column {}",
-            start_line, start_col
-        ))
-    }
-
-    fn read_number(&mut self) -> Result<f64, String> {
-        let start_pos = self.position;
-        let start_line = self.line;
-        let start_col = self.column;
-        let mut has_dot = false;
-
-        while let Some(ch) = self.current_char() {
-            if ch.is_ascii_digit() {
-                self.advance();
-            } else if ch == '.' && !has_dot && self.peek_char().is_some_and(|c| c.is_ascii_digit()) {
-                has_dot = true;
-                self.advance();
-            } else {
-                break;
-            }
-        }
-
-        let num_str: String = self.input[start_pos..self.position].iter().collect();
-        num_str
-            .parse::<f64>()
-            .map_err(|_| format!("Invalid number '{}' at line {}, column {}", num_str, start_line, start_col))
-    }
-
-    fn read_string(&mut self) -> Result<String, String> {
-        let start_line = self.line;
-        let start_col = self.column;
-        self.advance(); // Skip opening quote
-        let mut result = String::new();
-
-        while let Some(ch) = self.current_char() {
-            if ch == '"' {
-                self.advance(); // Skip closing quote
-                return Ok(result);
-            } else if ch == '\\' {
-                self.advance();
-                match self.current_char() {
-                    Some('n') => result.push('\n'),
-                    Some('t') => result.push('\t'),
-                    Some('r') => result.push('\r'),
-                    Some('\\') => result.push('\\'),
-                    Some('"') => result.push('"'),
-                    Some('{') => result.push('{'),
-                    Some('}') => result.push('}'),
-                    Some(c) => result.push(c),
-                    None => return Err(format!("Unexpected end of string at line {}, column {}", self.line, self.column)),
-                }
-                self.advance();
-            } else {
-                result.push(ch);
-                self.advance();
-            }
-        }
-
-        Err(format!("Unterminated string starting at line {}, column {}", start_line, start_col))
-    }
-
-    fn read_identifier(&mut self) -> String {
-        let start_pos = self.position;
-
-        while let Some(ch) = self.current_char() {
-            if ch.is_alphanumeric() || ch == '_' {
-                self.advance();
-            } else {
-                break;
-            }
-        }
-
-        self.input[start_pos..self.position].iter().collect()
     }
 
     pub fn tokenize(&mut self) -> Result<Vec<Token>, String> {
@@ -434,34 +302,7 @@ impl Lexer {
                 }
                 _ if ch.is_alphabetic() || ch == '_' => {
                     let ident = self.read_identifier();
-                    let token_type = match ident.as_str() {
-                        "say" => TokenType::Say,
-                        "let" => TokenType::Let,
-                        "if" => TokenType::If,
-                        "else" => TokenType::Else,
-                        "elif" => TokenType::Elif,
-                        "while" => TokenType::While,
-                        "for" => TokenType::For,
-                        "in" => TokenType::In,
-                        "function" => TokenType::Function,
-                        "end" => TokenType::End,
-                        "return" => TokenType::Return,
-                        "when" => TokenType::When,
-                        "is" => TokenType::Is,
-                        "then" => TokenType::Then,
-                        "repeat" => TokenType::Repeat,
-                        "break" => TokenType::Break,
-                        "continue" => TokenType::Continue,
-                        "ask" => TokenType::Ask,
-                        "try" => TokenType::Try,
-                        "catch" => TokenType::Catch,
-                        "true" => TokenType::True,
-                        "false" => TokenType::False,
-                        "and" => TokenType::And,
-                        "or" => TokenType::Or,
-                        "not" => TokenType::Not,
-                        _ => TokenType::Identifier(ident),
-                    };
+                    let token_type = TokenType::from_identifier(&ident);
                     tokens.push(Token {
                         token_type,
                         line,
