@@ -1,0 +1,7 @@
+# Interactive user input with ask
+
+let name = ask "What is your name? "
+say "Hello, {name}! Welcome to Alya."
+
+let language = ask "What is your favorite programming language? "
+say "Awesome, {language} is great!"

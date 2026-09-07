@@ -5,19 +5,20 @@ use alya::codegen::{self, Architecture, OperatingSystem};
 
 #[test]
 fn test_all_examples_compile_to_assembly() {
-    let examples = vec![
-        "arithmetic.alya",
-        "calculator.alya",
-        "conditionals.alya",
-        "fibonacci.alya",
-        "functions.alya",
-        "hello.alya",
-        "interpolation.alya",
-        "loops.alya",
-        "pattern_matching.alya",
-        "quickstart_arithmetic.alya",
-        "variables.alya",
-    ];
+    let mut examples: Vec<String> = fs::read_dir("examples")
+        .expect("Failed to read examples directory")
+        .filter_map(|entry| {
+            let path = entry.ok()?.path();
+            if path.extension().and_then(|ext| ext.to_str()) == Some("alya") {
+                path.file_name()?.to_str().map(|s| s.to_string())
+            } else {
+                None
+            }
+        })
+        .collect();
+    examples.sort();
+    assert!(!examples.is_empty(), "No .alya files found in examples/");
+
 
     for example_name in examples {
         let path = format!("examples/{}", example_name);
