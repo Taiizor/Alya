@@ -33,21 +33,13 @@ function copy_file(src, dst)
     if file_exists(src) == 0
         return 0
     end
-    try
-        let content = read_file(src)
-        return write_file(dst, content)
-    catch
-        return 0
-    end
+    let content = read_file(src)
+    return write_file(dst, content)
 end
 
 function move_file(src, dst)
-    try
-        if copy_file(src, dst)
-            return remove_file(src)
-        end
-    catch
-        return 0
+    if copy_file(src, dst)
+        return remove_file(src)
     end
     return 0
 end
