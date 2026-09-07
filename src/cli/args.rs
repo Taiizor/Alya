@@ -149,7 +149,7 @@ impl CliArgs {
                             "arm64" => Architecture::ARM64,
                             other => {
                                 return Err(format!(
-                                    "Error: Unknown architecture '{}'. Supported: x64, x86, arm64",
+                                    "Error: Unknown architecture '{}'. Supported: x86, x64, arm64",
                                     other
                                 ))
                             }

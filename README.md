@@ -27,7 +27,7 @@
 
 ## Overview
 
-**Alya** is designed to provide clean, readable syntax inspired by natural language without compromising performance. Written in Rust, the `alyac` compiler generates native assembly (GNU syntax) for multiple targets and links with GCC to produce standalone native binaries.
+**Alya** is designed to provide clean, readable syntax inspired by natural language without compromising performance. Written in Rust, the `alyac` compiler generates native assembly (GNU & Mach-O syntax) for multiple targets and links with system toolchains (GCC / Clang) to produce standalone native binaries.
 
 ---
 
@@ -35,7 +35,7 @@
 
 - 🌟 **Expressive & Readable**: English-like keywords (`say`, `ask`, `when`, `repeat`, `function`).
 - 🛡️ **Exception Handling**: Built-in `try ... catch [err] ... end` support with runtime division/modulo by zero protection.
-- ⚡ **Direct Native Codegen**: Emits clean, comment-annotated assembly for **x64**, **x86 (32-bit)**, and **ARM64**.
+- ⚡ **Direct Native Codegen**: Emits clean, comment-annotated assembly for **x86 (32-bit)**, **x64 (64-bit)**, and **ARM64 (Apple Silicon & AArch64)**.
 - 🛠️ **Built-in Functions**: Math intrinsics (`abs`, `min`, `max`, `sqrt`, `pow`), formatting (`print`, `println`), string conversions (`str`, `int`), and string length (`len`).
 - 💬 **Flexible Comments**: Supports Python-style `#`, C-style `//`, and multiline `/* ... */` comments.
 - 🔄 **Compound Operators**: Native `+=`, `-=`, `*=`, and `/=` assignments.
@@ -92,8 +92,8 @@ Options:
       --ast                Print AST structure
       --tokens             Print lexer token stream
   -q, --quiet              Suppress banner and informational compiler output
-      --arch <arch>        Target architecture: x64 (default), x86, arm64
-      --os <os>            Target operating system: windows, linux, macos
+      --arch <arch>        Target architecture: x86, x64, arm64 (default: auto-detected)
+      --os <os>            Target operating system: windows, linux, macos (default: auto-detected)
   -h, --help               Display help information
   -v, --version            Display compiler version
 ```
@@ -253,11 +253,16 @@ say "Program resumes normally!"
 
 ## Platform & Architecture Matrix
 
-| Operating System | x64 (x86_64) | x86 (i686) | ARM64 (aarch64) |
-| :--------------- | :----------: | :--------: | :-------------: |
-| **Linux**        | ✅ Fully Supported | ✅ Supported (`gcc -m32`) | ✅ Supported (`aarch64-gcc`) |
-| **Windows**      | ✅ MinGW-w64 | ⚠️ Multilib GCC required | ⚠️ Cross-compiler required |
-| **macOS**        | ✅ Intel Macs | ❌ Not Supported | ✅ Apple Silicon (M1/M2/M3) |
+| Operating System | x86 (i686) | x64 (x86_64) | ARM64 (aarch64) |
+| :--------------- | :--------: | :----------: | :-------------: |
+| **Linux**        | ✅ Supported (`gcc -m32`) | ✅ Fully Supported (ELF64) | ✅ Supported (`aarch64-gcc`) |
+| **Windows**      | ⚠️ Multilib GCC required | ✅ Fully Supported (MinGW-w64) | ⚠️ Cross-compiler required |
+| **macOS**        | ❌ Deprecated by Apple | ✅ Fully Supported (Mach-O x86_64) | ✅ Fully Supported (Apple Silicon M1–M4) |
+
+> **Architecture & Toolchain Highlights:**
+> - **Zero External Backend Overhead:** Emits clean, native assembly directly without requiring LLVM or large runtime dependencies.
+> - **Native Mach-O Support:** Prepend symbol underscores (`_main`, `_printf`), Darwin variadic stack conventions, and `@PAGE` / `@PAGEOFF` PC-relative addressing on Apple Silicon.
+> - **Automatic Host Detection:** Automatically targets host CPU architecture and operating system out of the box.
 
 ---
 
@@ -269,10 +274,10 @@ Alya/
 │   ├── workflows/             # CI and Automated Release workflows
 │   ├── ISSUE_TEMPLATE/        # Bug report and Feature request forms
 │   └── PULL_REQUEST_TEMPLATE.md
-├── examples/                  # 17+ rich example programs
+├── examples/                  # 18 rich example programs
 ├── src/
 │   ├── cli/                   # Argument parser, help, and commands
-│   ├── codegen/               # Assembly code generator (x64, x86, ARM64)
+│   ├── codegen/               # Assembly code generator (x86, x64, ARM64)
 │   │   └── runtime/           # Target runtime functions and safety routines
 │   ├── diagnostics/           # Pretty error reporting
 │   ├── driver/                # Compiler execution and linker driver

@@ -29,8 +29,10 @@ pub fn print_usage() {
     println!("  -b, -c, --binary      Compile directly to executable (calls GCC)");
     println!("  -r, --run             Compile and run immediately");
     println!("  -S, --asm             Emit assembly output only");
-    println!("  --arch <arch>         Target architecture: x64, x86, arm64 (default: x64)");
-    println!("  --os <os>             Target OS: linux, windows, macos (default: auto-detected)");
+    println!(
+        "  --arch <arch>         Target architecture: x86, x64, arm64 (default: auto-detected)"
+    );
+    println!("  --os <os>             Target OS: windows, linux, macos (default: auto-detected)");
     println!("  -q, --quiet           Suppress status messages and compiler banner");
     println!("  -v, --version         Show compiler version");
     println!("  -h, --help            Show this help message\n");
