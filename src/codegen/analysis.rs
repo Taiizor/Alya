@@ -6,7 +6,14 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
     match expr {
         Expr::String(_) => true,
         Expr::InterpolatedString(_) => true,
-        Expr::Call { name, .. } if name == "ask" || name == "str" => true,
+        Expr::Call { name, .. }
+            if matches!(
+                name.as_str(),
+                "ask" | "str" | "trim" | "upper" | "lower" | "substring" | "substr"
+            ) =>
+        {
+            true
+        }
         Expr::Identifier(name) => {
             if let Some(var_type) = vars.get(name) {
                 matches!(var_type, VarType::StringLabel(_) | VarType::StringOffset(_))
@@ -82,7 +89,14 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
 fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bool {
     match expr {
         Expr::String(_) | Expr::InterpolatedString(_) => true,
-        Expr::Call { name, .. } if name == "ask" || name == "str" => true,
+        Expr::Call { name, .. }
+            if matches!(
+                name.as_str(),
+                "ask" | "str" | "trim" | "upper" | "lower" | "substring" | "substr"
+            ) =>
+        {
+            true
+        }
         Expr::Identifier(name) => known_strings.contains(name),
         Expr::Binary {
             left,

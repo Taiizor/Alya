@@ -264,7 +264,12 @@ Absolute value: 25\n\
 Min: 15\n\
 Max: 42\n\
 Square root of 64: 8\n\
-2 to the power of 10: 1024\n",
+2 to the power of 10: 1024\n\
+Trimmed: Alya Programming Language\n\
+Uppercase: ALYA PROGRAMMING LANGUAGE\n\
+Lowercase: alya programming language\n\
+Contains 'Language': 1\n\
+Substring: Alya\n",
         ),
         "calculator.alya" => Some(
             "=== Simple Calculator ===\n\

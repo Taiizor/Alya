@@ -674,3 +674,68 @@ say w_sum
         assert_eq!(output, "9\n8\n");
     }
 }
+
+#[test]
+fn test_e2e_string_helpers() {
+    let code = r#"
+let s = "  Hello, World!  "
+
+// trim
+let trimmed = s.trim()
+say trimmed
+say trim("   spaced out   ")
+
+// upper and lower
+let up = trimmed.upper()
+say up
+let low = trimmed.lower()
+say low
+say upper("alya language")
+say lower("ALYA COMPILER")
+
+// contains
+say trimmed.contains("World")
+say trimmed.contains("xyz")
+say contains("abcdef", "cd")
+say contains("abcdef", "gh")
+say trimmed.contains("")
+
+// substring / substr (3 args and 2 args)
+let sub1 = trimmed.substring(0, 5)
+say sub1
+let sub2 = substr(trimmed, 7, 5)
+say sub2
+let sub3 = trimmed.substring(7)
+say sub3
+let sub4 = substr(trimmed, 7)
+say sub4
+
+// chaining and concatenation
+let combo = s.trim().upper()
+say combo + " - SUCCESS"
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!(
+                "Hello, World!\n",
+                "spaced out\n",
+                "HELLO, WORLD!\n",
+                "hello, world!\n",
+                "ALYA LANGUAGE\n",
+                "alya compiler\n",
+                "1\n",
+                "0\n",
+                "1\n",
+                "0\n",
+                "1\n",
+                "Hello\n",
+                "World\n",
+                "World!\n",
+                "World!\n",
+                "HELLO, WORLD! - SUCCESS\n",
+            )
+        );
+    }
+}

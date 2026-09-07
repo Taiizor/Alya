@@ -40,7 +40,7 @@
 - 🔢 **Floating-Point Numbers**: First-class 64-bit IEEE 754 float support (`f64`), mixed integer-float arithmetic, built-in `float()` and `int()` casting, and formatted output.
 - 🛡️ **Exception Handling**: Built-in `try ... catch [err] ... end` support with runtime division/modulo by zero and out-of-bounds protection.
 - ⚡ **Direct Native Codegen**: Emits clean, comment-annotated assembly for **x86 (32-bit)**, **x64 (64-bit)**, and **ARM64 (Apple Silicon & AArch64)**.
-- 🛠️ **Built-in Functions**: Math intrinsics (`abs`, `min`, `max`, `sqrt`, `pow`), formatting (`print`, `println`), string conversions (`str`, `int`), and string length (`len`).
+- 🛠️ **Built-in Functions & Methods**: Math intrinsics (`abs`, `min`, `max`, `sqrt`, `pow`), string helpers (`trim`, `upper`, `lower`, `contains`, `substring`/`substr`), array operations (`push`, `pop`), formatting (`print`, `println`), string conversions (`str`, `int`), and length (`len`).
 - 💬 **Flexible Comments**: Supports Python-style `#`, C-style `//`, and multiline `/* ... */` comments.
 - 🔄 **Compound Operators**: Native `+=`, `-=`, `*=`, and `/=` assignments.
 - 🎯 **Rich CLI**: Subcommands for direct execution (`run`), building binaries (`build`), syntax validation (`check`), and AST/token visualization (`ast`, `tokens`).
@@ -170,6 +170,14 @@ say min(10, 25)         # 10
 say sqrt(16)            # 4
 say pow(2, 8)           # 256
 say len("Hello Alya")   # 10
+
+# String helpers (function or method call syntax)
+let greeting = "   Hello, Alya!   "
+say greeting.trim()                 # "Hello, Alya!"
+say greeting.trim().upper()         # "HELLO, ALYA!"
+say greeting.trim().lower()         # "hello, alya!"
+say greeting.contains("Alya")       # 1
+say greeting.trim().substring(0, 5) # "Hello"
 ```
 
 ### 4. Interactive User Input

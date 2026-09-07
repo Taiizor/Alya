@@ -172,15 +172,27 @@ impl CodeGen {
                     return;
                 }
 
+                let (call_name, actual_args): (&str, Vec<Expr>) =
+                    if (name == "substring" || name == "substr") && args.len() == 2 {
+                        (
+                            "substring",
+                            vec![args[0].clone(), args[1].clone(), Expr::Number(-1.0)],
+                        )
+                    } else if name == "substr" {
+                        ("substring", args.clone())
+                    } else {
+                        (name.as_str(), args.clone())
+                    };
+
                 match self.arch {
                     Architecture::X86 => {
-                        for arg in args.iter().rev() {
+                        for arg in actual_args.iter().rev() {
                             self.generate_expression(arg);
                             arch::emit_push_temp(&mut self.output, self.arch);
                         }
                     }
                     _ => {
-                        for arg in args {
+                        for arg in &actual_args {
                             self.generate_expression(arg);
                             arch::emit_push_temp(&mut self.output, self.arch);
                         }
@@ -189,8 +201,8 @@ impl CodeGen {
                 arch::emit_function_call(
                     &mut self.output,
                     self.arch,
-                    name,
-                    args.len(),
+                    call_name,
+                    actual_args.len(),
                     self.ctx.stack_offset,
                     self.os,
                 );
