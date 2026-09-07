@@ -585,6 +585,10 @@ pub fn emit_print_array(out: &mut String) {
     out.push_str("    bl alya_print_array\n");
 }
 
+pub fn emit_print_map(out: &mut String) {
+    out.push_str("    bl alya_print_map\n");
+}
+
 pub fn emit_struct_new(
     out: &mut String,
     desc_label: &str,

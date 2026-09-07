@@ -13,6 +13,7 @@ pub enum VarType {
     StringLabel(String), // Rodata label for string literals
     StringOffset(i32),   // Stack offset for string pointers
     Array(i32),          // Stack offset for array pointers
+    Map(i32),            // Stack offset for map pointers
     Struct { struct_name: String, offset: i32 },
 }
 

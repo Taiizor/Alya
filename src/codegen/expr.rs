@@ -1,6 +1,8 @@
 use super::CodeGen;
 use crate::ast::{BinaryOp, Expr};
-use crate::codegen::analysis::{escape_string, is_array_expr, is_float_expr, is_string_expr};
+use crate::codegen::analysis::{
+    escape_string, is_array_expr, is_float_expr, is_map_expr, is_string_expr,
+};
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
 use crate::codegen::target::Architecture;
@@ -34,6 +36,7 @@ impl CodeGen {
                         | VarType::Float(offset)
                         | VarType::StringOffset(offset)
                         | VarType::Array(offset)
+                        | VarType::Map(offset)
                         | VarType::Struct { offset, .. } => {
                             arch::emit_load_var(
                                 &mut self.output,
@@ -131,7 +134,8 @@ impl CodeGen {
 
                 if (name == "len" || name == "length")
                     && args.len() == 1
-                    && is_array_expr(&args[0], &self.ctx.variables)
+                    && (is_array_expr(&args[0], &self.ctx.variables)
+                        || is_map_expr(&args[0], &self.ctx.variables))
                 {
                     self.generate_expression(&args[0]);
                     arch::emit_array_len(&mut self.output, self.arch);
@@ -184,6 +188,11 @@ impl CodeGen {
                         ("substring", args.clone())
                     } else if name == "length" {
                         ("len", args.clone())
+                    } else if (name == "contains" || name == "has")
+                        && args.len() == 2
+                        && is_map_expr(&args[0], &self.ctx.variables)
+                    {
+                        ("has", args.clone())
                     } else {
                         (name.as_str(), args.clone())
                     };
@@ -294,11 +303,61 @@ impl CodeGen {
                 arch::emit_pop_temp(&mut self.output, self.arch);
             }
             Expr::Index { array, index } => {
-                self.generate_expression(array);
-                arch::emit_push_temp(&mut self.output, self.arch);
+                if is_map_expr(array, &self.ctx.variables) {
+                    let actual_args = [array.as_ref(), index.as_ref()];
+                    match self.arch {
+                        Architecture::X86 => {
+                            for arg in actual_args.iter().rev() {
+                                self.generate_expression(arg);
+                                arch::emit_push_temp(&mut self.output, self.arch);
+                            }
+                        }
+                        _ => {
+                            for arg in actual_args.iter() {
+                                self.generate_expression(arg);
+                                arch::emit_push_temp(&mut self.output, self.arch);
+                            }
+                        }
+                    }
+                    arch::emit_function_call(
+                        &mut self.output,
+                        self.arch,
+                        "get",
+                        2,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                } else if is_string_expr(array, &self.ctx.variables) {
+                    let actual_args = [array.as_ref(), index.as_ref()];
+                    match self.arch {
+                        Architecture::X86 => {
+                            for arg in actual_args.iter().rev() {
+                                self.generate_expression(arg);
+                                arch::emit_push_temp(&mut self.output, self.arch);
+                            }
+                        }
+                        _ => {
+                            for arg in actual_args.iter() {
+                                self.generate_expression(arg);
+                                arch::emit_push_temp(&mut self.output, self.arch);
+                            }
+                        }
+                    }
+                    arch::emit_function_call(
+                        &mut self.output,
+                        self.arch,
+                        "char_at",
+                        2,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                } else {
+                    self.generate_expression(array);
+                    arch::emit_push_temp(&mut self.output, self.arch);
 
-                self.generate_expression(index);
-                arch::emit_array_get(&mut self.output, self.arch);
+                    self.generate_expression(index);
+                    arch::emit_array_get(&mut self.output, self.arch);
+                }
             }
             Expr::InterpolatedString(parts) => {
                 if parts.is_empty() {

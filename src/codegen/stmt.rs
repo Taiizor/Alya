@@ -1,10 +1,12 @@
 use super::CodeGen;
 use crate::ast::{Expr, Stmt};
 use crate::codegen::analysis::{
-    escape_string, is_array_expr, is_float_array, is_float_expr, is_string_array, is_string_expr,
+    escape_string, is_array_expr, is_float_array, is_float_expr, is_map_expr, is_string_array,
+    is_string_expr,
 };
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
+use crate::codegen::target::Architecture;
 
 impl CodeGen {
     pub(crate) fn generate_statement(&mut self, stmt: &Stmt) {
@@ -147,6 +149,7 @@ impl CodeGen {
                         _ => None,
                     };
                     let is_flt = is_float_expr(value, &self.ctx.variables);
+                    let is_map = is_map_expr(value, &self.ctx.variables);
                     self.generate_expression(value);
 
                     arch::emit_allocate_var(
@@ -163,6 +166,10 @@ impl CodeGen {
                                 offset: self.ctx.stack_offset,
                             },
                         );
+                    } else if is_map {
+                        self.ctx
+                            .variables
+                            .insert(name.clone(), VarType::Map(self.ctx.stack_offset));
                     } else if is_str {
                         self.ctx
                             .variables
@@ -196,6 +203,7 @@ impl CodeGen {
                 let is_flt = is_float_expr(value, &self.ctx.variables);
                 let is_str = is_string_expr(value, &self.ctx.variables);
                 let is_arr = is_array_expr(value, &self.ctx.variables);
+                let is_map = is_map_expr(value, &self.ctx.variables);
                 self.generate_expression(value);
 
                 if let Some(var_type) = self.ctx.variables.get(name).cloned() {
@@ -204,6 +212,7 @@ impl CodeGen {
                         | VarType::Float(offset)
                         | VarType::StringOffset(offset)
                         | VarType::Array(offset)
+                        | VarType::Map(offset)
                         | VarType::Struct { offset, .. } => {
                             arch::emit_store_var(
                                 &mut self.output,
@@ -211,7 +220,11 @@ impl CodeGen {
                                 offset,
                                 self.ctx.stack_offset,
                             );
-                            if is_str {
+                            if is_map {
+                                self.ctx
+                                    .variables
+                                    .insert(name.clone(), VarType::Map(offset));
+                            } else if is_str {
                                 self.ctx
                                     .variables
                                     .insert(name.clone(), VarType::StringOffset(offset));
@@ -292,14 +305,40 @@ impl CodeGen {
                 index,
                 value,
             } => {
-                self.generate_expression(array);
-                arch::emit_push_temp(&mut self.output, self.arch);
+                if is_map_expr(array, &self.ctx.variables) {
+                    let actual_args = [array, index, value];
+                    match self.arch {
+                        Architecture::X86 => {
+                            for arg in actual_args.iter().rev() {
+                                self.generate_expression(arg);
+                                arch::emit_push_temp(&mut self.output, self.arch);
+                            }
+                        }
+                        _ => {
+                            for arg in actual_args.iter() {
+                                self.generate_expression(arg);
+                                arch::emit_push_temp(&mut self.output, self.arch);
+                            }
+                        }
+                    }
+                    arch::emit_function_call(
+                        &mut self.output,
+                        self.arch,
+                        "set",
+                        3,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                } else {
+                    self.generate_expression(array);
+                    arch::emit_push_temp(&mut self.output, self.arch);
 
-                self.generate_expression(index);
-                arch::emit_push_temp(&mut self.output, self.arch);
+                    self.generate_expression(index);
+                    arch::emit_push_temp(&mut self.output, self.arch);
 
-                self.generate_expression(value);
-                arch::emit_array_set(&mut self.output, self.arch);
+                    self.generate_expression(value);
+                    arch::emit_array_set(&mut self.output, self.arch);
+                }
             }
             Stmt::Expr(expr) => {
                 self.generate_expression(expr);

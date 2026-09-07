@@ -473,6 +473,19 @@ pub fn emit_print_array(
     }
 }
 
+pub fn emit_print_map(
+    out: &mut String,
+    arch: Architecture,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_print_map(out),
+        Architecture::X64 => x64::emit_print_map(out, stack_offset, os),
+        Architecture::X86 => x86::emit_print_map(out),
+    }
+}
+
 pub fn emit_struct_new(
     out: &mut String,
     arch: Architecture,

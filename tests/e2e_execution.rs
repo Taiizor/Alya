@@ -917,3 +917,190 @@ say no_match[0]
         );
     }
 }
+
+#[test]
+fn test_e2e_character_tools() {
+    let code = r#"
+let s = "Alya 2026"
+say char_at(s, 0)
+say s.char_at(1)
+say s[2]
+say s[3]
+
+say ord("A")
+say ord("a")
+say "Z".ord()
+say chr(66)
+say chr(98)
+
+say is_digit("7")
+say is_digit("a")
+say "9".is_digit()
+
+say is_alpha("X")
+say is_alpha("_")
+say is_alpha("5")
+say "m".is_alpha()
+
+say is_alnum("A")
+say is_alnum("3")
+say is_alnum("!")
+
+say is_space(" ")
+say is_space("\t")
+say is_space("x")
+say " ".is_space()
+
+// Out of bounds safety
+let out1 = char_at(s, 50)
+say "oob: [{out1}]"
+let out2 = s[-1]
+say "neg: [{out2}]"
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!(
+                "A\n",
+                "l\n",
+                "y\n",
+                "a\n",
+                "65\n",
+                "97\n",
+                "90\n",
+                "B\n",
+                "b\n",
+                "1\n",
+                "0\n",
+                "1\n",
+                "1\n",
+                "1\n",
+                "0\n",
+                "1\n",
+                "1\n",
+                "1\n",
+                "0\n",
+                "1\n",
+                "1\n",
+                "0\n",
+                "1\n",
+                "oob: []\n",
+                "neg: []\n",
+            )
+        );
+    }
+}
+
+#[test]
+fn test_e2e_file_io() {
+    let test_path = "target/test_file_io.txt";
+    let _ = std::fs::remove_file(test_path);
+
+    let code = r#"
+let path = "target/test_file_io.txt"
+say file_exists(path)
+
+let ok = write_file(path, "Hello Alya!\nSelf-hosting is coming.")
+say ok
+say file_exists(path)
+
+let content = read_file(path)
+say content
+
+let missing = read_file("target/non_existent_12345.txt")
+say "missing: [{missing}]"
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!(
+                "0\n",
+                "1\n",
+                "1\n",
+                "Hello Alya!\nSelf-hosting is coming.\n",
+                "missing: []\n",
+            )
+        );
+    }
+
+    let _ = std::fs::remove_file(test_path);
+}
+
+#[test]
+fn test_e2e_maps() {
+    let code = r#"
+let m = map()
+say m.len()
+
+m["foo"] = 42
+m["bar"] = 100
+say m["foo"]
+say m["bar"]
+say m["missing"]
+say m.len()
+
+m["foo"] = 99
+say m["foo"]
+say m.len()
+
+say m.contains("foo")
+say m.contains("missing")
+say m.has("bar")
+
+m.set("baz", 777)
+say m.get("baz")
+
+let rem = m.remove("foo")
+say rem
+say m.contains("foo")
+say m.len()
+
+let ks = m.keys()
+say ks.len()
+
+let vs = m.values()
+say vs.len()
+
+let sum = 0
+for k in m.keys()
+    sum = sum + m[k]
+end
+say sum
+
+let m0 = map()
+say m0
+
+let m1 = map()
+m1["answer"] = 42
+say m1
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!(
+                "0\n",            // m.len() initially
+                "42\n",           // m["foo"]
+                "100\n",          // m["bar"]
+                "0\n",            // m["missing"]
+                "2\n",            // m.len()
+                "99\n",           // updated m["foo"]
+                "2\n",            // m.len() after update
+                "1\n",            // m.contains("foo")
+                "0\n",            // m.contains("missing")
+                "1\n",            // m.has("bar")
+                "777\n",          // m.get("baz")
+                "1\n",            // m.remove("foo")
+                "0\n",            // m.contains("foo") after remove
+                "2\n",            // m.len() after remove
+                "2\n",            // ks.len()
+                "2\n",            // vs.len()
+                "877\n",          // sum over keys: 100 + 777
+                "{}\n",           // say m0
+                "{answer: 42}\n", // say m1
+            )
+        );
+    }
+}

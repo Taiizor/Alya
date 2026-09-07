@@ -410,6 +410,12 @@ pub fn emit_print_array(out: &mut String) {
     out.push_str("    add $4, %esp\n");
 }
 
+pub fn emit_print_map(out: &mut String) {
+    out.push_str("    push %eax\n");
+    out.push_str("    call alya_print_map\n");
+    out.push_str("    add $4, %esp\n");
+}
+
 pub fn emit_struct_new(out: &mut String, desc_label: &str, field_count: usize) {
     out.push_str(&format!("    push ${}\n", field_count));
     out.push_str(&format!("    push ${}\n", desc_label));

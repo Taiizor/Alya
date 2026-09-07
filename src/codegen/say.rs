@@ -1,6 +1,6 @@
 use super::CodeGen;
 use crate::ast::{BinaryOp, Expr};
-use crate::codegen::analysis::{escape_string, is_float_expr, is_string_expr};
+use crate::codegen::analysis::{escape_string, is_float_expr, is_map_expr, is_string_expr};
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
 use crate::codegen::target::Architecture;
@@ -226,6 +226,21 @@ impl CodeGen {
                             );
                             self.output.push('\n');
                         }
+                        VarType::Map(offset) => {
+                            arch::emit_load_var(
+                                &mut self.output,
+                                self.arch,
+                                offset,
+                                self.ctx.stack_offset,
+                            );
+                            arch::emit_print_map(
+                                &mut self.output,
+                                self.arch,
+                                self.ctx.stack_offset,
+                                self.os,
+                            );
+                            self.output.push('\n');
+                        }
                         VarType::Struct { offset, .. } => {
                             arch::emit_load_var(
                                 &mut self.output,
@@ -322,6 +337,18 @@ impl CodeGen {
                 }
             }
             _ => {
+                if is_map_expr(expr, &self.ctx.variables) {
+                    self.generate_expression(expr);
+                    arch::emit_print_map(
+                        &mut self.output,
+                        self.arch,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                    self.output.push('\n');
+                    return;
+                }
+
                 let is_str = is_string_expr(expr, &self.ctx.variables);
                 let is_flt = is_float_expr(expr, &self.ctx.variables);
                 self.generate_expression(expr);

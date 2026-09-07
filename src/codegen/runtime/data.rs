@@ -68,6 +68,10 @@ pub fn emit_data_sections(
 
     out.push_str("alya_str_empty:\n");
     out.push_str(&format!("    {} \"\"\n", str_directive));
+    out.push_str("alya_str_mode_rb:\n");
+    out.push_str(&format!("    {} \"rb\"\n", str_directive));
+    out.push_str("alya_str_mode_wb:\n");
+    out.push_str(&format!("    {} \"wb\"\n", str_directive));
     out.push_str("alya_fmt_prompt:\n");
     out.push_str(&format!("    {} \"%s\"\n", str_directive));
     out.push_str("alya_fmt_div_zero:\n");
@@ -98,6 +102,18 @@ pub fn emit_data_sections(
     }
     out.push_str("alya_fmt_arr_comma:\n");
     out.push_str(&format!("    {} \", \"\n", str_directive));
+
+    // Map format strings
+    out.push_str("alya_fmt_map_null:\n");
+    out.push_str(&format!("    {} \"null\\n\"\n", str_directive));
+    out.push_str("alya_fmt_map_empty:\n");
+    out.push_str(&format!("    {} \"{{}}\\n\"\n", str_directive));
+    out.push_str("alya_fmt_map_open:\n");
+    out.push_str(&format!("    {} \"{{\"\n", str_directive));
+    out.push_str("alya_fmt_map_close:\n");
+    out.push_str(&format!("    {} \"}}\\n\"\n", str_directive));
+    out.push_str("alya_fmt_map_colon:\n");
+    out.push_str(&format!("    {} \": \"\n", str_directive));
 
     // Struct format strings
     out.push_str("alya_fmt_struct_null:\n");

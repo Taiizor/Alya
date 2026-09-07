@@ -9,7 +9,18 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
         Expr::Call { name, .. }
             if matches!(
                 name.as_str(),
-                "ask" | "str" | "trim" | "upper" | "lower" | "substring" | "substr" | "join"
+                "ask"
+                    | "str"
+                    | "trim"
+                    | "upper"
+                    | "lower"
+                    | "substring"
+                    | "substr"
+                    | "join"
+                    | "char_at"
+                    | "chr"
+                    | "char_from_code"
+                    | "read_file"
             ) =>
         {
             true
@@ -21,7 +32,7 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                 false
             }
         }
-        Expr::Index { array, .. } => is_string_array(array, vars),
+        Expr::Index { array, .. } => is_string_array(array, vars) || is_string_expr(array, vars),
         Expr::FieldAccess { object, field } => {
             if let Expr::Identifier(obj_name) = &**object {
                 let key = format!("{}.{}", obj_name, field);
@@ -49,7 +60,21 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
         Expr::Identifier(name) => {
             matches!(vars.get(name), Some(VarType::Array(_)))
         }
-        Expr::Call { name, .. } if name == "split" || name == "args" => true,
+        Expr::Call { name, .. }
+            if matches!(name.as_str(), "split" | "args" | "keys" | "values") =>
+        {
+            true
+        }
+        _ => false,
+    }
+}
+
+pub fn is_map_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
+    match expr {
+        Expr::Identifier(name) => {
+            matches!(vars.get(name), Some(VarType::Map(_)))
+        }
+        Expr::Call { name, .. } if name == "map" => true,
         _ => false,
     }
 }
@@ -112,7 +137,18 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
         Expr::Call { name, .. }
             if matches!(
                 name.as_str(),
-                "ask" | "str" | "trim" | "upper" | "lower" | "substring" | "substr" | "join"
+                "ask"
+                    | "str"
+                    | "trim"
+                    | "upper"
+                    | "lower"
+                    | "substring"
+                    | "substr"
+                    | "join"
+                    | "char_at"
+                    | "chr"
+                    | "char_from_code"
+                    | "read_file"
             ) =>
         {
             true
@@ -129,9 +165,10 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
         Expr::Index { array, .. } => match &**array {
             Expr::Identifier(arr_name) => {
                 known_strings.contains(&format!("arr_is_str:{}", arr_name))
+                    || known_strings.contains(arr_name)
             }
             Expr::Call { name, .. } if name == "split" || name == "args" => true,
-            _ => false,
+            _ => expr_is_definitely_string(array, known_strings),
         },
         _ => false,
     }
