@@ -35,6 +35,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    push %eax\n");
     out.push_str("    push $alya_fmt_runtime_err\n");
     out.push_str("    call printf\n");
+    out.push_str("    push $0\n");
+    out.push_str("    call fflush\n");
     out.push_str("    push $1\n");
     out.push_str("    call exit\n\n");
 

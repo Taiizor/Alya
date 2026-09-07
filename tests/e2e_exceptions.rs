@@ -245,3 +245,29 @@ say "Never reaches here"
         assert!(output.contains("Runtime error: fatal unhandled crash"));
     }
 }
+
+#[test]
+fn test_e2e_finally_with_catch_and_rethrow() {
+    let code = r#"
+try
+    try
+        throw "inner fail"
+    catch err
+        say "Catch: " + err
+        throw
+    finally
+        say "Inner finally"
+    end
+catch e
+    say "Outer: " + e
+end
+say "Done"
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            "Catch: inner fail\nInner finally\nOuter: inner fail\nDone\n"
+        );
+    }
+}

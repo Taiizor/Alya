@@ -281,6 +281,9 @@ impl CodeGen {
                 self.ctx.variables = saved_variables.clone();
                 arch::emit_catch_begin(&mut self.output, self.arch, &catch_label);
 
+                // Temporary try handler so that errors inside catch run finally and rethrow
+                arch::emit_try_begin(&mut self.output, self.arch, &finally_rethrow_label, self.os);
+
                 if let Some(name) = catch_var {
                     let name = name.to_string();
                     arch::emit_catch_load_err(&mut self.output, self.arch, self.os);
@@ -294,13 +297,10 @@ impl CodeGen {
                         .insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
                 }
 
-                // Temporary try handler so that errors inside catch run finally and rethrow
-                let catch_saved_offset = self.ctx.stack_offset;
-                arch::emit_try_begin(&mut self.output, self.arch, &finally_rethrow_label, self.os);
                 for s in catch_block {
                     self.generate_statement(s);
                 }
-                let catch_delta = self.ctx.stack_offset - catch_saved_offset;
+                let catch_delta = self.ctx.stack_offset - saved_stack_offset;
                 arch::emit_try_end(
                     &mut self.output,
                     self.arch,

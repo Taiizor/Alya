@@ -45,6 +45,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    mov %rcx, %rdx\n");
         out.push_str("    lea alya_fmt_runtime_err(%rip), %rcx\n");
         out.push_str("    call printf\n");
+        out.push_str("    xor %rcx, %rcx\n");
+        out.push_str("    call fflush\n");
         out.push_str("    mov $1, %rcx\n");
         out.push_str("    call exit\n\n");
     } else {
@@ -52,6 +54,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    lea alya_fmt_runtime_err(%rip), %rdi\n");
         out.push_str("    xor %rax, %rax\n");
         out.push_str(&format!("    call {}printf\n", p));
+        out.push_str("    xor %rdi, %rdi\n");
+        out.push_str(&format!("    call {}fflush\n", p));
         out.push_str("    mov $1, %rdi\n");
         out.push_str(&format!("    call {}exit\n\n", p));
     }

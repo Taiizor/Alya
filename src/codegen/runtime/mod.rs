@@ -19,6 +19,8 @@ pub fn emit_runtime(
 ) {
     data::emit_data_sections(out, arch, os, structs);
 
+    out.push_str("\n.text\n");
+
     match arch {
         Architecture::ARM64 => arm64::emit_arm64_runtime(out, os),
         Architecture::X64 => x64::emit_x64_runtime(out, os),

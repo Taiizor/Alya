@@ -31,11 +31,20 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    br x14\n");
     out.push_str(".L_arm_fatal_throw:\n");
     out.push_str("    mov x19, sp\n");
-    out.push_str("    and x19, x19, #~15\n");
+    out.push_str("    bic x19, x19, #15\n");
     out.push_str("    mov sp, x19\n");
     out.push_str("    mov x1, x0\n");
     emit_adrp_add(out, "x0", "alya_fmt_runtime_err", os);
-    out.push_str(&format!("    bl {}printf\n", p));
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str("    sub sp, sp, #16\n");
+        out.push_str("    str x1, [sp]\n");
+        out.push_str(&format!("    bl {}printf\n", p));
+        out.push_str("    add sp, sp, #16\n");
+    } else {
+        out.push_str(&format!("    bl {}printf\n", p));
+    }
+    out.push_str("    mov x0, #0\n");
+    out.push_str(&format!("    bl {}fflush\n", p));
     out.push_str("    mov w0, #1\n");
     out.push_str(&format!("    bl {}exit\n\n", p));
 
