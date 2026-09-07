@@ -36,11 +36,13 @@
 - 🌟 **Expressive & Readable**: English-like keywords (`say`, `ask`, `when`, `repeat`, `function`).
 - 📁 **Modules & Imports**: Split code cleanly across multiple files with `import "module.alya"`, complete with circular dependency prevention.
 - 📦 **Arrays & Iteration**: Dynamic array literals (`[1, 2, 3]`), 0-based indexing (`arr[i]`), mutation (`arr[i] = val`), direct iteration (`for item in arr ... end`), querying (`len(arr)`), and automatic bounds safety.
+- 🗺️ **Hash Maps & Dictionaries**: Fast associative key-value storage (`map()`), bracket indexing (`m[k] = v`, `m[k]`), query methods (`m.len()`, `m.contains(k)` / `m.has(k)`), mutation (`m.set(k, v)`, `m.remove(k)`), collections (`m.keys()`, `m.values()`), and formatted output (`say m`).
+- 💾 **File I/O**: Standalone file system access with `read_file(path)`, `write_file(path, content)`, `file_exists(path)`, and `delete_file(path)` / `remove_file(path)`.
 - 🏗️ **Structs & Custom Types**: Custom composite types (`struct Point ... end`), named and positional constructors (`Point { x: 1, y: 2 }` / `Point(1, 2)`), field access (`p.x`), mutation (`p.x = 100`, `p.x += 5`), and formatted printing.
 - 🔢 **Floating-Point Numbers**: First-class 64-bit IEEE 754 float support (`f64`), mixed integer-float arithmetic, built-in `float()` and `int()` casting, and formatted output.
 - 🛡️ **Exception Handling**: Built-in `try ... catch [err] ... end` support with runtime division/modulo by zero and out-of-bounds protection.
 - ⚡ **Direct Native Codegen**: Emits clean, comment-annotated assembly for **x86 (32-bit)**, **x64 (64-bit)**, and **ARM64 (Apple Silicon & AArch64)**.
-- 🛠️ **Built-in Functions & Methods**: Math intrinsics (`abs`, `min`, `max`, `sqrt`, `pow`), string helpers (`trim`, `upper`, `lower`, `contains`, `substring`/`substr`, `split`, `join`), CLI args (`args()`), dynamic arrays (`push`, `pop`), formatting (`print`, `println`), and conversions (`str`, `int`).
+- 🛠️ **Built-in Functions & Methods**: Math intrinsics (`abs`, `min`, `max`, `sqrt`, `pow`), string helpers (`trim`, `upper`, `lower`, `contains`, `substring`/`substr`, `split`, `join`), character utilities (`char_at`, `s[i]`, `ord`, `chr`, `is_digit`, `is_alpha`, `is_alnum`, `is_space`), CLI args (`args()`), dynamic arrays (`push`, `pop`), formatting (`print`, `println`), and conversions (`str`, `int`).
 - 💬 **Flexible Comments**: Supports Python-style `#`, C-style `//`, and multiline `/* ... */` comments.
 - 🔄 **Compound Operators**: Native `+=`, `-=`, `*=`, and `/=` assignments.
 - 🎯 **Rich CLI**: Subcommands for direct execution (`run`), building binaries (`build`), syntax validation (`check`), and AST/token visualization (`ast`, `tokens`).
@@ -408,6 +410,75 @@ Execute with custom arguments using the `--` separator:
 alyac run script.alya -- hello world 42
 ```
 
+### 14. Hash Maps & Dictionaries (`map()`)
+
+Fast key-value mapping with bracket indexing, query methods, mutation, and iteration:
+
+```alya
+let user = map()
+user["name"] = "Alice"
+user["role"] = "Admin"
+user.set("level", 10)
+
+say user["name"]            # Alice
+say user.get("role")        # Admin
+say user.contains("level")  # 1
+say user.len()              # 3
+
+# Keys and iteration
+for key in user.keys()
+    say "{key}: {user[key]}"
+end
+
+# Removing a key
+user.remove("role")
+say user.has("role")        # 0
+say user                    # { "name": Alice, "level": 10 }
+```
+
+### 15. File I/O (`read_file`, `write_file`, `file_exists`, `delete_file`)
+
+Perform file operations with native C runtime system integrations:
+
+```alya
+let filename = "output.txt"
+
+# Writing and reading text files
+write_file(filename, "Hello from Alya!")
+
+if file_exists(filename)
+    let content = read_file(filename)
+    say "File Content: {content}"
+end
+
+# Deleting a file (or remove_file)
+delete_file(filename)
+say file_exists(filename)   # 0
+```
+
+### 16. Character & String Utilities
+
+Index characters, inspect ASCII codes, and perform character classification:
+
+```alya
+let text = "Alya 2026"
+
+# Character indexing (s[i] or char_at(s, i))
+say text[0]                 # A
+say char_at(text, 1)        # l
+
+# ASCII conversions
+let code = ord("A")         # 65
+let ch = chr(66)            # B
+say "{code} -> {ch}"
+
+# Character classification
+say is_alpha("A")           # 1
+say is_digit("9")           # 1
+say is_alnum("Z")           # 1
+say is_space(" ")           # 1
+```
+
 ---
 
 ## Platform & Architecture Matrix
@@ -433,7 +504,7 @@ Alya/
 │   ├── workflows/             # CI and Automated Release workflows
 │   ├── ISSUE_TEMPLATE/        # Bug report and Feature request forms
 │   └── PULL_REQUEST_TEMPLATE.md
-├── examples/                  # 23 rich example programs and modules
+├── examples/                  # 26 rich example programs and modules
 ├── src/
 │   ├── cli/                   # Argument parser, help, and commands
 │   ├── codegen/               # Assembly code generator (x86, x64, ARM64)

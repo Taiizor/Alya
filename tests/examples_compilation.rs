@@ -287,6 +287,25 @@ Modulo:         15 % 7 = 1\n\
 100 / 4 - 5 = 20\n\
 (3 + 5) * (10 - 2) = 64\n",
         ),
+        "character_tools.alya" => Some(
+            "=== Character Indexing ===\n\
+First char: A\n\
+Second char: l\n\
+\n\
+=== ASCII Codes ===\n\
+ASCII of 'A': 65\n\
+Char from 66: B\n\
+\n\
+=== Character Classification ===\n\
+Is '5' a digit? 1\n\
+Is 'a' a digit? 0\n\
+Is 'x' alpha? 1\n\
+Is '9' alpha? 0\n\
+Is 'x' alnum? 1\n\
+Is '!' alnum? 0\n\
+Is ' ' space? 1\n\
+Is 'A' space? 0\n",
+        ),
         "cli_args.alya" => Some(
             "=== Command-Line Arguments ===\n\
 Argument count: 0\n",
@@ -326,6 +345,21 @@ F(5) = F(4) + F(3) = 3 + 2 = 5\n\
 F(6) = F(5) + F(4) = 5 + 3 = 8\n\
 F(7) = F(6) + F(5) = 8 + 5 = 13\n\
 F(8) = F(7) + F(6) = 13 + 8 = 21\n",
+        ),
+        "file_io.alya" => Some(
+            "=== File Existence ===\n\
+Exists before writing: 0\n\
+\n\
+=== Writing File ===\n\
+Write successful: 1\n\
+Exists after writing: 1\n\
+\n\
+=== Reading File ===\n\
+Hello from Alya File I/O!\n\
+Building compilers with self-hosting.\n\
+=== Deleting File ===\n\
+Delete successful: 1\n\
+Exists after deleting: 0\n",
         ),
         "floats.alya" => Some(
             "=== Floating-Point Operations ===\n\
@@ -395,6 +429,30 @@ Fruit: cherry\n",
         "main.alya" => Some(
             "Enter name: Hello, TestUser! Welcome to Alya.\n\
 Speed: 50 ops/sec\n",
+        ),
+        "maps.alya" => Some(
+            "=== Hash Map Initialization ===\n\
+Initial size: 0\n\
+\n\
+=== Accessing Entries ===\n\
+Alice score: 95\n\
+Bob score: 88\n\
+Charlie score: 70\n\
+Size after inserts: 3\n\
+\n\
+=== Key Membership ===\n\
+Has Alice? 1\n\
+Has David? 0\n\
+\n\
+=== Removing Entries ===\n\
+Removed Charlie: 1\n\
+Has Charlie? 0\n\
+Size after removal: 2\n\
+\n\
+=== Keys and Values ===\n\
+Keys count: 2\n\
+Values count: 2\n\
+Total score: 183\n",
         ),
         "modern_features.alya" => Some(
             "Calculated score: 46\n\
