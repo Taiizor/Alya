@@ -96,24 +96,31 @@
   }
 
   .brand-title {
-    margin-top: 20px;
+    margin-top: 16px;
     font-size: 68px;
     font-weight: 800;
-    line-height: 1.05;
+    line-height: 1.22;
     letter-spacing: -2px;
     display: flex;
     align-items: baseline;
     gap: 12px;
+    padding-bottom: 6px;
   }
   .brand-name {
+    display: inline-block;
     background: linear-gradient(135deg, #ffffff 25%, #e2e8f0 60%, #94a3b8 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    padding-bottom: 14px;
+    margin-bottom: -14px;
   }
   .brand-accent {
+    display: inline-block;
     background: linear-gradient(135deg, #c084fc 0%, #38bdf8 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    padding-bottom: 14px;
+    margin-bottom: -14px;
   }
 
   .tagline {
@@ -305,36 +312,67 @@
   .err { color: #f87171; }
 
   .window-status {
-    height: 38px;
-    padding: 0 18px;
+    height: 42px;
+    padding: 0 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: rgba(10, 14, 23, 0.85);
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(10, 14, 23, 0.92);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
     font-size: 12.5px;
-    color: #64748b;
   }
   .status-left {
     display: flex;
     align-items: center;
-    gap: 8px;
-    color: #38bdf8;
+    gap: 10px;
   }
-  .status-left svg {
-    width: 14px; height: 14px;
-    fill: #38bdf8;
+  .cli-cmd {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 3px 10px;
+    border-radius: 6px;
+    color: #f1f5f9;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: 0.2px;
+  }
+  .cli-cmd .prompt {
+    color: #38bdf8;
+    font-weight: 700;
+  }
+  .build-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #34d399;
+    font-weight: 600;
+    font-size: 12px;
+  }
+  .badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #34d399;
+    box-shadow: 0 0 8px rgba(52, 211, 153, 0.9);
   }
   .status-right {
     display: flex;
     align-items: center;
-    gap: 12px;
-    color: #94a3b8;
+    gap: 6px;
   }
-  .target-arch {
-    color: #c084fc;
+  .arch-tag {
+    font-family: "Cascadia Code", "JetBrains Mono", Consolas, monospace;
+    font-size: 11.5px;
     font-weight: 600;
+    color: #c084fc;
+    background: rgba(168, 85, 247, 0.12);
+    border: 1px solid rgba(168, 85, 247, 0.28);
+    padding: 2px 8px;
+    border-radius: 5px;
+    letter-spacing: 0.4px;
   }
 </style>
 </head>
@@ -364,7 +402,7 @@
         <div class="features-list">
           <div class="feature-pill">
             <div class="feature-icon-box icon-purple">⚡</div>
-            <div class="feature-text"><b>Native Assembly Codegen</b> — x64, x86 &amp; ARM64</div>
+            <div class="feature-text"><b>Native Assembly Codegen</b> — x86, x64 &amp; ARM64</div>
           </div>
           <div class="feature-pill">
             <div class="feature-icon-box icon-cyan">🛡️</div>
@@ -421,11 +459,13 @@
 
           <div class="window-status">
             <div class="status-left">
-              <svg viewBox="0 0 16 16"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg>
-              <span>alyac build · compiled in 14ms</span>
+              <span class="cli-cmd"><span class="prompt">$</span> alyac build</span>
+              <span class="build-badge"><span class="badge-dot"></span> 14ms</span>
             </div>
             <div class="status-right">
-              <span class="target-arch">x64 · ARM64 · x86</span>
+              <span class="arch-tag">x86</span>
+              <span class="arch-tag">x64</span>
+              <span class="arch-tag">ARM64</span>
             </div>
           </div>
         </div>
