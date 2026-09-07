@@ -26,7 +26,7 @@ jobs:
             target: x86_64-unknown-linux-gnu
             bin: alyac
             archive: tar.gz
-          - os: macos-13
+          - os: macos-latest
             target: x86_64-apple-darwin
             bin: alyac
             archive: tar.gz
