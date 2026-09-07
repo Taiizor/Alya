@@ -14,6 +14,18 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                 false
             }
         }
+        Expr::FieldAccess { object, field } => {
+            if let Expr::Identifier(obj_name) = &**object {
+                let key = format!("{}.{}", obj_name, field);
+                if let Some(var_type) = vars.get(&key) {
+                    matches!(var_type, VarType::StringLabel(_) | VarType::StringOffset(_))
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        }
         Expr::Binary {
             left,
             op: BinaryOp::Add,
@@ -39,6 +51,14 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
         Expr::Number(n) => n.fract() != 0.0,
         Expr::Identifier(name) => {
             matches!(vars.get(name), Some(VarType::Float(_)))
+        }
+        Expr::FieldAccess { object, field } => {
+            if let Expr::Identifier(obj_name) = &**object {
+                let key = format!("{}.{}", obj_name, field);
+                matches!(vars.get(&key), Some(VarType::Float(_)))
+            } else {
+                false
+            }
         }
         Expr::Binary {
             left,
@@ -297,6 +317,10 @@ pub fn find_call_arg<'a>(stmt: &'a Stmt, func_name: &str, param_idx: usize) -> O
         } => find_call_arg_in_expr(array, func_name, param_idx)
             .or_else(|| find_call_arg_in_expr(index, func_name, param_idx))
             .or_else(|| find_call_arg_in_expr(value, func_name, param_idx)),
+        Stmt::FieldAssign { object, value, .. } => {
+            find_call_arg_in_expr(object, func_name, param_idx)
+                .or_else(|| find_call_arg_in_expr(value, func_name, param_idx))
+        }
         _ => None,
     }
 }
@@ -321,10 +345,61 @@ fn find_call_arg_in_expr<'a>(
         }
         Expr::Index { array, index } => find_call_arg_in_expr(array, func_name, param_idx)
             .or_else(|| find_call_arg_in_expr(index, func_name, param_idx)),
+        Expr::FieldAccess { object, .. } => find_call_arg_in_expr(object, func_name, param_idx),
+        Expr::StructInit { fields, .. } => {
+            for (_, val) in fields {
+                if let Some(arg) = find_call_arg_in_expr(val, func_name, param_idx) {
+                    return Some(arg);
+                }
+            }
+            None
+        }
         Expr::InterpolatedString(parts) => {
             for part in parts {
                 if let Some(arg) = find_call_arg_in_expr(part, func_name, param_idx) {
                     return Some(arg);
+                }
+            }
+            None
+        }
+        _ => None,
+    }
+}
+
+pub fn infer_param_struct_type(
+    func_name: &str,
+    param_idx: usize,
+    program: &Program,
+) -> Option<String> {
+    for s in &program.statements {
+        if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+            if let Some(st) = infer_expr_struct_type(arg, program) {
+                return Some(st);
+            }
+        }
+    }
+    None
+}
+
+fn infer_expr_struct_type(expr: &Expr, program: &Program) -> Option<String> {
+    match expr {
+        Expr::StructInit { name, .. } => Some(name.clone()),
+        Expr::Call { name, .. } => {
+            for s in &program.statements {
+                if let Stmt::StructDef { name: sname, .. } = s {
+                    if sname == name {
+                        return Some(name.clone());
+                    }
+                }
+            }
+            None
+        }
+        Expr::Identifier(var_name) => {
+            for s in &program.statements {
+                if let Stmt::Let { name, value } = s {
+                    if name == var_name {
+                        return infer_expr_struct_type(value, program);
+                    }
                 }
             }
             None

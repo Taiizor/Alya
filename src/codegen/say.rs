@@ -223,8 +223,43 @@ impl CodeGen {
                             );
                             self.output.push('\n');
                         }
+                        VarType::Struct { offset, .. } => {
+                            arch::emit_load_var(
+                                &mut self.output,
+                                self.arch,
+                                offset,
+                                self.ctx.stack_offset,
+                            );
+                            arch::emit_print_struct(
+                                &mut self.output,
+                                self.arch,
+                                self.ctx.stack_offset,
+                                self.os,
+                            );
+                            self.output.push('\n');
+                        }
                     }
                 }
+            }
+            Expr::StructInit { .. } => {
+                self.generate_expression(expr);
+                arch::emit_print_struct(
+                    &mut self.output,
+                    self.arch,
+                    self.ctx.stack_offset,
+                    self.os,
+                );
+                self.output.push('\n');
+            }
+            Expr::Call { name, .. } if self.ctx.structs.contains_key(name) => {
+                self.generate_expression(expr);
+                arch::emit_print_struct(
+                    &mut self.output,
+                    self.arch,
+                    self.ctx.stack_offset,
+                    self.os,
+                );
+                self.output.push('\n');
             }
             Expr::Array(_) => {
                 self.generate_expression(expr);

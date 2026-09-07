@@ -1,6 +1,13 @@
+use crate::codegen::context::StructDefInfo;
 use crate::codegen::target::{Architecture, OperatingSystem};
+use std::collections::HashMap;
 
-pub fn emit_data_sections(out: &mut String, arch: Architecture, os: OperatingSystem) {
+pub fn emit_data_sections(
+    out: &mut String,
+    arch: Architecture,
+    os: OperatingSystem,
+    structs: &HashMap<String, StructDefInfo>,
+) {
     if matches!(os, OperatingSystem::MacOS) {
         out.push_str("\n.section __DATA,__bss\n");
         out.push_str(".p2align 4\n");
@@ -42,58 +49,100 @@ pub fn emit_data_sections(out: &mut String, arch: Architecture, os: OperatingSys
         }
     }
 
-    if matches!(os, OperatingSystem::MacOS) {
+    let is_macos = matches!(os, OperatingSystem::MacOS);
+    let str_directive = if is_macos { ".asciz" } else { ".string" };
+
+    if is_macos {
         out.push_str("\n.section __TEXT,__cstring,cstring_literals\n");
-        out.push_str("alya_fmt_prompt:\n");
-        out.push_str("    .asciz \"%s\"\n");
-        out.push_str("alya_fmt_div_zero:\n");
-        out.push_str("    .asciz \"Runtime error: division by zero\\n\"\n");
-        out.push_str("alya_str_div_zero:\n");
-        out.push_str("    .asciz \"division by zero\"\n");
-        out.push_str("alya_fmt_bounds:\n");
-        out.push_str("    .asciz \"Runtime error: index out of bounds\\n\"\n");
-        out.push_str("alya_str_bounds:\n");
-        out.push_str("    .asciz \"index out of bounds\"\n");
-        out.push_str("alya_fmt_arr_empty:\n");
-        out.push_str("    .asciz \"[]\\n\"\n");
-        out.push_str("alya_fmt_arr_open:\n");
-        out.push_str("    .asciz \"[\"\n");
-        out.push_str("alya_fmt_arr_close:\n");
-        out.push_str("    .asciz \"]\\n\"\n");
-        out.push_str("alya_fmt_arr_elem:\n");
-        if matches!(arch, Architecture::X86) {
-            out.push_str("    .asciz \"%d\"\n");
-        } else {
-            out.push_str("    .asciz \"%ld\"\n");
-        }
-        out.push_str("alya_fmt_arr_comma:\n");
-        out.push_str("    .asciz \", \"\n");
     } else {
         out.push_str("\n.section .rodata\n");
-        out.push_str("alya_fmt_prompt:\n");
-        out.push_str("    .string \"%s\"\n");
-        out.push_str("alya_fmt_div_zero:\n");
-        out.push_str("    .string \"Runtime error: division by zero\\n\"\n");
-        out.push_str("alya_str_div_zero:\n");
-        out.push_str("    .string \"division by zero\"\n");
-        out.push_str("alya_fmt_bounds:\n");
-        out.push_str("    .string \"Runtime error: index out of bounds\\n\"\n");
-        out.push_str("alya_str_bounds:\n");
-        out.push_str("    .string \"index out of bounds\"\n");
-        out.push_str("alya_fmt_arr_empty:\n");
-        out.push_str("    .string \"[]\\n\"\n");
-        out.push_str("alya_fmt_arr_open:\n");
-        out.push_str("    .string \"[\"\n");
-        out.push_str("alya_fmt_arr_close:\n");
-        out.push_str("    .string \"]\\n\"\n");
-        out.push_str("alya_fmt_arr_elem:\n");
-        if matches!(arch, Architecture::X86) {
-            out.push_str("    .string \"%d\"\n");
-        } else {
-            out.push_str("    .string \"%ld\"\n");
-        }
-        out.push_str("alya_fmt_arr_comma:\n");
-        out.push_str("    .string \", \"\n");
     }
+
+    out.push_str("alya_fmt_prompt:\n");
+    out.push_str(&format!("    {} \"%s\"\n", str_directive));
+    out.push_str("alya_fmt_div_zero:\n");
+    out.push_str(&format!(
+        "    {} \"Runtime error: division by zero\\n\"\n",
+        str_directive
+    ));
+    out.push_str("alya_str_div_zero:\n");
+    out.push_str(&format!("    {} \"division by zero\"\n", str_directive));
+    out.push_str("alya_fmt_bounds:\n");
+    out.push_str(&format!(
+        "    {} \"Runtime error: index out of bounds\\n\"\n",
+        str_directive
+    ));
+    out.push_str("alya_str_bounds:\n");
+    out.push_str(&format!("    {} \"index out of bounds\"\n", str_directive));
+    out.push_str("alya_fmt_arr_empty:\n");
+    out.push_str(&format!("    {} \"[]\\n\"\n", str_directive));
+    out.push_str("alya_fmt_arr_open:\n");
+    out.push_str(&format!("    {} \"[\"\n", str_directive));
+    out.push_str("alya_fmt_arr_close:\n");
+    out.push_str(&format!("    {} \"]\\n\"\n", str_directive));
+    out.push_str("alya_fmt_arr_elem:\n");
+    if matches!(arch, Architecture::X86) {
+        out.push_str(&format!("    {} \"%d\"\n", str_directive));
+    } else {
+        out.push_str(&format!("    {} \"%ld\"\n", str_directive));
+    }
+    out.push_str("alya_fmt_arr_comma:\n");
+    out.push_str(&format!("    {} \", \"\n", str_directive));
+
+    // Struct format strings
+    out.push_str("alya_fmt_struct_null:\n");
+    out.push_str(&format!("    {} \"null\\n\"\n", str_directive));
+    out.push_str("alya_fmt_struct_open:\n");
+    out.push_str(&format!("    {} \"%s {{ \"\n", str_directive));
+    out.push_str("alya_fmt_struct_close:\n");
+    out.push_str(&format!("    {} \" }}\\n\"\n", str_directive));
+    out.push_str("alya_fmt_struct_field:\n");
+    if matches!(arch, Architecture::X86) {
+        out.push_str(&format!("    {} \"%s: %d\"\n", str_directive));
+    } else {
+        out.push_str(&format!("    {} \"%s: %ld\"\n", str_directive));
+    }
+    out.push_str("alya_fmt_struct_comma:\n");
+    out.push_str(&format!("    {} \", \"\n", str_directive));
+
+    // Struct name and field name strings
+    for (name, sdef) in structs {
+        let name_label = format!("alya_struct_{}_name", name);
+        out.push_str(&format!(
+            "{}:\n    {} \"{}\"\n",
+            name_label, str_directive, name
+        ));
+        for (i, f) in sdef.fields.iter().enumerate() {
+            let field_label = format!("alya_struct_{}_f_{}", name, i);
+            out.push_str(&format!(
+                "{}:\n    {} \"{}\"\n",
+                field_label, str_directive, f
+            ));
+        }
+    }
+
+    // Struct descriptors in data section
+    if is_macos {
+        out.push_str("\n.section __DATA,__data\n");
+    } else {
+        out.push_str("\n.section .data\n");
+    }
+
+    let ptr_dir = if matches!(arch, Architecture::X86) {
+        ".long"
+    } else {
+        ".quad"
+    };
+
+    for (name, sdef) in structs {
+        let desc_label = format!("alya_struct_desc_{}", name);
+        out.push_str(&format!("{}:\n", desc_label));
+        out.push_str(&format!("    {} alya_struct_{}_name\n", ptr_dir, name));
+        out.push_str(&format!("    {} {}\n", ptr_dir, sdef.fields.len()));
+        for (i, _) in sdef.fields.iter().enumerate() {
+            out.push_str(&format!("    {} alya_struct_{}_f_{}\n", ptr_dir, name, i));
+        }
+    }
+
     out.push_str(".text\n");
 }

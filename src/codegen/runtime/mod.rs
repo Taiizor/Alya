@@ -5,8 +5,16 @@ pub mod x86;
 
 use super::target::{Architecture, OperatingSystem};
 
-pub fn emit_runtime(out: &mut String, arch: Architecture, os: OperatingSystem) {
-    data::emit_data_sections(out, arch, os);
+use crate::codegen::context::StructDefInfo;
+use std::collections::HashMap;
+
+pub fn emit_runtime(
+    out: &mut String,
+    arch: Architecture,
+    os: OperatingSystem,
+    structs: &HashMap<String, StructDefInfo>,
+) {
+    data::emit_data_sections(out, arch, os, structs);
 
     match arch {
         Architecture::ARM64 => arm64::emit_arm64_runtime(out, os),

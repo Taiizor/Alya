@@ -1,12 +1,19 @@
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct StructDefInfo {
+    pub name: String,
+    pub fields: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VarType {
     Number(i32),         // Stack offset for numeric (integer) variables
     Float(i32),          // Stack offset for floating-point (f64) variables
     StringLabel(String), // Rodata label for string literals
     StringOffset(i32),   // Stack offset for string pointers
     Array(i32),          // Stack offset for array pointers
+    Struct { struct_name: String, offset: i32 },
 }
 
 #[derive(Debug, Clone)]
@@ -21,6 +28,7 @@ pub struct CodeGenContext {
     pub label_counter: usize,
     pub string_counter: usize,
     pub variables: HashMap<String, VarType>,
+    pub structs: HashMap<String, StructDefInfo>,
     pub stack_offset: i32,
     pub loop_stack: Vec<(String, String)>,
 }
@@ -31,6 +39,7 @@ impl CodeGenContext {
             label_counter: 0,
             string_counter: 0,
             variables: HashMap::new(),
+            structs: HashMap::new(),
             stack_offset: 0,
             loop_stack: Vec::new(),
         }

@@ -540,3 +540,66 @@ fn test_resolve_imports_temporary_files() {
 
     let _ = fs::remove_dir_all(&temp_dir);
 }
+
+#[test]
+fn test_parse_struct_and_field_access() {
+    let source = "struct Point\n  x\n  y\nend\nlet p = Point { x: 10, y: 20 }\np.x = 99\nsay p.x";
+    let mut lexer = crate::lexer::Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Failed to tokenize");
+    let mut parser = Parser::new(tokens);
+    let program = parser.parse().expect("Failed to parse");
+
+    assert_eq!(program.statements.len(), 4);
+
+    // 1. StructDef
+    match &program.statements[0] {
+        Stmt::StructDef { name, fields } => {
+            assert_eq!(name, "Point");
+            assert_eq!(fields, &["x", "y"]);
+        }
+        other => panic!("Expected Stmt::StructDef, got {:?}", other),
+    }
+
+    // 2. StructInit
+    match &program.statements[1] {
+        Stmt::Let { name, value } => {
+            assert_eq!(name, "p");
+            match value {
+                Expr::StructInit {
+                    name: sname,
+                    fields,
+                } => {
+                    assert_eq!(sname, "Point");
+                    assert_eq!(fields.len(), 2);
+                    assert_eq!(fields[0].0, "x");
+                    assert_eq!(fields[1].0, "y");
+                }
+                other => panic!("Expected Expr::StructInit, got {:?}", other),
+            }
+        }
+        other => panic!("Expected Stmt::Let, got {:?}", other),
+    }
+
+    // 3. FieldAssign
+    match &program.statements[2] {
+        Stmt::FieldAssign {
+            object,
+            field,
+            value,
+        } => {
+            assert_eq!(*object, Expr::Identifier("p".into()));
+            assert_eq!(field, "x");
+            assert_eq!(*value, Expr::Number(99.0));
+        }
+        other => panic!("Expected Stmt::FieldAssign, got {:?}", other),
+    }
+
+    // 4. Say with FieldAccess
+    match &program.statements[3] {
+        Stmt::Say(Expr::FieldAccess { object, field }) => {
+            assert_eq!(**object, Expr::Identifier("p".into()));
+            assert_eq!(field, "x");
+        }
+        other => panic!("Expected Stmt::Say(FieldAccess), got {:?}", other),
+    }
+}

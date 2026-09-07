@@ -190,6 +190,14 @@ impl Lexer {
                         column,
                     });
                 }
+                ':' => {
+                    self.advance();
+                    tokens.push(Token {
+                        token_type: TokenType::Colon,
+                        line,
+                        column,
+                    });
+                }
                 '.' => {
                     if self.peek_char() == Some('.') {
                         self.advance();

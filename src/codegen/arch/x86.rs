@@ -387,3 +387,30 @@ pub fn emit_print_array(out: &mut String) {
     out.push_str("    call alya_print_array\n");
     out.push_str("    add $4, %esp\n");
 }
+
+pub fn emit_struct_new(out: &mut String, desc_label: &str, field_count: usize) {
+    out.push_str(&format!("    push ${}\n", field_count));
+    out.push_str(&format!("    push ${}\n", desc_label));
+    out.push_str("    call alya_struct_new\n");
+    out.push_str("    add $8, %esp\n");
+}
+
+pub fn emit_struct_field_get(out: &mut String, field_idx: usize) {
+    out.push_str(&format!("    movl {}(%eax), %eax\n", (field_idx + 1) * 4));
+}
+
+pub fn emit_struct_field_set_imm(out: &mut String, field_idx: usize) {
+    out.push_str("    movl (%esp), %edx\n");
+    out.push_str(&format!("    movl %eax, {}(%edx)\n", (field_idx + 1) * 4));
+}
+
+pub fn emit_struct_field_set(out: &mut String, field_idx: usize) {
+    out.push_str("    pop %edx\n");
+    out.push_str(&format!("    movl %eax, {}(%edx)\n", (field_idx + 1) * 4));
+}
+
+pub fn emit_print_struct(out: &mut String) {
+    out.push_str("    push %eax\n");
+    out.push_str("    call alya_print_struct\n");
+    out.push_str("    add $4, %esp\n");
+}

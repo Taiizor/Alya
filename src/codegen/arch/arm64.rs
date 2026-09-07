@@ -518,3 +518,32 @@ pub fn emit_array_len(out: &mut String) {
 pub fn emit_print_array(out: &mut String) {
     out.push_str("    bl alya_print_array\n");
 }
+
+pub fn emit_struct_new(
+    out: &mut String,
+    desc_label: &str,
+    field_count: usize,
+    os: OperatingSystem,
+) {
+    emit_adrp_add(out, "x0", desc_label, os);
+    out.push_str(&format!("    mov x1, #{}\n", field_count));
+    out.push_str("    bl alya_struct_new\n");
+}
+
+pub fn emit_struct_field_get(out: &mut String, field_idx: usize) {
+    out.push_str(&format!("    ldr x0, [x0, #{}]\n", (field_idx + 1) * 8));
+}
+
+pub fn emit_struct_field_set_imm(out: &mut String, field_idx: usize) {
+    out.push_str("    ldr x1, [sp]\n");
+    out.push_str(&format!("    str x0, [x1, #{}]\n", (field_idx + 1) * 8));
+}
+
+pub fn emit_struct_field_set(out: &mut String, field_idx: usize) {
+    out.push_str("    ldr x1, [sp], #16\n");
+    out.push_str(&format!("    str x0, [x1, #{}]\n", (field_idx + 1) * 8));
+}
+
+pub fn emit_print_struct(out: &mut String) {
+    out.push_str("    bl alya_print_struct\n");
+}

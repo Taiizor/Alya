@@ -36,6 +36,7 @@
 - 🌟 **Expressive & Readable**: English-like keywords (`say`, `ask`, `when`, `repeat`, `function`).
 - 📁 **Modules & Imports**: Split code cleanly across multiple files with `import "module.alya"`, complete with circular dependency prevention.
 - 📦 **Arrays & Indexing**: Dynamic array literals (`[1, 2, 3]`), 0-based indexing (`arr[i]`), element mutation (`arr[i] = val`, `arr[i] += 1`), length querying (`len(arr)`), and automatic bounds safety.
+- 🏗️ **Structs & Custom Types**: Custom composite types (`struct Point ... end`), named and positional constructors (`Point { x: 1, y: 2 }` / `Point(1, 2)`), field access (`p.x`), mutation (`p.x = 100`, `p.x += 5`), and formatted printing.
 - 🔢 **Floating-Point Numbers**: First-class 64-bit IEEE 754 float support (`f64`), mixed integer-float arithmetic, built-in `float()` and `int()` casting, and formatted output.
 - 🛡️ **Exception Handling**: Built-in `try ... catch [err] ... end` support with runtime division/modulo by zero and out-of-bounds protection.
 - ⚡ **Direct Native Codegen**: Emits clean, comment-annotated assembly for **x86 (32-bit)**, **x64 (64-bit)**, and **ARM64 (Apple Silicon & AArch64)**.
@@ -319,6 +320,34 @@ say "Average: {average}"    # 25.25
 say int(average)             # 25
 ```
 
+### 12. Structs & Custom Types
+
+```alya
+# Struct definition
+struct Point
+    x
+    y
+end
+
+# Named instantiation & field access
+let p1 = Point { x: 10, y: 20 }
+say p1                      # Point { x: 10, y: 20 }
+say "Coords: ({p1.x}, {p1.y})"
+
+# Field mutation & compound assignment
+p1.x = 100
+p1.y += 5
+say p1                      # Point { x: 100, y: 25 }
+
+# Positional constructor & function support
+function distance_squared(pt)
+    return pt.x * pt.x + pt.y * pt.y
+end
+
+let p2 = Point(3, 4)
+say distance_squared(p2)    # 25
+```
+
 ---
 
 ## Platform & Architecture Matrix
@@ -344,7 +373,7 @@ Alya/
 │   ├── workflows/             # CI and Automated Release workflows
 │   ├── ISSUE_TEMPLATE/        # Bug report and Feature request forms
 │   └── PULL_REQUEST_TEMPLATE.md
-├── examples/                  # 22 rich example programs
+├── examples/                  # 23 rich example programs
 ├── src/
 │   ├── cli/                   # Argument parser, help, and commands
 │   ├── codegen/               # Assembly code generator (x86, x64, ARM64)

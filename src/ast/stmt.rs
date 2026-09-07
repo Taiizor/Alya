@@ -17,6 +17,15 @@ pub enum Stmt {
         index: Expr,
         value: Expr,
     },
+    FieldAssign {
+        object: Expr,
+        field: String,
+        value: Expr,
+    },
+    StructDef {
+        name: String,
+        fields: Vec<String>,
+    },
     If {
         condition: Expr,
         then_block: Vec<Stmt>,

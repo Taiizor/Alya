@@ -33,6 +33,86 @@ impl CodeGen {
                         .variables
                         .insert(name.clone(), VarType::Array(self.ctx.stack_offset));
                 }
+                Expr::StructInit {
+                    name: sname,
+                    fields: init_fields,
+                } => {
+                    self.generate_expression(value);
+
+                    arch::emit_allocate_var(
+                        &mut self.output,
+                        self.arch,
+                        &mut self.ctx.stack_offset,
+                    );
+
+                    self.ctx.variables.insert(
+                        name.clone(),
+                        VarType::Struct {
+                            struct_name: sname.clone(),
+                            offset: self.ctx.stack_offset,
+                        },
+                    );
+
+                    for (fname, fval) in init_fields {
+                        let is_flt = is_float_expr(fval, &self.ctx.variables);
+                        let is_str = is_string_expr(fval, &self.ctx.variables);
+                        let field_key = format!("{}.{}", name, fname);
+                        if is_str {
+                            self.ctx
+                                .variables
+                                .insert(field_key, VarType::StringOffset(0));
+                        } else if is_flt {
+                            self.ctx.variables.insert(field_key, VarType::Float(0));
+                        } else {
+                            self.ctx.variables.insert(field_key, VarType::Number(0));
+                        }
+                    }
+                }
+                Expr::Call {
+                    name: cname,
+                    args: cargs,
+                } if self.ctx.structs.contains_key(cname) => {
+                    let sname = cname.clone();
+                    let sfields = self
+                        .ctx
+                        .structs
+                        .get(&sname)
+                        .map(|s| s.fields.clone())
+                        .unwrap_or_default();
+
+                    self.generate_expression(value);
+
+                    arch::emit_allocate_var(
+                        &mut self.output,
+                        self.arch,
+                        &mut self.ctx.stack_offset,
+                    );
+
+                    self.ctx.variables.insert(
+                        name.clone(),
+                        VarType::Struct {
+                            struct_name: sname,
+                            offset: self.ctx.stack_offset,
+                        },
+                    );
+
+                    for (i, arg) in cargs.iter().enumerate() {
+                        if let Some(fname) = sfields.get(i) {
+                            let is_flt = is_float_expr(arg, &self.ctx.variables);
+                            let is_str = is_string_expr(arg, &self.ctx.variables);
+                            let field_key = format!("{}.{}", name, fname);
+                            if is_str {
+                                self.ctx
+                                    .variables
+                                    .insert(field_key, VarType::StringOffset(0));
+                            } else if is_flt {
+                                self.ctx.variables.insert(field_key, VarType::Float(0));
+                            } else {
+                                self.ctx.variables.insert(field_key, VarType::Number(0));
+                            }
+                        }
+                    }
+                }
                 _ => {
                     let is_str = is_string_expr(value, &self.ctx.variables);
                     let is_arr = match value {
@@ -40,6 +120,18 @@ impl CodeGen {
                             matches!(self.ctx.variables.get(ident), Some(VarType::Array(_)))
                         }
                         _ => false,
+                    };
+                    let is_struct = match value {
+                        Expr::Identifier(ident) => {
+                            if let Some(VarType::Struct { struct_name, .. }) =
+                                self.ctx.variables.get(ident)
+                            {
+                                Some(struct_name.clone())
+                            } else {
+                                None
+                            }
+                        }
+                        _ => None,
                     };
                     let is_flt = is_float_expr(value, &self.ctx.variables);
                     self.generate_expression(value);
@@ -50,7 +142,15 @@ impl CodeGen {
                         &mut self.ctx.stack_offset,
                     );
 
-                    if is_str {
+                    if let Some(sname) = is_struct {
+                        self.ctx.variables.insert(
+                            name.clone(),
+                            VarType::Struct {
+                                struct_name: sname,
+                                offset: self.ctx.stack_offset,
+                            },
+                        );
+                    } else if is_str {
                         self.ctx
                             .variables
                             .insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
@@ -78,7 +178,8 @@ impl CodeGen {
                         VarType::Number(offset)
                         | VarType::Float(offset)
                         | VarType::StringOffset(offset)
-                        | VarType::Array(offset) => {
+                        | VarType::Array(offset)
+                        | VarType::Struct { offset, .. } => {
                             arch::emit_store_var(
                                 &mut self.output,
                                 self.arch,
@@ -94,6 +195,54 @@ impl CodeGen {
                         VarType::StringLabel(_) => {}
                     }
                 }
+            }
+            Stmt::FieldAssign {
+                object,
+                field,
+                value,
+            } => {
+                let mut field_idx = 0;
+                let mut struct_found = false;
+
+                if let Expr::Identifier(obj_name) = object {
+                    if let Some(VarType::Struct { struct_name, .. }) =
+                        self.ctx.variables.get(obj_name)
+                    {
+                        if let Some(sdef) = self.ctx.structs.get(struct_name) {
+                            if let Some(idx) = sdef.fields.iter().position(|f| f == field) {
+                                field_idx = idx;
+                                struct_found = true;
+                            }
+                        }
+                    }
+                    let field_key = format!("{}.{}", obj_name, field);
+                    let is_flt = is_float_expr(value, &self.ctx.variables);
+                    let is_str = is_string_expr(value, &self.ctx.variables);
+                    if is_str {
+                        self.ctx
+                            .variables
+                            .insert(field_key, VarType::StringOffset(0));
+                    } else if is_flt {
+                        self.ctx.variables.insert(field_key, VarType::Float(0));
+                    } else {
+                        self.ctx.variables.insert(field_key, VarType::Number(0));
+                    }
+                }
+
+                if !struct_found {
+                    for sdef in self.ctx.structs.values() {
+                        if let Some(idx) = sdef.fields.iter().position(|f| f == field) {
+                            field_idx = idx;
+                            break;
+                        }
+                    }
+                }
+
+                self.generate_expression(object);
+                arch::emit_push_temp(&mut self.output, self.arch);
+
+                self.generate_expression(value);
+                arch::emit_struct_field_set(&mut self.output, self.arch, field_idx);
             }
             Stmt::IndexAssign {
                 array,
@@ -310,6 +459,15 @@ impl CodeGen {
                 self.output.push_str(&format!("{}:\n", end_label));
             }
             Stmt::Function { .. } => {}
+            Stmt::StructDef { name, fields } => {
+                self.ctx.structs.insert(
+                    name.clone(),
+                    crate::codegen::context::StructDefInfo {
+                        name: name.clone(),
+                        fields: fields.clone(),
+                    },
+                );
+            }
         }
     }
 }

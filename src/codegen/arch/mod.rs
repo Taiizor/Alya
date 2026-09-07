@@ -444,3 +444,55 @@ pub fn emit_print_array(
         Architecture::X86 => x86::emit_print_array(out),
     }
 }
+
+pub fn emit_struct_new(
+    out: &mut String,
+    arch: Architecture,
+    desc_label: &str,
+    field_count: usize,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_struct_new(out, desc_label, field_count, os),
+        Architecture::X64 => x64::emit_struct_new(out, desc_label, field_count, stack_offset, os),
+        Architecture::X86 => x86::emit_struct_new(out, desc_label, field_count),
+    }
+}
+
+pub fn emit_struct_field_get(out: &mut String, arch: Architecture, field_idx: usize) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_struct_field_get(out, field_idx),
+        Architecture::X64 => x64::emit_struct_field_get(out, field_idx),
+        Architecture::X86 => x86::emit_struct_field_get(out, field_idx),
+    }
+}
+
+pub fn emit_struct_field_set_imm(out: &mut String, arch: Architecture, field_idx: usize) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_struct_field_set_imm(out, field_idx),
+        Architecture::X64 => x64::emit_struct_field_set_imm(out, field_idx),
+        Architecture::X86 => x86::emit_struct_field_set_imm(out, field_idx),
+    }
+}
+
+pub fn emit_struct_field_set(out: &mut String, arch: Architecture, field_idx: usize) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_struct_field_set(out, field_idx),
+        Architecture::X64 => x64::emit_struct_field_set(out, field_idx),
+        Architecture::X86 => x86::emit_struct_field_set(out, field_idx),
+    }
+}
+
+pub fn emit_print_struct(
+    out: &mut String,
+    arch: Architecture,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_print_struct(out),
+        Architecture::X64 => x64::emit_print_struct(out, stack_offset, os),
+        Architecture::X86 => x86::emit_print_struct(out),
+    }
+}

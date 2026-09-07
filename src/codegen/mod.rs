@@ -12,7 +12,7 @@ mod tests;
 pub use target::{Architecture, OperatingSystem};
 
 use crate::ast::*;
-use analysis::{infer_param_is_float, infer_param_is_string};
+use analysis::{infer_param_is_float, infer_param_is_string, infer_param_struct_type};
 use context::{CodeGenContext, VarType};
 
 pub struct CodeGen {
@@ -33,6 +33,19 @@ impl CodeGen {
     }
 
     pub fn generate_program(&mut self, program: &Program) {
+        // Collect all struct definitions first
+        for stmt in &program.statements {
+            if let Stmt::StructDef { name, fields } = stmt {
+                self.ctx.structs.insert(
+                    name.clone(),
+                    context::StructDefInfo {
+                        name: name.clone(),
+                        fields: fields.clone(),
+                    },
+                );
+            }
+        }
+
         let mut functions = Vec::new();
         let mut top_level = Vec::new();
 
@@ -57,7 +70,7 @@ impl CodeGen {
             }
         }
 
-        runtime::emit_runtime(&mut self.output, self.arch, self.os);
+        runtime::emit_runtime(&mut self.output, self.arch, self.os, &self.ctx.structs);
     }
 
     fn generate_function(
@@ -82,7 +95,16 @@ impl CodeGen {
 
             let is_str = infer_param_is_string(name, i, program);
             let is_flt = infer_param_is_float(name, i, program);
-            if is_str {
+            let struct_type = infer_param_struct_type(name, i, program);
+            if let Some(sname) = struct_type {
+                self.ctx.variables.insert(
+                    param.clone(),
+                    VarType::Struct {
+                        struct_name: sname,
+                        offset: self.ctx.stack_offset,
+                    },
+                );
+            } else if is_str {
                 self.ctx
                     .variables
                     .insert(param.clone(), VarType::StringOffset(self.ctx.stack_offset));

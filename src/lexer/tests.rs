@@ -201,3 +201,30 @@ fn test_tokenize_brackets() {
         ]
     );
 }
+
+#[test]
+fn test_tokenize_struct() {
+    let source = "struct Point\n  x: 10,\n  y: 20\nend";
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Tokenization failed");
+    let types: Vec<_> = tokens.into_iter().map(|t| t.token_type).collect();
+    assert_eq!(
+        types,
+        vec![
+            TokenType::Struct,
+            TokenType::Identifier("Point".into()),
+            TokenType::Newline,
+            TokenType::Identifier("x".into()),
+            TokenType::Colon,
+            TokenType::Number(10.0),
+            TokenType::Comma,
+            TokenType::Newline,
+            TokenType::Identifier("y".into()),
+            TokenType::Colon,
+            TokenType::Number(20.0),
+            TokenType::Newline,
+            TokenType::End,
+            TokenType::Eof,
+        ]
+    );
+}

@@ -138,6 +138,23 @@ impl Parser {
                     array: Box::new(expr),
                     index: Box::new(index),
                 };
+            } else if matches!(self.current_token().token_type, TokenType::Dot) {
+                self.advance();
+                let field = match &self.current_token().token_type {
+                    TokenType::Identifier(f) => f.clone(),
+                    _ => {
+                        return Err(format!(
+                            "Expected field name after '.' at line {}, column {}",
+                            self.current_token().line,
+                            self.current_token().column
+                        ))
+                    }
+                };
+                self.advance();
+                expr = Expr::FieldAccess {
+                    object: Box::new(expr),
+                    field,
+                };
             } else {
                 break;
             }
@@ -212,6 +229,53 @@ impl Parser {
                     self.expect(TokenType::RightParen)?;
 
                     Ok(Expr::Call { name: ident, args })
+                } else if matches!(self.current_token().token_type, TokenType::LeftBrace) {
+                    self.advance();
+                    self.skip_newlines();
+                    let mut fields = Vec::new();
+
+                    while !matches!(self.current_token().token_type, TokenType::RightBrace) {
+                        self.skip_newlines();
+                        if matches!(self.current_token().token_type, TokenType::RightBrace) {
+                            break;
+                        }
+                        let field_name = match &self.current_token().token_type {
+                            TokenType::Identifier(f) => f.clone(),
+                            _ => {
+                                return Err(format!(
+                                    "Expected field name in struct initialization at line {}, column {}",
+                                    self.current_token().line,
+                                    self.current_token().column
+                                ))
+                            }
+                        };
+                        self.advance();
+                        if matches!(
+                            self.current_token().token_type,
+                            TokenType::Colon | TokenType::Assign
+                        ) {
+                            self.advance();
+                        } else {
+                            return Err(format!(
+                                "Expected ':' or '=' after field name at line {}, column {}",
+                                self.current_token().line,
+                                self.current_token().column
+                            ));
+                        }
+                        let val = self.parse_expression()?;
+                        fields.push((field_name, val));
+                        self.skip_newlines();
+                        if matches!(self.current_token().token_type, TokenType::Comma) {
+                            self.advance();
+                            self.skip_newlines();
+                        }
+                    }
+
+                    self.expect(TokenType::RightBrace)?;
+                    Ok(Expr::StructInit {
+                        name: ident,
+                        fields,
+                    })
                 } else {
                     Ok(Expr::Identifier(ident))
                 }
@@ -268,7 +332,7 @@ fn parse_interpolated_string(s: &str) -> Option<Vec<Expr>> {
                     chars.next();
                     found_close = true;
                     break;
-                } else if next_ch.is_alphanumeric() || next_ch == '_' {
+                } else if next_ch.is_alphanumeric() || next_ch == '_' || next_ch == '.' {
                     var_name.push(next_ch);
                     chars.next();
                 } else {
@@ -282,7 +346,19 @@ fn parse_interpolated_string(s: &str) -> Option<Vec<Expr>> {
                     parts.push(Expr::String(current_lit.clone()));
                     current_lit.clear();
                 }
-                parts.push(Expr::Identifier(var_name));
+                if var_name.contains('.') {
+                    let subparts: Vec<&str> = var_name.split('.').collect();
+                    let mut expr = Expr::Identifier(subparts[0].to_string());
+                    for &field in &subparts[1..] {
+                        expr = Expr::FieldAccess {
+                            object: Box::new(expr),
+                            field: field.to_string(),
+                        };
+                    }
+                    parts.push(expr);
+                } else {
+                    parts.push(Expr::Identifier(var_name));
+                }
             } else {
                 current_lit.push('{');
                 current_lit.push_str(&var_name);

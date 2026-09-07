@@ -23,6 +23,14 @@ pub enum Expr {
         array: Box<Expr>,
         index: Box<Expr>,
     },
+    FieldAccess {
+        object: Box<Expr>,
+        field: String,
+    },
+    StructInit {
+        name: String,
+        fields: Vec<(String, Expr)>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

@@ -638,3 +638,65 @@ pub fn emit_print_array(out: &mut String, stack_offset: i32, os: OperatingSystem
         }
     }
 }
+
+pub fn emit_struct_new(
+    out: &mut String,
+    desc_label: &str,
+    field_count: usize,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    if matches!(os, OperatingSystem::Windows) {
+        let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
+        out.push_str(&format!("    lea {}(%rip), %rcx\n", desc_label));
+        out.push_str(&format!("    mov ${}, %rdx\n", field_count));
+        out.push_str(&format!("    sub ${}, %rsp\n", padding));
+        out.push_str("    call alya_struct_new\n");
+        out.push_str(&format!("    add ${}, %rsp\n", padding));
+    } else {
+        let misaligned = stack_offset % 16 != 0;
+        if misaligned {
+            out.push_str("    sub $8, %rsp\n");
+        }
+        out.push_str(&format!("    lea {}(%rip), %rdi\n", desc_label));
+        out.push_str(&format!("    mov ${}, %rsi\n", field_count));
+        out.push_str("    call alya_struct_new\n");
+        if misaligned {
+            out.push_str("    add $8, %rsp\n");
+        }
+    }
+}
+
+pub fn emit_struct_field_get(out: &mut String, field_idx: usize) {
+    out.push_str(&format!("    movq {}(%rax), %rax\n", (field_idx + 1) * 8));
+}
+
+pub fn emit_struct_field_set_imm(out: &mut String, field_idx: usize) {
+    out.push_str("    mov (%rsp), %rdx\n");
+    out.push_str(&format!("    movq %rax, {}(%rdx)\n", (field_idx + 1) * 8));
+}
+
+pub fn emit_struct_field_set(out: &mut String, field_idx: usize) {
+    out.push_str("    pop %rdx\n");
+    out.push_str(&format!("    movq %rax, {}(%rdx)\n", (field_idx + 1) * 8));
+}
+
+pub fn emit_print_struct(out: &mut String, stack_offset: i32, os: OperatingSystem) {
+    if matches!(os, OperatingSystem::Windows) {
+        let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
+        out.push_str("    mov %rax, %rcx\n");
+        out.push_str(&format!("    sub ${}, %rsp\n", padding));
+        out.push_str("    call alya_print_struct\n");
+        out.push_str(&format!("    add ${}, %rsp\n", padding));
+    } else {
+        let misaligned = stack_offset % 16 != 0;
+        if misaligned {
+            out.push_str("    sub $8, %rsp\n");
+        }
+        out.push_str("    mov %rax, %rdi\n");
+        out.push_str("    call alya_print_struct\n");
+        if misaligned {
+            out.push_str("    add $8, %rsp\n");
+        }
+    }
+}

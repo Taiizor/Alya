@@ -513,3 +513,81 @@ say "Interpolated: {pi}"
         );
     }
 }
+
+#[test]
+fn test_e2e_structs() {
+    let code = r#"
+struct Point
+    x
+    y
+end
+
+let p = Point { x: 10, y: 20 }
+say p.x
+say p.y
+say p
+
+p.x = 99
+p.y += 5
+say p.x
+say p.y
+
+let p2 = Point(1, 2)
+say p2.x
+say p2.y
+
+function translate(pt, dx, dy)
+    pt.x += dx
+    pt.y += dy
+    return pt
+end
+
+let p3 = translate(p2, 10, 20)
+say p3.x
+say p3.y
+
+say "Formatted point: ({p.x}, {p.y})"
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            "10\n20\nPoint { x: 10, y: 20 }\n99\n25\n1\n2\n11\n22\nFormatted point: (99, 25)\n"
+        );
+    }
+}
+
+#[test]
+fn test_e2e_structs_advanced() {
+    let code = r#"
+struct Person
+    name
+    age
+    score
+end
+
+let alice = Person { name: "Alice", age: 30, score: 95.5 }
+say alice.name
+say alice.age
+say alice.score
+say "Student: {alice.name}, Age: {alice.age}, Score: {alice.score}"
+
+struct Vector3
+    x
+    y
+    z
+end
+
+let v1 = Vector3(1.0, 2.0, 3.5)
+let v2 = Vector3(0.5, 1.5, 0.5)
+let dot = v1.x * v2.x + v1.y * v2.y + v1.z * v2.z
+say "Dot product: {dot}"
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            "Alice\n30\n95.5\nStudent: Alice, Age: 30, Score: 95.5\nDot product: 5.25\n"
+        );
+    }
+}

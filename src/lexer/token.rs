@@ -22,6 +22,7 @@ pub enum TokenType {
     Try,      // try
     Catch,    // catch
     Import,   // import
+    Struct,   // struct
 
     // Literals
     Number(f64),
@@ -60,6 +61,7 @@ pub enum TokenType {
     LeftBrace,    // {
     RightBrace,   // }
     Comma,        // ,
+    Colon,        // :
     Dot,          // .
     DotDot,       // ..
     Newline,      // \n
@@ -92,6 +94,7 @@ impl TokenType {
             "try" => TokenType::Try,
             "catch" => TokenType::Catch,
             "import" => TokenType::Import,
+            "struct" => TokenType::Struct,
             "true" => TokenType::True,
             "false" => TokenType::False,
             "and" => TokenType::And,
@@ -133,6 +136,7 @@ impl std::fmt::Display for TokenType {
             TokenType::Try => write!(f, "'try'"),
             TokenType::Catch => write!(f, "'catch'"),
             TokenType::Import => write!(f, "'import'"),
+            TokenType::Struct => write!(f, "'struct'"),
             TokenType::Number(n) => write!(f, "number '{}'", n),
             TokenType::Float(n) => write!(f, "float '{}'", n),
             TokenType::String(s) => write!(f, "\"{}\"", s),
@@ -165,6 +169,7 @@ impl std::fmt::Display for TokenType {
             TokenType::LeftBrace => write!(f, "'{{'"),
             TokenType::RightBrace => write!(f, "'}}'"),
             TokenType::Comma => write!(f, "','"),
+            TokenType::Colon => write!(f, "':'"),
             TokenType::Dot => write!(f, "'.'"),
             TokenType::DotDot => write!(f, "'..'"),
             TokenType::Newline => write!(f, "newline"),

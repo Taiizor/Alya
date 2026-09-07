@@ -392,6 +392,18 @@ Status 200: OK\n\
 Priority 2: Medium\n",
         ),
         "quickstart_arithmetic.alya" => Some("15\n5\n50\n2\n"),
+        "structs.alya" => Some(concat!(
+            "=== Structs and Custom Types ===\n",
+            "Point 1:\n",
+            "Point { x: 10, y: 20 }\n",
+            "Point 1 coordinates: (10, 20)\n",
+            "Mutated Point 1:\n",
+            "Point { x: 100, y: 25 }\n",
+            "Point 2: (5, 12)\n",
+            "Distance squared of Point 2: 169\n",
+            "Shifted Point: (15, 32)\n",
+            "Alice is a Systems Architect with 8 years of experience.\n",
+        )),
         "try_catch.alya" => Some(
             "=== Try-Catch Demo ===\n\
 \n\
