@@ -7,7 +7,7 @@ use alya::parser::Parser;
 
 static TEST_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
 
-fn run_alya_code_full(source: &str) -> Option<(i32, String)> {
+fn run_alya_code_with_input(source: &str, input: Option<&str>) -> Option<(i32, String)> {
     // Check if gcc is available
     if Command::new("gcc").arg("--version").output().is_err() {
         eprintln!("Skipping E2E test: GCC is not available in PATH.");
@@ -57,7 +57,21 @@ fn run_alya_code_full(source: &str) -> Option<(i32, String)> {
         format!("./{}", exe_path)
     };
 
-    let prog_out = Command::new(&run_cmd).output().expect("Program execution failed");
+    let mut child = Command::new(&run_cmd)
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .expect("Program execution failed");
+
+    if let Some(in_str) = input {
+        use std::io::Write;
+        if let Some(mut stdin) = child.stdin.take() {
+            let _ = stdin.write_all(in_str.as_bytes());
+        }
+    }
+
+    let prog_out = child.wait_with_output().expect("Failed to wait on child process");
     let _ = fs::remove_file(&exe_path);
 
     let code = prog_out.status.code().unwrap_or(-1);
@@ -66,6 +80,10 @@ fn run_alya_code_full(source: &str) -> Option<(i32, String)> {
     output.push_str(&stderr);
 
     Some((code, output))
+}
+
+fn run_alya_code_full(source: &str) -> Option<(i32, String)> {
+    run_alya_code_with_input(source, None)
 }
 
 fn run_alya_code(source: &str) -> Option<String> {
@@ -260,4 +278,20 @@ say 100 % 0
         assert!(output.contains("Runtime error: division by zero"));
     }
 }
+
+#[test]
+fn test_e2e_ask_input_automated() {
+    let code = r#"
+let name = ask "Name: "
+let city = ask "City: "
+say "Hello, {name} from {city}!"
+"#;
+    if let Some((code, output)) = run_alya_code_with_input(code, Some("Alya\nIstanbul\n")) {
+        assert_eq!(code, 0);
+        assert!(output.contains("Name: "));
+        assert!(output.contains("City: "));
+        assert!(output.contains("Hello, Alya from Istanbul!"));
+    }
+}
+
 
