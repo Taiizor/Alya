@@ -241,3 +241,69 @@ arena_free_all(a)
         );
     }
 }
+
+#[test]
+fn test_e2e_time_and_test_stdlib() {
+    let code = r#"
+import "std/time"
+import "std/test"
+
+# 1. Time functions
+say is_leap_year(2024)
+say is_leap_year(2023)
+say is_leap_year(2000)
+say is_leap_year(1900)
+
+say days_in_month(1, 2024)
+say days_in_month(2, 2024)
+say days_in_month(2, 2023)
+say days_in_month(4, 2024)
+
+say format_duration(3665)
+say minutes(5)
+say hours(2)
+
+# 2. Test runner & comparison assertions
+let r = runner_new()
+runner_assert(r, 10 > 5, "greater than")
+assert_gt(20, 10, "20 gt 10")
+assert_gte(10, 10, "10 gte 10")
+assert_lt(5, 10, "5 lt 10")
+assert_lte(5, 5, "5 lte 5")
+assert_not_null("hello", "not null")
+assert_null(0, "is null")
+
+say "Runner total: " + str(r.total)
+say "Runner passed: " + str(r.passed)
+say "Runner failed: " + str(r.failed)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!(
+                "1\n",
+                "0\n",
+                "1\n",
+                "0\n",
+                "31\n",
+                "29\n",
+                "28\n",
+                "30\n",
+                "1h 1m 5s\n",
+                "300\n",
+                "7200\n",
+                "  [PASS] greater than\n",
+                "  [PASS] 20 gt 10\n",
+                "  [PASS] 10 gte 10\n",
+                "  [PASS] 5 lt 10\n",
+                "  [PASS] 5 lte 5\n",
+                "  [PASS] not null\n",
+                "  [PASS] is null\n",
+                "Runner total: 1\n",
+                "Runner passed: 1\n",
+                "Runner failed: 0\n",
+            )
+        );
+    }
+}

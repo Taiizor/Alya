@@ -20,7 +20,7 @@ function assert_eq(actual, expected, msg)
         say "  [PASS] {msg}"
         return 1
     else
-        say "  [FAIL] {msg}"
+        say "  [FAIL] {msg} (expected: " + str(expected) + ", got: " + str(actual) + ")"
         return 0
     end
 end
@@ -30,7 +30,7 @@ function assert_ne(actual, expected, msg)
         say "  [PASS] {msg}"
         return 1
     else
-        say "  [FAIL] {msg}"
+        say "  [FAIL] {msg} (expected not: " + str(expected) + ", got: " + str(actual) + ")"
         return 0
     end
 end
@@ -40,7 +40,7 @@ function assert_str_eq(actual, expected, msg)
         say "  [PASS] {msg}"
         return 1
     else
-        say "  [FAIL] {msg}"
+        say "  [FAIL] {msg} (expected: \"" + expected + "\", got: \"" + actual + "\")"
         return 0
     end
 end
@@ -50,9 +50,57 @@ function assert_str_ne(actual, expected, msg)
         say "  [PASS] {msg}"
         return 1
     else
-        say "  [FAIL] {msg}"
+        say "  [FAIL] {msg} (expected not: \"" + expected + "\")"
         return 0
     end
+end
+
+function assert_gt(actual, expected, msg)
+    if actual > expected
+        say "  [PASS] {msg}"
+        return 1
+    else
+        say "  [FAIL] {msg} (" + str(actual) + " not > " + str(expected) + ")"
+        return 0
+    end
+end
+
+function assert_gte(actual, expected, msg)
+    if actual >= expected
+        say "  [PASS] {msg}"
+        return 1
+    else
+        say "  [FAIL] {msg} (" + str(actual) + " not >= " + str(expected) + ")"
+        return 0
+    end
+end
+
+function assert_lt(actual, expected, msg)
+    if actual < expected
+        say "  [PASS] {msg}"
+        return 1
+    else
+        say "  [FAIL] {msg} (" + str(actual) + " not < " + str(expected) + ")"
+        return 0
+    end
+end
+
+function assert_lte(actual, expected, msg)
+    if actual <= expected
+        say "  [PASS] {msg}"
+        return 1
+    else
+        say "  [FAIL] {msg} (" + str(actual) + " not <= " + str(expected) + ")"
+        return 0
+    end
+end
+
+function assert_null(val, msg)
+    return assert(val == 0, msg)
+end
+
+function assert_not_null(val, msg)
+    return assert(val != 0, msg)
 end
 
 function assert_true(cond, msg)
@@ -63,14 +111,60 @@ function assert_false(cond, msg)
     return assert(cond == 0, msg)
 end
 
+struct TestRunner
+    total
+    passed
+    failed
+end
+
+function runner_new()
+    return TestRunner(0, 0, 0)
+end
+
+function runner_assert(r, cond, msg)
+    r.total += 1
+    if cond
+        r.passed += 1
+        say "  [PASS] {msg}"
+        return 1
+    else
+        r.failed += 1
+        say "  [FAIL] {msg}"
+        return 0
+    end
+end
+
+function runner_assert_eq(r, actual, expected, msg)
+    r.total += 1
+    if actual == expected
+        r.passed += 1
+        say "  [PASS] {msg}"
+        return 1
+    else
+        r.failed += 1
+        say "  [FAIL] {msg} (expected: " + str(expected) + ", got: " + str(actual) + ")"
+        return 0
+    end
+end
+
+function runner_summary(r)
+    say "----------------------------------------"
+    say "Results: " + str(r.passed) + "/" + str(r.total) + " passed, " + str(r.failed) + " failed."
+    when r.failed
+        is 0 then say "Status: ALL TESTS PASSED!"
+        else say "Status: SOME TESTS FAILED!"
+    end
+    say "----------------------------------------"
+    return r.failed
+end
+
 function test_report(passed, total)
     let failed = total - passed
     say "----------------------------------------"
     say "Results: {passed}/{total} passed, {failed} failed."
-    if failed == 0
-        say "Status: ALL TESTS PASSED!"
-    else
-        say "Status: SOME TESTS FAILED!"
+    when failed
+        is 0 then say "Status: ALL TESTS PASSED!"
+        else say "Status: SOME TESTS FAILED!"
     end
     say "----------------------------------------"
     return failed
