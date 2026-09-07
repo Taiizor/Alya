@@ -222,6 +222,37 @@ end
 }
 
 #[test]
+fn test_parse_for_each_loop() {
+    let code = r#"
+for item in [1, 2, 3]
+    say item
+end
+"#;
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 1);
+
+    match &program.statements[0] {
+        Stmt::ForEach {
+            var,
+            iterable,
+            body,
+        } => {
+            assert_eq!(var, "item");
+            assert_eq!(
+                *iterable,
+                Expr::Array(vec![
+                    Expr::Number(1.0),
+                    Expr::Number(2.0),
+                    Expr::Number(3.0)
+                ])
+            );
+            assert_eq!(body.len(), 1);
+        }
+        other => panic!("Expected ForEach loop, got {:?}", other),
+    }
+}
+
+#[test]
 fn test_parse_function_and_call() {
     let code = r#"
 function multiply(a, b)

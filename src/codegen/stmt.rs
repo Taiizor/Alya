@@ -1,6 +1,8 @@
 use super::CodeGen;
 use crate::ast::{Expr, Stmt};
-use crate::codegen::analysis::{escape_string, is_float_expr, is_string_expr};
+use crate::codegen::analysis::{
+    escape_string, is_array_expr, is_float_array, is_float_expr, is_string_array, is_string_expr,
+};
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
 
@@ -20,7 +22,13 @@ impl CodeGen {
                         .variables
                         .insert(name.clone(), VarType::StringLabel(label));
                 }
-                Expr::Array(_) => {
+                Expr::Array(elements) => {
+                    let is_str_arr = elements
+                        .first()
+                        .is_some_and(|e| is_string_expr(e, &self.ctx.variables));
+                    let is_flt_arr = elements
+                        .first()
+                        .is_some_and(|e| is_float_expr(e, &self.ctx.variables));
                     self.generate_expression(value);
 
                     arch::emit_allocate_var(
@@ -32,6 +40,16 @@ impl CodeGen {
                     self.ctx
                         .variables
                         .insert(name.clone(), VarType::Array(self.ctx.stack_offset));
+                    if is_str_arr {
+                        self.ctx
+                            .variables
+                            .insert(format!("arr_is_str:{}", name), VarType::Number(0));
+                    }
+                    if is_flt_arr {
+                        self.ctx
+                            .variables
+                            .insert(format!("arr_is_flt:{}", name), VarType::Number(0));
+                    }
                 }
                 Expr::StructInit {
                     name: sname,
@@ -115,12 +133,7 @@ impl CodeGen {
                 }
                 _ => {
                     let is_str = is_string_expr(value, &self.ctx.variables);
-                    let is_arr = match value {
-                        Expr::Identifier(ident) => {
-                            matches!(self.ctx.variables.get(ident), Some(VarType::Array(_)))
-                        }
-                        _ => false,
-                    };
+                    let is_arr = is_array_expr(value, &self.ctx.variables);
                     let is_struct = match value {
                         Expr::Identifier(ident) => {
                             if let Some(VarType::Struct { struct_name, .. }) =
@@ -158,6 +171,16 @@ impl CodeGen {
                         self.ctx
                             .variables
                             .insert(name.clone(), VarType::Array(self.ctx.stack_offset));
+                        if is_string_array(value, &self.ctx.variables) {
+                            self.ctx
+                                .variables
+                                .insert(format!("arr_is_str:{}", name), VarType::Number(0));
+                        }
+                        if is_float_array(value, &self.ctx.variables) {
+                            self.ctx
+                                .variables
+                                .insert(format!("arr_is_flt:{}", name), VarType::Number(0));
+                        }
                     } else if is_flt {
                         self.ctx
                             .variables
@@ -171,6 +194,8 @@ impl CodeGen {
             },
             Stmt::Assign { name, value } => {
                 let is_flt = is_float_expr(value, &self.ctx.variables);
+                let is_str = is_string_expr(value, &self.ctx.variables);
+                let is_arr = is_array_expr(value, &self.ctx.variables);
                 self.generate_expression(value);
 
                 if let Some(var_type) = self.ctx.variables.get(name).cloned() {
@@ -186,10 +211,28 @@ impl CodeGen {
                                 offset,
                                 self.ctx.stack_offset,
                             );
-                            if is_flt {
+                            if is_str {
+                                self.ctx
+                                    .variables
+                                    .insert(name.clone(), VarType::StringOffset(offset));
+                            } else if is_flt {
                                 self.ctx
                                     .variables
                                     .insert(name.clone(), VarType::Float(offset));
+                            } else if is_arr {
+                                self.ctx
+                                    .variables
+                                    .insert(name.clone(), VarType::Array(offset));
+                                if is_string_array(value, &self.ctx.variables) {
+                                    self.ctx
+                                        .variables
+                                        .insert(format!("arr_is_str:{}", name), VarType::Number(0));
+                                }
+                                if is_float_array(value, &self.ctx.variables) {
+                                    self.ctx
+                                        .variables
+                                        .insert(format!("arr_is_flt:{}", name), VarType::Number(0));
+                                }
                             }
                         }
                         VarType::StringLabel(_) => {}
@@ -388,6 +431,90 @@ impl CodeGen {
                     &mut self.output,
                     self.arch,
                     var_offset,
+                    self.ctx.stack_offset,
+                    &start_label,
+                );
+                self.output.push_str(&format!("{}:\n", end_label));
+
+                self.ctx.pop_loop();
+            }
+            Stmt::ForEach {
+                var,
+                iterable,
+                body,
+            } => {
+                self.generate_expression(iterable);
+                arch::emit_allocate_var(&mut self.output, self.arch, &mut self.ctx.stack_offset);
+                let arr_offset = self.ctx.stack_offset;
+
+                arch::emit_load_num(&mut self.output, self.arch, 0);
+                arch::emit_allocate_var(&mut self.output, self.arch, &mut self.ctx.stack_offset);
+                let idx_offset = self.ctx.stack_offset;
+
+                let is_str = is_string_array(iterable, &self.ctx.variables);
+                let is_flt = is_float_array(iterable, &self.ctx.variables);
+
+                let var_offset = match self.ctx.variables.get(var) {
+                    Some(
+                        VarType::Number(offset)
+                        | VarType::Float(offset)
+                        | VarType::StringOffset(offset),
+                    ) => {
+                        let off = *offset;
+                        let var_type = if is_str {
+                            VarType::StringOffset(off)
+                        } else if is_flt {
+                            VarType::Float(off)
+                        } else {
+                            VarType::Number(off)
+                        };
+                        self.ctx.variables.insert(var.clone(), var_type);
+                        off
+                    }
+                    _ => {
+                        arch::emit_allocate_var(
+                            &mut self.output,
+                            self.arch,
+                            &mut self.ctx.stack_offset,
+                        );
+                        let off = self.ctx.stack_offset;
+                        let var_type = if is_str {
+                            VarType::StringOffset(off)
+                        } else if is_flt {
+                            VarType::Float(off)
+                        } else {
+                            VarType::Number(off)
+                        };
+                        self.ctx.variables.insert(var.clone(), var_type);
+                        off
+                    }
+                };
+
+                let start_label = self.ctx.next_label();
+                let step_label = self.ctx.next_label();
+                let end_label = self.ctx.next_label();
+
+                self.ctx.push_loop(step_label.clone(), end_label.clone());
+
+                self.output.push_str(&format!("{}:\n", start_label));
+                arch::emit_for_each_load_element(
+                    &mut self.output,
+                    self.arch,
+                    arr_offset,
+                    idx_offset,
+                    var_offset,
+                    &end_label,
+                );
+
+                for s in body {
+                    self.generate_statement(s);
+                }
+
+                self.output.push_str(&format!("{}:\n", step_label));
+                arch::emit_increment_var(
+                    &mut self.output,
+                    self.arch,
+                    idx_offset,
                     self.ctx.stack_offset,
                     &start_label,
                 );

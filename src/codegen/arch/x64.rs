@@ -763,3 +763,22 @@ pub fn emit_print_struct(out: &mut String, stack_offset: i32, os: OperatingSyste
         }
     }
 }
+
+pub fn emit_for_each_load_element(
+    out: &mut String,
+    arr_offset: i32,
+    idx_offset: i32,
+    var_offset: i32,
+    end_label: &str,
+) {
+    out.push_str(&format!("    movq -{}(%rbp), %rax\n", arr_offset));
+    out.push_str("    test %rax, %rax\n");
+    out.push_str(&format!("    jz {}\n", end_label));
+    out.push_str("    movq (%rax), %rdx\n");
+    out.push_str(&format!("    movq -{}(%rbp), %rcx\n", idx_offset));
+    out.push_str("    cmpq %rdx, %rcx\n");
+    out.push_str(&format!("    jge {}\n", end_label));
+    out.push_str("    movq 16(%rax), %rdx\n");
+    out.push_str("    movq (%rdx, %rcx, 8), %rax\n");
+    out.push_str(&format!("    movq %rax, -{}(%rbp)\n", var_offset));
+}

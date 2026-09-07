@@ -44,6 +44,11 @@ pub enum Stmt {
         end: Expr,
         body: Vec<Stmt>,
     },
+    ForEach {
+        var: String,
+        iterable: Expr,
+        body: Vec<Stmt>,
+    },
     Function {
         name: String,
         params: Vec<String>,

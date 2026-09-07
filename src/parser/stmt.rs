@@ -382,28 +382,49 @@ impl Parser {
 
         self.expect(TokenType::In)?;
 
-        let start = self.parse_expression()?;
-        self.expect(TokenType::DotDot)?;
-        let end = self.parse_expression()?;
-        self.skip_newlines();
-
-        let mut body = Vec::new();
-        while !matches!(
-            self.current_token().token_type,
-            TokenType::End | TokenType::Eof
-        ) {
-            body.push(self.parse_statement()?);
+        let expr = self.parse_expression()?;
+        if matches!(self.current_token().token_type, TokenType::DotDot) {
+            self.advance();
+            let end = self.parse_expression()?;
             self.skip_newlines();
+
+            let mut body = Vec::new();
+            while !matches!(
+                self.current_token().token_type,
+                TokenType::End | TokenType::Eof
+            ) {
+                body.push(self.parse_statement()?);
+                self.skip_newlines();
+            }
+
+            self.expect(TokenType::End)?;
+
+            Ok(Stmt::For {
+                var,
+                start: expr,
+                end,
+                body,
+            })
+        } else {
+            self.skip_newlines();
+
+            let mut body = Vec::new();
+            while !matches!(
+                self.current_token().token_type,
+                TokenType::End | TokenType::Eof
+            ) {
+                body.push(self.parse_statement()?);
+                self.skip_newlines();
+            }
+
+            self.expect(TokenType::End)?;
+
+            Ok(Stmt::ForEach {
+                var,
+                iterable: expr,
+                body,
+            })
         }
-
-        self.expect(TokenType::End)?;
-
-        Ok(Stmt::For {
-            var,
-            start,
-            end,
-            body,
-        })
     }
 
     fn parse_function(&mut self) -> Result<Stmt, String> {

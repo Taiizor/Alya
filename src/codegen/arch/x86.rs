@@ -432,3 +432,22 @@ pub fn emit_print_struct(out: &mut String) {
     out.push_str("    call alya_print_struct\n");
     out.push_str("    add $4, %esp\n");
 }
+
+pub fn emit_for_each_load_element(
+    out: &mut String,
+    arr_offset: i32,
+    idx_offset: i32,
+    var_offset: i32,
+    end_label: &str,
+) {
+    out.push_str(&format!("    movl -{}(%ebp), %eax\n", arr_offset));
+    out.push_str("    test %eax, %eax\n");
+    out.push_str(&format!("    jz {}\n", end_label));
+    out.push_str("    movl (%eax), %edx\n");
+    out.push_str(&format!("    movl -{}(%ebp), %ecx\n", idx_offset));
+    out.push_str("    cmpl %edx, %ecx\n");
+    out.push_str(&format!("    jge {}\n", end_label));
+    out.push_str("    movl 8(%eax), %edx\n");
+    out.push_str("    movl (%edx, %ecx, 4), %eax\n");
+    out.push_str(&format!("    movl %eax, -{}(%ebp)\n", var_offset));
+}

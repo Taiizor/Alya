@@ -48,6 +48,24 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
         Expr::Identifier(name) => {
             matches!(vars.get(name), Some(VarType::Array(_)))
         }
+        Expr::Call { name, .. } if name == "split" || name == "args" => true,
+        _ => false,
+    }
+}
+
+pub fn is_string_array(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
+    match expr {
+        Expr::Array(elems) => elems.first().is_some_and(|e| is_string_expr(e, vars)),
+        Expr::Identifier(name) => vars.contains_key(&format!("arr_is_str:{}", name)),
+        Expr::Call { name, .. } if name == "split" || name == "args" => true,
+        _ => false,
+    }
+}
+
+pub fn is_float_array(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
+    match expr {
+        Expr::Array(elems) => elems.first().is_some_and(|e| is_float_expr(e, vars)),
+        Expr::Identifier(name) => vars.contains_key(&format!("arr_is_flt:{}", name)),
         _ => false,
     }
 }
@@ -142,6 +160,26 @@ fn collect_string_vars_from_stmts(stmts: &[Stmt], known_strings: &mut HashSet<St
             Stmt::While { body, .. } | Stmt::Repeat { body } | Stmt::For { body, .. } => {
                 collect_string_vars_from_stmts(body, known_strings);
             }
+            Stmt::ForEach {
+                var,
+                iterable,
+                body,
+            } => {
+                let is_str = match iterable {
+                    Expr::Array(elems) => elems
+                        .first()
+                        .is_some_and(|e| expr_is_definitely_string(e, known_strings)),
+                    Expr::Identifier(arr_name) => {
+                        known_strings.contains(&format!("arr_is_str:{}", arr_name))
+                    }
+                    Expr::Call { name, .. } if name == "split" || name == "args" => true,
+                    _ => false,
+                };
+                if is_str {
+                    known_strings.insert(var.clone());
+                }
+                collect_string_vars_from_stmts(body, known_strings);
+            }
             Stmt::Function { body, .. } => {
                 collect_string_vars_from_stmts(body, known_strings);
             }
@@ -229,6 +267,25 @@ fn collect_float_vars_from_stmts(stmts: &[Stmt], known_floats: &mut HashSet<Stri
             Stmt::While { body, .. } | Stmt::Repeat { body } | Stmt::For { body, .. } => {
                 collect_float_vars_from_stmts(body, known_floats);
             }
+            Stmt::ForEach {
+                var,
+                iterable,
+                body,
+            } => {
+                let is_flt = match iterable {
+                    Expr::Array(elems) => elems
+                        .first()
+                        .is_some_and(|e| expr_is_definitely_float(e, known_floats)),
+                    Expr::Identifier(arr_name) => {
+                        known_floats.contains(&format!("arr_is_flt:{}", arr_name))
+                    }
+                    _ => false,
+                };
+                if is_flt {
+                    known_floats.insert(var.clone());
+                }
+                collect_float_vars_from_stmts(body, known_floats);
+            }
             Stmt::Function { body, .. } => {
                 collect_float_vars_from_stmts(body, known_floats);
             }
@@ -264,6 +321,7 @@ fn expr_is_definitely_array(expr: &Expr, known_arrays: &HashSet<String>) -> bool
     match expr {
         Expr::Array(_) => true,
         Expr::Identifier(name) => known_arrays.contains(name),
+        Expr::Call { name, .. } if name == "split" || name == "args" => true,
         _ => false,
     }
 }
@@ -294,7 +352,10 @@ fn collect_array_vars_from_stmts(stmts: &[Stmt], known_arrays: &mut HashSet<Stri
                     collect_array_vars_from_stmts(else_stmts, known_arrays);
                 }
             }
-            Stmt::While { body, .. } | Stmt::Repeat { body } | Stmt::For { body, .. } => {
+            Stmt::While { body, .. }
+            | Stmt::Repeat { body }
+            | Stmt::For { body, .. }
+            | Stmt::ForEach { body, .. } => {
                 collect_array_vars_from_stmts(body, known_arrays);
             }
             Stmt::Function { body, .. } => {
@@ -367,7 +428,7 @@ pub fn find_call_arg<'a>(stmt: &'a Stmt, func_name: &str, param_idx: usize) -> O
             }
             None
         }
-        Stmt::Repeat { body } | Stmt::For { body, .. } => {
+        Stmt::Repeat { body } | Stmt::For { body, .. } | Stmt::ForEach { body, .. } => {
             for s in body {
                 if let Some(arg) = find_call_arg(s, func_name, param_idx) {
                     return Some(arg);

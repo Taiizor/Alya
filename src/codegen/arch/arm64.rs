@@ -569,3 +569,21 @@ pub fn emit_struct_field_set(out: &mut String, field_idx: usize) {
 pub fn emit_print_struct(out: &mut String) {
     out.push_str("    bl alya_print_struct\n");
 }
+
+pub fn emit_for_each_load_element(
+    out: &mut String,
+    arr_offset: i32,
+    idx_offset: i32,
+    var_offset: i32,
+    end_label: &str,
+) {
+    out.push_str(&format!("    ldr x0, [x29, #-{}]\n", arr_offset));
+    out.push_str(&format!("    cbz x0, {}\n", end_label));
+    out.push_str("    ldr x1, [x0]\n");
+    out.push_str(&format!("    ldr x2, [x29, #-{}]\n", idx_offset));
+    out.push_str("    cmp x2, x1\n");
+    out.push_str(&format!("    b.ge {}\n", end_label));
+    out.push_str("    ldr x3, [x0, #16]\n");
+    out.push_str("    ldr x0, [x3, x2, lsl #3]\n");
+    out.push_str(&format!("    str x0, [x29, #-{}]\n", var_offset));
+}

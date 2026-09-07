@@ -524,3 +524,24 @@ pub fn emit_print_struct(
         Architecture::X86 => x86::emit_print_struct(out),
     }
 }
+
+pub fn emit_for_each_load_element(
+    out: &mut String,
+    arch: Architecture,
+    arr_offset: i32,
+    idx_offset: i32,
+    var_offset: i32,
+    end_label: &str,
+) {
+    match arch {
+        Architecture::X86 => {
+            x86::emit_for_each_load_element(out, arr_offset, idx_offset, var_offset, end_label)
+        }
+        Architecture::X64 => {
+            x64::emit_for_each_load_element(out, arr_offset, idx_offset, var_offset, end_label)
+        }
+        Architecture::ARM64 => {
+            arm64::emit_for_each_load_element(out, arr_offset, idx_offset, var_offset, end_label)
+        }
+    }
+}
