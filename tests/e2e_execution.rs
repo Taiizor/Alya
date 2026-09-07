@@ -8,6 +8,18 @@ use std::sync::atomic::{AtomicU64, Ordering};
 static TEST_ID_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 fn run_alya_code_with_input(source: &str, input: Option<&str>) -> Option<(i32, String)> {
+    run_alya_code_with_input_and_args(source, input, &[])
+}
+
+fn run_alya_code_with_args(source: &str, cli_args: &[&str]) -> Option<(i32, String)> {
+    run_alya_code_with_input_and_args(source, None, cli_args)
+}
+
+fn run_alya_code_with_input_and_args(
+    source: &str,
+    input: Option<&str>,
+    cli_args: &[&str],
+) -> Option<(i32, String)> {
     // Check if gcc is available
     if Command::new("gcc").arg("--version").output().is_err() {
         eprintln!("Skipping E2E test: GCC is not available in PATH.");
@@ -75,7 +87,9 @@ fn run_alya_code_with_input(source: &str, input: Option<&str>) -> Option<(i32, S
         format!("./{}", exe_path)
     };
 
-    let mut child = Command::new(&run_cmd)
+    let mut cmd = Command::new(&run_cmd);
+    cmd.args(cli_args);
+    let mut child = cmd
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
@@ -802,5 +816,33 @@ end
                 "3\n",
             )
         );
+    }
+}
+
+#[test]
+fn test_e2e_cli_args() {
+    let code = r#"
+let a = args()
+say a.length()
+for arg in a
+    say arg
+end
+if a.length() > 0
+    say "first: {a[0]}"
+end
+"#;
+    // Test with CLI arguments
+    if let Some((code, output)) = run_alya_code_with_args(code, &["hello", "alya", "42"]) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!("3\n", "hello\n", "alya\n", "42\n", "first: hello\n",)
+        );
+    }
+
+    // Test with no CLI arguments
+    if let Some((code, output)) = run_alya_code_with_args(code, &[]) {
+        assert_eq!(code, 0);
+        assert_eq!(output, "0\n");
     }
 }

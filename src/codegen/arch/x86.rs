@@ -11,7 +11,11 @@ pub fn emit_header(out: &mut String) {
     out.push_str(".text\n");
     out.push_str("main:\n");
     out.push_str("    push %ebp\n");
-    out.push_str("    mov %esp, %ebp\n\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    movl 8(%ebp), %eax\n");
+    out.push_str("    movl %eax, alya_argc\n");
+    out.push_str("    movl 12(%ebp), %eax\n");
+    out.push_str("    movl %eax, alya_argv\n\n");
 }
 
 pub fn emit_footer(out: &mut String) {

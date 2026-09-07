@@ -944,4 +944,60 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
         out.push_str("    mov $1, %rdi\n");
         out.push_str(&format!("    call {}exit\n\n", p));
     }
+
+    // fn_args
+    out.push_str(".global fn_args\n");
+    out.push_str("fn_args:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rbx\n");
+    out.push_str("    push %r12\n");
+    out.push_str("    push %r13\n");
+    out.push_str("    push %r14\n");
+    out.push_str("    movq alya_argc(%rip), %rax\n");
+    out.push_str("    cmpq $1, %rax\n");
+    out.push_str("    jg .L_x64_args_has_items\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    xorq %rcx, %rcx\n");
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    call alya_array_new\n");
+        out.push_str("    add $32, %rsp\n");
+    } else {
+        out.push_str("    xorq %rdi, %rdi\n");
+        out.push_str("    call alya_array_new\n");
+    }
+    out.push_str("    jmp .L_x64_args_ret\n");
+    out.push_str(".L_x64_args_has_items:\n");
+    out.push_str("    decq %rax\n");
+    out.push_str("    movq %rax, %r12\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    movq %r12, %rcx\n");
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    call alya_array_new\n");
+        out.push_str("    add $32, %rsp\n");
+    } else {
+        out.push_str("    movq %r12, %rdi\n");
+        out.push_str("    call alya_array_new\n");
+    }
+    out.push_str("    movq %rax, %r13\n");
+    out.push_str("    movq alya_argv(%rip), %r14\n");
+    out.push_str("    xorq %rbx, %rbx\n");
+    out.push_str(".L_x64_args_loop:\n");
+    out.push_str("    cmpq %r12, %rbx\n");
+    out.push_str("    jge .L_x64_args_done\n");
+    out.push_str("    movq 8(%r14, %rbx, 8), %rax\n");
+    out.push_str("    movq 16(%r13), %rdx\n");
+    out.push_str("    movq %rax, (%rdx, %rbx, 8)\n");
+    out.push_str("    incq %rbx\n");
+    out.push_str("    jmp .L_x64_args_loop\n");
+    out.push_str(".L_x64_args_done:\n");
+    out.push_str("    movq %r13, %rax\n");
+    out.push_str(".L_x64_args_ret:\n");
+    out.push_str("    pop %r14\n");
+    out.push_str("    pop %r13\n");
+    out.push_str("    pop %r12\n");
+    out.push_str("    pop %rbx\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
 }

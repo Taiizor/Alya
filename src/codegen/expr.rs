@@ -129,7 +129,9 @@ impl CodeGen {
                     return;
                 }
 
-                if name == "len" && args.len() == 1 && is_array_expr(&args[0], &self.ctx.variables)
+                if (name == "len" || name == "length")
+                    && args.len() == 1
+                    && is_array_expr(&args[0], &self.ctx.variables)
                 {
                     self.generate_expression(&args[0]);
                     arch::emit_array_len(&mut self.output, self.arch);
@@ -180,6 +182,8 @@ impl CodeGen {
                         )
                     } else if name == "substr" {
                         ("substring", args.clone())
+                    } else if name == "length" {
+                        ("len", args.clone())
                     } else {
                         (name.as_str(), args.clone())
                     };

@@ -9,7 +9,7 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
         Expr::Call { name, .. }
             if matches!(
                 name.as_str(),
-                "ask" | "str" | "trim" | "upper" | "lower" | "substring" | "substr"
+                "ask" | "str" | "trim" | "upper" | "lower" | "substring" | "substr" | "join"
             ) =>
         {
             true
@@ -21,6 +21,7 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                 false
             }
         }
+        Expr::Index { array, .. } => is_string_array(array, vars),
         Expr::FieldAccess { object, field } => {
             if let Expr::Identifier(obj_name) = &**object {
                 let key = format!("{}.{}", obj_name, field);
@@ -99,6 +100,7 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             op: UnaryOp::Negate,
             expr,
         } => is_float_expr(expr, vars),
+        Expr::Index { array, .. } => is_float_array(array, vars),
         Expr::Call { name, .. } => name == "float",
         _ => false,
     }
@@ -110,7 +112,7 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
         Expr::Call { name, .. }
             if matches!(
                 name.as_str(),
-                "ask" | "str" | "trim" | "upper" | "lower" | "substring" | "substr"
+                "ask" | "str" | "trim" | "upper" | "lower" | "substring" | "substr" | "join"
             ) =>
         {
             true

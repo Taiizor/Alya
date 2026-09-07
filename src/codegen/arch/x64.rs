@@ -13,7 +13,9 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".text\n");
         out.push_str("_main:\n");
         out.push_str("    push %rbp\n");
-        out.push_str("    mov %rsp, %rbp\n\n");
+        out.push_str("    mov %rsp, %rbp\n");
+        out.push_str("    movq %rdi, alya_argc(%rip)\n");
+        out.push_str("    movq %rsi, alya_argv(%rip)\n\n");
     } else {
         out.push_str(".global main\n");
         out.push_str(".extern printf\n");
@@ -25,7 +27,14 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".text\n");
         out.push_str("main:\n");
         out.push_str("    push %rbp\n");
-        out.push_str("    mov %rsp, %rbp\n\n");
+        out.push_str("    mov %rsp, %rbp\n");
+        if matches!(os, OperatingSystem::Windows) {
+            out.push_str("    movq %rcx, alya_argc(%rip)\n");
+            out.push_str("    movq %rdx, alya_argv(%rip)\n\n");
+        } else {
+            out.push_str("    movq %rdi, alya_argc(%rip)\n");
+            out.push_str("    movq %rsi, alya_argv(%rip)\n\n");
+        }
     }
 }
 

@@ -24,7 +24,11 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".align 2\n");
         out.push_str("_main:\n");
         out.push_str("    stp x29, x30, [sp, #-16]!\n");
-        out.push_str("    mov x29, sp\n\n");
+        out.push_str("    mov x29, sp\n");
+        emit_adrp_add(out, "x2", "alya_argc", os);
+        out.push_str("    str x0, [x2]\n");
+        emit_adrp_add(out, "x2", "alya_argv", os);
+        out.push_str("    str x1, [x2]\n\n");
     } else {
         out.push_str(".global main\n");
         out.push_str(".extern printf\n");
@@ -37,7 +41,11 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".align 2\n");
         out.push_str("main:\n");
         out.push_str("    stp x29, x30, [sp, #-16]!\n");
-        out.push_str("    mov x29, sp\n\n");
+        out.push_str("    mov x29, sp\n");
+        emit_adrp_add(out, "x2", "alya_argc", os);
+        out.push_str("    str x0, [x2]\n");
+        emit_adrp_add(out, "x2", "alya_argv", os);
+        out.push_str("    str x1, [x2]\n\n");
     }
 }
 

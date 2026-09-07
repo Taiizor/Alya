@@ -684,4 +684,43 @@ pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     out.push_str(&format!("    bl {}printf\n", p));
     out.push_str("    mov w0, #1\n");
     out.push_str(&format!("    bl {}exit\n\n", p));
+
+    // fn_args
+    out.push_str(".global fn_args\n");
+    out.push_str("fn_args:\n");
+    out.push_str("    stp x29, x30, [sp, #-48]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    stp x19, x20, [sp, #16]\n");
+    out.push_str("    stp x21, x22, [sp, #32]\n");
+    emit_adrp_add(out, "x0", "alya_argc", os);
+    out.push_str("    ldr x19, [x0]\n");
+    out.push_str("    cmp x19, #1\n");
+    out.push_str("    b.gt .L_arm64_args_has_items\n");
+    out.push_str("    mov x0, #0\n");
+    out.push_str("    bl alya_array_new\n");
+    out.push_str("    b .L_arm64_args_ret\n");
+    out.push_str(".L_arm64_args_has_items:\n");
+    out.push_str("    sub x19, x19, #1\n");
+    out.push_str("    mov x0, x19\n");
+    out.push_str("    bl alya_array_new\n");
+    out.push_str("    mov x20, x0\n");
+    emit_adrp_add(out, "x1", "alya_argv", os);
+    out.push_str("    ldr x21, [x1]\n");
+    out.push_str("    mov x22, #0\n");
+    out.push_str(".L_arm64_args_loop:\n");
+    out.push_str("    cmp x22, x19\n");
+    out.push_str("    b.ge .L_arm64_args_done\n");
+    out.push_str("    add x2, x22, #1\n");
+    out.push_str("    ldr x3, [x21, x2, lsl #3]\n");
+    out.push_str("    ldr x4, [x20, #16]\n");
+    out.push_str("    str x3, [x4, x22, lsl #3]\n");
+    out.push_str("    add x22, x22, #1\n");
+    out.push_str("    b .L_arm64_args_loop\n");
+    out.push_str(".L_arm64_args_done:\n");
+    out.push_str("    mov x0, x20\n");
+    out.push_str(".L_arm64_args_ret:\n");
+    out.push_str("    ldp x21, x22, [sp, #32]\n");
+    out.push_str("    ldp x19, x20, [sp, #16]\n");
+    out.push_str("    ldp x29, x30, [sp], #48\n");
+    out.push_str("    ret\n\n");
 }

@@ -22,6 +22,10 @@ pub fn emit_data_sections(
         Architecture::ARM64 | Architecture::X64 => {
             out.push_str("alya_str_idx:\n");
             out.push_str("    .quad 0\n");
+            out.push_str("alya_argc:\n");
+            out.push_str("    .quad 0\n");
+            out.push_str("alya_argv:\n");
+            out.push_str("    .quad 0\n");
             out.push_str("alya_catch_idx:\n");
             out.push_str("    .quad 0\n");
             out.push_str("alya_catch_stack_handler:\n");
@@ -35,6 +39,10 @@ pub fn emit_data_sections(
         }
         Architecture::X86 => {
             out.push_str("alya_str_idx:\n");
+            out.push_str("    .long 0\n");
+            out.push_str("alya_argc:\n");
+            out.push_str("    .long 0\n");
+            out.push_str("alya_argv:\n");
             out.push_str("    .long 0\n");
             out.push_str("alya_catch_idx:\n");
             out.push_str("    .long 0\n");
@@ -58,6 +66,8 @@ pub fn emit_data_sections(
         out.push_str("\n.section .rodata\n");
     }
 
+    out.push_str("alya_str_empty:\n");
+    out.push_str(&format!("    {} \"\"\n", str_directive));
     out.push_str("alya_fmt_prompt:\n");
     out.push_str(&format!("    {} \"%s\"\n", str_directive));
     out.push_str("alya_fmt_div_zero:\n");

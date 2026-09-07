@@ -749,4 +749,46 @@ pub fn emit_x86_runtime(out: &mut String) {
     out.push_str("    call printf\n");
     out.push_str("    push $1\n");
     out.push_str("    call exit\n\n");
+
+    // fn_args
+    out.push_str(".global fn_args\n");
+    out.push_str("fn_args:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    push %ebx\n");
+    out.push_str("    push %esi\n");
+    out.push_str("    push %edi\n");
+    out.push_str("    mov alya_argc, %eax\n");
+    out.push_str("    cmp $1, %eax\n");
+    out.push_str("    jg .L_x86_args_has_items\n");
+    out.push_str("    push $0\n");
+    out.push_str("    call alya_array_new\n");
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    jmp .L_x86_args_ret\n");
+    out.push_str(".L_x86_args_has_items:\n");
+    out.push_str("    dec %eax\n");
+    out.push_str("    mov %eax, %esi\n");
+    out.push_str("    push %esi\n");
+    out.push_str("    call alya_array_new\n");
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    mov %eax, %edi\n");
+    out.push_str("    mov alya_argv, %edx\n");
+    out.push_str("    xor %ecx, %ecx\n");
+    out.push_str(".L_x86_args_loop:\n");
+    out.push_str("    cmp %esi, %ecx\n");
+    out.push_str("    jge .L_x86_args_done\n");
+    out.push_str("    mov 4(%edx, %ecx, 4), %eax\n");
+    out.push_str("    mov 8(%edi), %ebx\n");
+    out.push_str("    mov %eax, (%ebx, %ecx, 4)\n");
+    out.push_str("    inc %ecx\n");
+    out.push_str("    jmp .L_x86_args_loop\n");
+    out.push_str(".L_x86_args_done:\n");
+    out.push_str("    mov %edi, %eax\n");
+    out.push_str(".L_x86_args_ret:\n");
+    out.push_str("    pop %edi\n");
+    out.push_str("    pop %esi\n");
+    out.push_str("    pop %ebx\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
 }
