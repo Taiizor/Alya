@@ -12,11 +12,7 @@ mod tests;
 pub use target::{Architecture, OperatingSystem};
 
 use crate::ast::*;
-use analysis::{
-    collect_known_float_vars, collect_known_string_vars, infer_param_is_array,
-    infer_param_is_float, infer_param_is_float_array, infer_param_is_map, infer_param_is_string,
-    infer_param_is_string_array, infer_param_struct_type,
-};
+use analysis::{infer_param_struct_type, ProgramInference};
 use context::{CodeGenContext, VarType};
 
 pub struct CodeGen {
@@ -50,8 +46,8 @@ impl CodeGen {
             }
         }
 
-        let known_strings = collect_known_string_vars(program);
-        for s in &known_strings {
+        let inference = ProgramInference::analyze(program);
+        for s in &inference.known_strings {
             if s.starts_with("map_field_str:")
                 || s.starts_with("map_str:")
                 || s.starts_with("fn_ret_str:")
@@ -62,8 +58,7 @@ impl CodeGen {
             }
         }
 
-        let known_floats = collect_known_float_vars(program);
-        for s in &known_floats {
+        for s in &inference.known_floats {
             if s.starts_with("fn_ret_flt:") {
                 self.ctx.variables.insert(s.clone(), VarType::Float(0));
             }
@@ -89,7 +84,7 @@ impl CodeGen {
 
         for func in functions {
             if let Stmt::Function { name, params, body } = func {
-                self.generate_function(name, params, body, program);
+                self.generate_function(name, params, body, program, &inference);
             }
         }
 
@@ -102,6 +97,7 @@ impl CodeGen {
         params: &[String],
         body: &[Stmt],
         program: &Program,
+        inference: &ProgramInference,
     ) {
         let saved = self.ctx.enter_function();
 
@@ -116,12 +112,12 @@ impl CodeGen {
                 self.os,
             );
 
-            let is_str = infer_param_is_string(name, i, program);
-            let is_flt = infer_param_is_float(name, i, program);
-            let is_arr = infer_param_is_array(name, i, program);
-            let is_str_arr = infer_param_is_string_array(name, i, program);
-            let is_flt_arr = infer_param_is_float_array(name, i, program);
-            let is_map = infer_param_is_map(name, i, program);
+            let is_str = inference.infer_param_is_string(name, i, program);
+            let is_flt = inference.infer_param_is_float(name, i, program);
+            let is_arr = inference.infer_param_is_array(name, i, program);
+            let is_str_arr = inference.infer_param_is_string_array(name, i, program);
+            let is_flt_arr = inference.infer_param_is_float_array(name, i, program);
+            let is_map = inference.infer_param_is_map(name, i, program);
             let struct_type = infer_param_struct_type(name, i, program);
             if let Some(sname) = struct_type {
                 self.ctx.variables.insert(

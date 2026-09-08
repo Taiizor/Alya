@@ -5,6 +5,23 @@ function is_empty(s)
     return len(s) == 0
 end
 
+function is_blank(s)
+    let slen = len(s)
+    if slen == 0
+        return 1
+    end
+    let i = 0
+    let ch = ""
+    while i < slen
+        ch = char_at(s, i)
+        if ch != " " and ch != "\t" and ch != "\r" and ch != "\n"
+            return 0
+        end
+        i += 1
+    end
+    return 1
+end
+
 function starts_with(s, prefix)
     let plen, slen = len(prefix), len(s)
     if plen > slen
@@ -76,6 +93,78 @@ function pad_right(s, total_len, pad_char)
     return s + padding
 end
 
+function center(s, total_len, pad_char)
+    let slen = len(s)
+    if slen >= total_len
+        return s
+    end
+    let total_pad = total_len - slen
+    let left_pad = total_pad / 2
+    let right_pad = total_pad - left_pad
+    return str_repeat(pad_char, left_pad) + s + str_repeat(pad_char, right_pad)
+end
+
+function trim_start(s)
+    let slen = len(s)
+    let i = 0
+    let c = ""
+    while i < slen
+        c = char_at(s, i)
+        if c != " " and c != "\t" and c != "\r" and c != "\n"
+            break
+        end
+        i += 1
+    end
+    if i >= slen
+        return ""
+    end
+    return substring(s, i, slen - i)
+end
+
+function ltrim(s)
+    return trim_start(s)
+end
+
+function trim_end(s)
+    let slen = len(s)
+    let i = slen - 1
+    let c = ""
+    while i >= 0
+        c = char_at(s, i)
+        if c != " " and c != "\t" and c != "\r" and c != "\n"
+            break
+        end
+        i -= 1
+    end
+    if i < 0
+        return ""
+    end
+    return substring(s, 0, i + 1)
+end
+
+function rtrim(s)
+    return trim_end(s)
+end
+
+function trim_char(s, ch)
+    let slen = len(s)
+    if slen == 0
+        return ""
+    end
+    let start_idx = 0
+    while start_idx < slen and char_at(s, start_idx) == ch
+        start_idx += 1
+    end
+    if start_idx >= slen
+        return ""
+    end
+    let end_idx = slen - 1
+    while end_idx >= start_idx and char_at(s, end_idx) == ch
+        end_idx -= 1
+    end
+    return substring(s, start_idx, end_idx - start_idx + 1)
+end
+
 function capitalize(s)
     let slen = len(s)
     if slen == 0
@@ -87,6 +176,37 @@ function capitalize(s)
     end
     let rest = lower(substring(s, 1, slen - 1))
     return first + rest
+end
+
+function title_case(s)
+    let slen = len(s)
+    if slen == 0
+        return ""
+    end
+    let res = ""
+    let capitalize_next = 1
+    let i = 0
+    let ch = ""
+    let c = 0
+    let is_space = 0
+    while i < slen
+        ch = char_at(s, i)
+        c = ord(ch)
+        is_space = c == 32 or c == 9 or c == 10 or c == 13
+        if is_space
+            res += ch
+            capitalize_next = 1
+        else
+            if capitalize_next
+                res += upper(ch)
+                capitalize_next = 0
+            else
+                res += lower(ch)
+            end
+        end
+        i += 1
+    end
+    return res
 end
 
 function lines(s)
@@ -134,4 +254,207 @@ function count_matches(s, sub)
         end
     end
     return count
+end
+
+function index_of(s, sub)
+    let slen = len(s)
+    let sublen = len(sub)
+    if sublen == 0
+        return 0
+    end
+    if sublen > slen
+        return -1
+    end
+    let i = 0
+    let max_idx = slen - sublen
+    while i <= max_idx
+        if substring(s, i, sublen) == sub
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+function last_index_of(s, sub)
+    let slen = len(s)
+    let sublen = len(sub)
+    if sublen == 0
+        return slen
+    end
+    if sublen > slen
+        return -1
+    end
+    let i = slen - sublen
+    while i >= 0
+        if substring(s, i, sublen) == sub
+            return i
+        end
+        i -= 1
+    end
+    return -1
+end
+
+function contains_str(s, sub)
+    return index_of(s, sub) != -1
+end
+
+function reverse_str(s)
+    let slen = len(s)
+    let res = ""
+    let i = slen - 1
+    while i >= 0
+        res += char_at(s, i)
+        i -= 1
+    end
+    return res
+end
+
+function truncate(s, max_len, suffix)
+    let slen = len(s)
+    if slen <= max_len
+        return s
+    end
+    let suflen = len(suffix)
+    if max_len <= suflen
+        return substring(s, 0, max_len)
+    end
+    return substring(s, 0, max_len - suflen) + suffix
+end
+
+function is_numeric(s)
+    let slen = len(s)
+    if slen == 0
+        return 0
+    end
+    let i = 0
+    let c = 0
+    while i < slen
+        c = ord(char_at(s, i))
+        if c < 48 or c > 57
+            return 0
+        end
+        i += 1
+    end
+    return 1
+end
+
+function is_alphabetic(s)
+    let slen = len(s)
+    if slen == 0
+        return 0
+    end
+    let i = 0
+    let c = 0
+    let is_lower_c = 0
+    let is_upper_c = 0
+    while i < slen
+        c = ord(char_at(s, i))
+        is_lower_c = c >= 97 and c <= 122
+        is_upper_c = c >= 65 and c <= 90
+        if not is_lower_c and not is_upper_c
+            return 0
+        end
+        i += 1
+    end
+    return 1
+end
+
+function is_alphanumeric(s)
+    let slen = len(s)
+    if slen == 0
+        return 0
+    end
+    let i = 0
+    let c = 0
+    let is_digit_c = 0
+    let is_lower_c = 0
+    let is_upper_c = 0
+    while i < slen
+        c = ord(char_at(s, i))
+        is_digit_c = c >= 48 and c <= 57
+        is_lower_c = c >= 97 and c <= 122
+        is_upper_c = c >= 65 and c <= 90
+        if not is_digit_c and not is_lower_c and not is_upper_c
+            return 0
+        end
+        i += 1
+    end
+    return 1
+end
+
+function is_upper(s)
+    let slen = len(s)
+    if slen == 0
+        return 0
+    end
+    let i = 0
+    let c = 0
+    while i < slen
+        c = ord(char_at(s, i))
+        if c < 65 or c > 90
+            return 0
+        end
+        i += 1
+    end
+    return 1
+end
+
+function is_lower(s)
+    let slen = len(s)
+    if slen == 0
+        return 0
+    end
+    let i = 0
+    let c = 0
+    while i < slen
+        c = ord(char_at(s, i))
+        if c < 97 or c > 122
+            return 0
+        end
+        i += 1
+    end
+    return 1
+end
+
+function slugify(s)
+    let slen = len(s)
+    let res = ""
+    let i = 0
+    let last_was_dash = 0
+    let ch = ""
+    let c = 0
+    let is_digit_c = 0
+    let is_lower_c = 0
+    let is_upper_c = 0
+    let is_sep = 0
+    while i < slen
+        ch = char_at(s, i)
+        c = ord(ch)
+        is_digit_c = c >= 48 and c <= 57
+        is_lower_c = c >= 97 and c <= 122
+        is_upper_c = c >= 65 and c <= 90
+        is_sep = ch == " " or ch == "-" or ch == "_"
+
+        if is_upper_c
+            res += lower(ch)
+            last_was_dash = 0
+        else
+            if is_lower_c or is_digit_c
+                res += ch
+                last_was_dash = 0
+            else
+                if is_sep and not last_was_dash and len(res) > 0
+                    res += "-"
+                    last_was_dash = 1
+                end
+            end
+        end
+        i += 1
+    end
+    let rlen = len(res)
+    if rlen > 0 and char_at(res, rlen - 1) == "-"
+        return substring(res, 0, rlen - 1)
+    end
+    return res
 end

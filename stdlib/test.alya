@@ -20,7 +20,7 @@ function assert_eq(actual, expected, msg)
         say "  [PASS] {msg}"
         return 1
     else
-        say "  [FAIL] {msg} (expected: " + str(expected) + ", got: " + str(actual) + ")"
+        say "  [FAIL] {msg} (expected: {expected}, got: {actual})"
         return 0
     end
 end
@@ -30,7 +30,7 @@ function assert_ne(actual, expected, msg)
         say "  [PASS] {msg}"
         return 1
     else
-        say "  [FAIL] {msg} (expected not: " + str(expected) + ", got: " + str(actual) + ")"
+        say "  [FAIL] {msg} (expected not: {expected})"
         return 0
     end
 end

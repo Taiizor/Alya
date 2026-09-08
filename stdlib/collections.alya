@@ -94,3 +94,290 @@ end
 function set_to_array(s)
     return keys(s)
 end
+
+function set_clear(s)
+    for k in keys(s)
+        remove(s, k)
+    end
+end
+
+function set_from_array(arr)
+    let s = {}
+    for item in arr
+        s[item] = 1
+    end
+    return s
+end
+
+function set_union(a, b)
+    let res = {}
+    for k in keys(a)
+        res[k] = 1
+    end
+    for k in keys(b)
+        res[k] = 1
+    end
+    return res
+end
+
+function set_intersection(a, b)
+    let res = {}
+    for k in keys(a)
+        if b.has(k)
+            res[k] = 1
+        end
+    end
+    return res
+end
+
+function set_difference(a, b)
+    let res = {}
+    for k in keys(a)
+        if not b.has(k)
+            res[k] = 1
+        end
+    end
+    return res
+end
+
+function set_is_subset(a, b)
+    for k in keys(a)
+        if not b.has(k)
+            return 0
+        end
+    end
+    return 1
+end
+
+# 4. Array Utilities
+function array_contains(arr, val)
+    for item in arr
+        if item == val
+            return 1
+        end
+    end
+    return 0
+end
+
+function array_index_of(arr, val)
+    let count = len(arr)
+    let i = 0
+    while i < count
+        if arr[i] == val
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+function array_last_index_of(arr, val)
+    let i = len(arr) - 1
+    while i >= 0
+        if arr[i] == val
+            return i
+        end
+        i -= 1
+    end
+    return -1
+end
+
+function array_slice(arr, start_idx, end_idx)
+    let res = []
+    let total = len(arr)
+    if start_idx < 0
+        start_idx = 0
+    end
+    if end_idx > total
+        end_idx = total
+    end
+    let i = start_idx
+    while i < end_idx
+        res.push(arr[i])
+        i += 1
+    end
+    return res
+end
+
+function array_clone(arr)
+    let res = []
+    for x in arr
+        res.push(x)
+    end
+    return res
+end
+
+function array_concat(a, b)
+    let res = []
+    for x in a
+        res.push(x)
+    end
+    for y in b
+        res.push(y)
+    end
+    return res
+end
+
+function array_reverse(arr)
+    let res = []
+    let i = len(arr) - 1
+    while i >= 0
+        res.push(arr[i])
+        i -= 1
+    end
+    return res
+end
+
+function array_reverse_in_place(arr)
+    let left = 0
+    let right = len(arr) - 1
+    let temp = 0
+    while left < right
+        temp = arr[left]
+        arr[left] = arr[right]
+        arr[right] = temp
+        left += 1
+        right -= 1
+    end
+    return arr
+end
+
+function array_unique(arr)
+    let seen = {}
+    let res = []
+    for x in arr
+        if not seen.has(x)
+            seen[x] = 1
+            res.push(x)
+        end
+    end
+    return res
+end
+
+function array_min(arr)
+    let count = len(arr)
+    if count == 0
+        return 0
+    end
+    let m = arr[0]
+    let i = 1
+    while i < count
+        if arr[i] < m
+            m = arr[i]
+        end
+        i += 1
+    end
+    return m
+end
+
+function array_max(arr)
+    let count = len(arr)
+    if count == 0
+        return 0
+    end
+    let m = arr[0]
+    let i = 1
+    while i < count
+        if arr[i] > m
+            m = arr[i]
+        end
+        i += 1
+    end
+    return m
+end
+
+function array_sort_in_place(arr)
+    let n = len(arr)
+    let i = 0
+    let j = 0
+    let temp = 0
+    while i < n
+        j = 0
+        while j < n - i - 1
+            if arr[j] > arr[j + 1]
+                temp = arr[j]
+                arr[j] = arr[j + 1]
+                arr[j + 1] = temp
+            end
+            j += 1
+        end
+        i += 1
+    end
+    return arr
+end
+
+function array_sort(arr)
+    let copy = array_clone(arr)
+    return array_sort_in_place(copy)
+end
+
+function array_chunk(arr, chunk_size)
+    let res = []
+    if chunk_size <= 0
+        return res
+    end
+    let total = len(arr)
+    let i = 0
+    let j = 0
+    let chunk = []
+    while i < total
+        chunk = []
+        j = 0
+        while j < chunk_size and (i + j) < total
+            chunk.push(arr[i + j])
+            j += 1
+        end
+        res.push(chunk)
+        i += chunk_size
+    end
+    return res
+end
+
+function array_fill(val, count)
+    let res = []
+    let i = 0
+    while i < count
+        res.push(val)
+        i += 1
+    end
+    return res
+end
+
+# 5. Map Utilities
+function map_clone(m)
+    let res = {}
+    for k in keys(m)
+        res[k] = m[k]
+    end
+    return res
+end
+
+function map_merge(dest, src)
+    let res = map_clone(dest)
+    for k in keys(src)
+        res[k] = src[k]
+    end
+    return res
+end
+
+function map_is_empty(m)
+    return len(m) == 0
+end
+
+function map_entries(m)
+    let res = []
+    for k in keys(m)
+        res.push([k, m[k]])
+    end
+    return res
+end
+
+function map_from_entries(entries)
+    let res = {}
+    for pair in entries
+        if len(pair) >= 2
+            res[pair[0]] = pair[1]
+        end
+    end
+    return res
+end

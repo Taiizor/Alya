@@ -7,21 +7,33 @@ fn expr_is_definitely_array(expr: &Expr, known_arrays: &HashSet<String>) -> bool
     match expr {
         Expr::Array(_) => true,
         Expr::Identifier(name) => known_arrays.contains(name),
-        Expr::Call { name, .. }
-            if matches!(
-                name.as_str(),
+        Expr::Call { name, .. } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            matches!(
+                bare,
                 "split"
                     | "args"
                     | "cli_args"
                     | "keys"
                     | "values"
                     | "lines"
+                    | "read_lines"
                     | "set_to_array"
                     | "stack_new"
                     | "queue_new"
-            ) =>
-        {
-            true
+                    | "array_slice"
+                    | "array_clone"
+                    | "array_concat"
+                    | "array_reverse"
+                    | "array_reverse_in_place"
+                    | "array_unique"
+                    | "array_sort"
+                    | "array_sort_in_place"
+                    | "array_chunk"
+                    | "array_fill"
+                    | "map_entries"
+            )
         }
         _ => false,
     }
@@ -63,7 +75,9 @@ fn collect_array_vars_from_stmts(stmts: &[Stmt], known_arrays: &mut HashSet<Stri
             | Stmt::ForEach { body, .. } => {
                 collect_array_vars_from_stmts(body, known_arrays);
             }
-            Stmt::Function { .. } => {}
+            Stmt::Function { body, .. } => {
+                collect_array_vars_from_stmts(body, known_arrays);
+            }
             _ => {}
         }
     }
@@ -73,7 +87,7 @@ pub fn collect_known_array_vars(program: &Program) -> HashSet<String> {
     let mut known_arrays = HashSet::new();
     let mut funcs = Vec::new();
     collect_function_defs(&program.statements, &mut funcs);
-    for _ in 0..8 {
+    for _ in 0..5 {
         let prev_len = known_arrays.len();
         collect_array_vars_from_stmts(&program.statements, &mut known_arrays);
         for (name, params, _) in &funcs {
@@ -100,13 +114,26 @@ pub fn collect_known_array_vars(program: &Program) -> HashSet<String> {
     known_arrays
 }
 
-pub fn infer_param_is_array(func_name: &str, param_idx: usize, program: &Program) -> bool {
-    let known_arrays = collect_known_array_vars(program);
+pub fn infer_param_is_array_with(
+    func_name: &str,
+    param_idx: usize,
+    program: &Program,
+    known_arrays: &HashSet<String>,
+) -> bool {
+    let bare = func_name.rsplit("::").next().unwrap_or(func_name);
+    let bare = bare.rsplit("__").next().unwrap_or(bare);
     program.statements.iter().any(|s| {
         if let Some(arg) = find_call_arg(s, func_name, param_idx) {
-            expr_is_definitely_array(arg, &known_arrays)
+            expr_is_definitely_array(arg, known_arrays)
+        } else if let Some(arg) = find_call_arg(s, bare, param_idx) {
+            expr_is_definitely_array(arg, known_arrays)
         } else {
             false
         }
     })
+}
+
+pub fn infer_param_is_array(func_name: &str, param_idx: usize, program: &Program) -> bool {
+    let known_arrays = collect_known_array_vars(program);
+    infer_param_is_array_with(func_name, param_idx, program, &known_arrays)
 }

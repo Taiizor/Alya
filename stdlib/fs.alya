@@ -43,3 +43,92 @@ function move_file(src, dst)
     end
     return 0
 end
+
+# Line-by-line file I/O
+function read_lines(path)
+    let res = []
+    if file_exists(path) == 0
+        return res
+    end
+    let content = read_file(path)
+    let slen = len(content)
+    if slen == 0
+        return res
+    end
+    let current = ""
+    let i = 0
+    let ch = ""
+    while i < slen
+        ch = char_at(content, i)
+        when ch
+            is "\r" then
+                if i + 1 < slen and char_at(content, i + 1) == "\n"
+                    i += 1
+                end
+                res.push(current)
+                current = ""
+            is "\n" then
+                res.push(current)
+                current = ""
+            else
+                current += ch
+        end
+        i += 1
+    end
+    if len(current) > 0
+        res.push(current)
+    end
+    return res
+end
+
+function write_lines(path, lines)
+    let content = ""
+    let count = len(lines)
+    let i = 0
+    while i < count
+        content += lines[i] + "\n"
+        i += 1
+    end
+    return write_file(path, content)
+end
+
+function append_line(path, line)
+    return append_file(path, line + "\n")
+end
+
+function append_lines(path, lines)
+    let content = ""
+    let count = len(lines)
+    let i = 0
+    while i < count
+        content += lines[i] + "\n"
+        i += 1
+    end
+    return append_file(path, content)
+end
+
+# File helpers
+function touch(path)
+    if file_exists(path)
+        return 1
+    end
+    return write_file(path, "")
+end
+
+function clear_file(path)
+    return write_file(path, "")
+end
+
+function is_empty_file(path)
+    if file_exists(path) == 0
+        return 0
+    end
+    return file_size(path) == 0
+end
+
+function read_file_or(path, default_val)
+    if file_exists(path) == 0
+        return default_val
+    end
+    return read_file(path)
+end

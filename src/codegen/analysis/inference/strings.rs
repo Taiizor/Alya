@@ -7,8 +7,10 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
     match expr {
         Expr::String(_) | Expr::InterpolatedString(_) => true,
         Expr::Call { name, .. } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
             if matches!(
-                name.as_str(),
+                bare,
                 "ask"
                     | "str"
                     | "trim"
@@ -38,6 +40,47 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
                     | "path_list_separator"
                     | "arg_at"
                     | "str_from_ptr"
+                    | "replace"
+                    | "str_repeat"
+                    | "pad_left"
+                    | "pad_right"
+                    | "center"
+                    | "trim_start"
+                    | "ltrim"
+                    | "trim_end"
+                    | "rtrim"
+                    | "trim_char"
+                    | "capitalize"
+                    | "title_case"
+                    | "reverse_str"
+                    | "truncate"
+                    | "slugify"
+                    | "path_separator"
+                    | "path_join"
+                    | "file_name"
+                    | "file_ext"
+                    | "parent_dir"
+                    | "file_stem"
+                    | "base64_encode"
+                    | "base64_decode"
+                    | "to_base64"
+                    | "from_base64"
+                    | "hex_encode"
+                    | "hex_decode"
+                    | "to_hex"
+                    | "from_hex"
+                    | "json_object"
+                    | "json_map"
+                    | "json_string_map"
+                    | "json_string"
+                    | "json_escape"
+                    | "json_null"
+                    | "json_int"
+                    | "json_float"
+                    | "json_kv"
+                    | "json_pretty"
+                    | "json_get_string"
+                    | "read_file_or"
             ) {
                 return true;
             }
@@ -68,10 +111,13 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
                     known_strings.contains(&format!("arr_is_str:{}", arr_name))
                         || known_strings.contains(arr_name)
                 }
-                Expr::Call { name, .. }
-                    if name == "split" || name == "args" || name == "cli_args" =>
-                {
-                    true
+                Expr::Call { name, .. } => {
+                    let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+                    let bare = bare.rsplit("__").next().unwrap_or(bare);
+                    matches!(
+                        bare,
+                        "split" | "args" | "cli_args" | "lines" | "read_lines" | "keys"
+                    )
                 }
                 _ => expr_is_definitely_string(array, known_strings),
             }
@@ -86,7 +132,14 @@ fn expr_is_string_array(expr: &Expr, known_strings: &HashSet<String>) -> bool {
             .first()
             .is_some_and(|e| expr_is_definitely_string(e, known_strings)),
         Expr::Identifier(name) => known_strings.contains(&format!("arr_is_str:{}", name)),
-        Expr::Call { name, .. } if name == "split" || name == "args" || name == "cli_args" => true,
+        Expr::Call { name, .. } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            matches!(
+                bare,
+                "split" | "args" | "cli_args" | "lines" | "read_lines" | "keys"
+            )
+        }
         _ => false,
     }
 }
@@ -219,7 +272,7 @@ pub fn collect_known_string_vars(program: &Program) -> HashSet<String> {
     let mut known_strings = HashSet::new();
     let mut funcs = Vec::new();
     collect_function_defs(&program.statements, &mut funcs);
-    for _ in 0..8 {
+    for _ in 0..5 {
         let prev_len = known_strings.len();
         collect_string_vars_from_stmts(&program.statements, &mut known_strings);
         for (name, params, _) in &funcs {
@@ -258,24 +311,50 @@ pub fn collect_known_string_vars(program: &Program) -> HashSet<String> {
     known_strings
 }
 
-pub fn infer_param_is_string(func_name: &str, param_idx: usize, program: &Program) -> bool {
-    let known_strings = collect_known_string_vars(program);
+pub fn infer_param_is_string_with(
+    func_name: &str,
+    param_idx: usize,
+    program: &Program,
+    known_strings: &HashSet<String>,
+) -> bool {
+    let bare = func_name.rsplit("::").next().unwrap_or(func_name);
+    let bare = bare.rsplit("__").next().unwrap_or(bare);
     program.statements.iter().any(|s| {
         if let Some(arg) = find_call_arg(s, func_name, param_idx) {
-            expr_is_definitely_string(arg, &known_strings)
+            expr_is_definitely_string(arg, known_strings)
+        } else if let Some(arg) = find_call_arg(s, bare, param_idx) {
+            expr_is_definitely_string(arg, known_strings)
         } else {
             false
         }
     })
 }
 
-pub fn infer_param_is_string_array(func_name: &str, param_idx: usize, program: &Program) -> bool {
-    let known_strings = collect_known_string_vars(program);
+pub fn infer_param_is_string_array_with(
+    func_name: &str,
+    param_idx: usize,
+    program: &Program,
+    known_strings: &HashSet<String>,
+) -> bool {
+    let bare = func_name.rsplit("::").next().unwrap_or(func_name);
+    let bare = bare.rsplit("__").next().unwrap_or(bare);
     program.statements.iter().any(|s| {
         if let Some(arg) = find_call_arg(s, func_name, param_idx) {
-            expr_is_string_array(arg, &known_strings)
+            expr_is_string_array(arg, known_strings)
+        } else if let Some(arg) = find_call_arg(s, bare, param_idx) {
+            expr_is_string_array(arg, known_strings)
         } else {
             false
         }
     })
+}
+
+pub fn infer_param_is_string(func_name: &str, param_idx: usize, program: &Program) -> bool {
+    let known_strings = collect_known_string_vars(program);
+    infer_param_is_string_with(func_name, param_idx, program, &known_strings)
+}
+
+pub fn infer_param_is_string_array(func_name: &str, param_idx: usize, program: &Program) -> bool {
+    let known_strings = collect_known_string_vars(program);
+    infer_param_is_string_array_with(func_name, param_idx, program, &known_strings)
 }

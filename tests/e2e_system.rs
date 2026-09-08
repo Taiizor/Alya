@@ -626,3 +626,313 @@ say m::is_even(4)
         assert_eq!(output, "1\n2\n10\n1\n");
     }
 }
+
+#[test]
+fn test_e2e_str_stdlib_extended() {
+    let code = r#"
+import "std/str"
+
+say is_blank("")
+say is_blank("   \t \r\n ")
+say is_blank(" a ")
+
+say trim_start("  alya  ")
+say trim_end("  alya  ")
+say trim_char("***hello***", "*")
+say center("alya", 8, "-")
+say title_case("hello world of alya")
+
+say index_of("banana", "na")
+say index_of("banana", "xyz")
+say last_index_of("banana", "na")
+say contains_str("banana", "nan")
+say contains_str("banana", "apple")
+
+say reverse_str("alya")
+say truncate("hello world", 8, "...")
+
+say is_numeric("12345")
+say is_numeric("123a5")
+say is_alphabetic("Alya")
+say is_alphabetic("Alya1")
+say is_alphanumeric("Alya2026")
+say is_alphanumeric("Alya-2026")
+say is_upper("ALYA")
+say is_upper("Alya")
+say is_lower("alya")
+say is_lower("Alya")
+say slugify("Hello World! 2026")
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(
+            code, 0,
+            "Execution failed with code {} and output:\n{}",
+            code, output
+        );
+        assert_eq!(
+            output,
+            concat!(
+                "1\n1\n0\n",
+                "alya  \n",
+                "  alya\n",
+                "hello\n",
+                "--alya--\n",
+                "Hello World Of Alya\n",
+                "2\n-1\n4\n1\n0\n",
+                "ayla\n",
+                "hello...\n",
+                "1\n0\n1\n0\n1\n0\n1\n0\n1\n0\n",
+                "hello-world-2026\n"
+            )
+        );
+    }
+}
+
+#[test]
+fn test_e2e_math_stdlib_extended() {
+    let code = r#"
+import "std/math"
+
+say gcd(48, 18)
+say gcd(101, 103)
+say lcm(12, 18)
+say factorial(5)
+say factorial(0)
+say is_prime(7)
+say is_prime(4)
+say is_prime(1)
+
+say round(degrees(radians(180.0)))
+say round(lerp(10.0, 20.0, 0.5))
+say round(norm(5.0, 0.0, 10.0) * 100.0)
+say round(smoothstep(0.0, 1.0, 0.5) * 100.0)
+
+let data = [2, 4, 4, 4, 5, 5, 7, 9]
+say round(variance(data))
+say std_dev(data)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(
+            code, 0,
+            "Execution failed with code {} and output:\n{}",
+            code, output
+        );
+        assert_eq!(
+            output,
+            concat!("6\n1\n36\n120\n1\n1\n0\n0\n", "180\n15\n50\n50\n", "4\n2\n")
+        );
+    }
+}
+
+#[test]
+fn test_e2e_collections_stdlib_extended() {
+    let code = r#"
+import "std/collections"
+
+# Array utilities
+let arr = [5, 2, 8, 1, 9, 2]
+say array_contains(arr, 8)
+say array_contains(arr, 99)
+say array_index_of(arr, 2)
+say array_last_index_of(arr, 2)
+
+let sl = array_slice(arr, 1, 4)
+say len(sl)
+say sl[0]
+say sl[2]
+
+let rev = array_reverse([1, 2, 3])
+say rev[0]
+say rev[2]
+
+let uniq = array_unique([1, 2, 2, 3, 1, 4])
+say len(uniq)
+
+say array_min([10, 4, 25, 2, 18])
+say array_max([10, 4, 25, 2, 18])
+
+let sorted = array_sort([5, 1, 4, 2, 8])
+say sorted[0]
+say sorted[4]
+
+let chunks = array_chunk([1, 2, 3, 4, 5], 2)
+say len(chunks)
+
+let filled = array_fill(7, 3)
+say len(filled)
+say filled[0]
+
+# Set operations
+let s1 = set_from_array([1, 2, 3])
+let s2 = set_from_array([2, 3, 4])
+let u = set_union(s1, s2)
+say set_size(u)
+let inter = set_intersection(s1, s2)
+say set_size(inter)
+let diff = set_difference(s1, s2)
+say set_size(diff)
+say set_is_subset(inter, s1)
+
+# Map utilities
+let m1 = {}
+m1["a"] = 10
+m1["b"] = 20
+let m2 = map_clone(m1)
+say m2["a"]
+say map_is_empty(m2)
+say map_is_empty({})
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(
+            code, 0,
+            "Execution failed with code {} and output:\n{}",
+            code, output
+        );
+        assert_eq!(
+            output,
+            concat!(
+                "1\n0\n1\n5\n",
+                "3\n2\n1\n",
+                "3\n1\n",
+                "4\n",
+                "2\n25\n",
+                "1\n8\n",
+                "3\n",
+                "3\n7\n",
+                "4\n2\n1\n1\n",
+                "10\n0\n1\n"
+            )
+        );
+    }
+}
+
+#[test]
+fn test_e2e_fs_and_hash_stdlib_extended() {
+    let code = r#"
+import "std/fs"
+import "std/hash"
+
+let path = "test_ext_fs_io.txt"
+write_lines(path, ["first line", "second line"])
+say is_empty_file(path)
+
+let read_back = read_lines(path)
+say len(read_back)
+say read_back[0]
+say read_back[1]
+
+append_line(path, "third line")
+let read_back2 = read_lines(path)
+say len(read_back2)
+
+clear_file(path)
+say is_empty_file(path)
+fs_remove(path)
+
+# Hash utilities
+let c1 = crc32("hello world")
+let c2 = crc32("hello world")
+let c3 = crc32("different")
+if c1 == c2 and c1 != c3
+    say 1
+else
+    say 0
+end
+
+let s1 = sdbm("alya")
+let s2 = sdbm("alya")
+if s1 == s2 and s1 > 0
+    say 1
+else
+    say 0
+end
+
+say is_hex("deadbeef")
+say is_hex("not_hex")
+say is_base64("QWx5YQ==")
+say is_base64("invalid base64!")
+
+say to_hex("Hi")
+say from_hex("4869")
+say to_base64("Alya")
+say from_base64("QWx5YQ==")
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(
+            code, 0,
+            "Execution failed with code {} and output:\n{}",
+            code, output
+        );
+        assert_eq!(
+            output,
+            concat!(
+                "0\n",
+                "2\nfirst line\nsecond line\n",
+                "3\n",
+                "1\n",
+                "1\n",
+                "1\n",
+                "1\n0\n1\n0\n",
+                "4869\nHi\nQWx5YQ==\nAlya\n"
+            )
+        );
+    }
+}
+
+#[test]
+fn test_e2e_json_stdlib_extended() {
+    let code = r#"
+import "std/json"
+
+say json_null()
+say json_int(42)
+say json_float(3.14)
+say json_string("hello \"quotes\" and \\backslash")
+
+say json_array_of_strings(["one", "two"])
+say json_array_of_numbers([10, 20, 30])
+say json_array_of_bools([1, 0, 1])
+
+let user = {}
+user["name"] = "Alice"
+user["city"] = "Paris"
+let s_map = json_string_map(user)
+say json_get_string(s_map, "name")
+say json_get_string(s_map, "city")
+
+let json_doc = "{\"age\": 25, \"name\": \"Bob\"}"
+say json_get_string(json_doc, "name")
+say json_get_number(json_doc, "age")
+
+let pretty = json_pretty("{\"k\": \"v\"}", 2)
+if len(pretty) > len("{\"k\": \"v\"}")
+    say 1
+else
+    say 0
+end
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(
+            code, 0,
+            "Execution failed with code {} and output:\n{}",
+            code, output
+        );
+        assert_eq!(
+            output,
+            concat!(
+                "null\n",
+                "42\n",
+                "3.14\n",
+                "\"hello \\\"quotes\\\" and \\\\backslash\"\n",
+                "[\"one\", \"two\"]\n",
+                "[10, 20, 30]\n",
+                "[true, false, true]\n",
+                "Alice\n",
+                "Paris\n",
+                "Bob\n",
+                "25\n",
+                "1\n"
+            )
+        );
+    }
+}

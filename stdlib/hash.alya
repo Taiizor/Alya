@@ -152,3 +152,112 @@ function base64_decode(s)
     end
     return res
 end
+
+function crc32(s)
+    let slen = len(s)
+    let crc = 4294967295
+    let i = 0
+    let j = 0
+    let byte = 0
+    let mask = 0
+    while i < slen
+        byte = ord(char_at(s, i))
+        crc = bit_xor(crc, byte)
+        j = 0
+        while j < 8
+            mask = bit_and(crc, 1)
+            crc = bit_shr(crc, 1)
+            if mask != 0
+                crc = bit_xor(crc, 3988292384)
+            end
+            j += 1
+        end
+        i += 1
+    end
+    return bit_xor(crc, 4294967295)
+end
+
+function sdbm(s)
+    let slen = len(s)
+    let h = 0
+    let i = 0
+    let c = 0
+    while i < slen
+        c = ord(char_at(s, i))
+        h = c + bit_shl(h, 6) + bit_shl(h, 16) - h
+        h = bit_and(h, 2147483647)
+        i += 1
+    end
+    return h
+end
+
+function hash_combine(h1, h2)
+    let combined = bit_xor(h1, h2 + 2654435769 + bit_shl(h1, 6) + bit_shr(h1, 2))
+    return bit_and(combined, 2147483647)
+end
+
+function is_hex(s)
+    let slen = len(s)
+    if slen == 0 or slen % 2 != 0
+        return 0
+    end
+    let i = 0
+    let c = 0
+    let is_d = 0
+    let is_l = 0
+    let is_u = 0
+    while i < slen
+        c = ord(char_at(s, i))
+        is_d = c >= 48 and c <= 57
+        is_l = c >= 97 and c <= 102
+        is_u = c >= 65 and c <= 70
+        if not is_d and not is_l and not is_u
+            return 0
+        end
+        i += 1
+    end
+    return 1
+end
+
+function is_base64(s)
+    let slen = len(s)
+    if slen == 0 or slen % 4 != 0
+        return 0
+    end
+    let i = 0
+    let c = 0
+    let is_u = 0
+    let is_l = 0
+    let is_d = 0
+    let is_plus_slash = 0
+    let is_pad = 0
+    while i < slen
+        c = ord(char_at(s, i))
+        is_u = c >= 65 and c <= 90
+        is_l = c >= 97 and c <= 122
+        is_d = c >= 48 and c <= 57
+        is_plus_slash = c == 43 or c == 47
+        is_pad = c == 61
+        if not is_u and not is_l and not is_d and not is_plus_slash and not is_pad
+            return 0
+        end
+        i += 1
+    end
+    return 1
+end
+
+function to_hex(s)
+    return hex_encode(s)
+end
+
+function from_hex(s)
+    return hex_decode(s)
+end
+
+function to_base64(s)
+    return base64_encode(s)
+end
+
+function from_base64(s)
+    return base64_decode(s)
+end

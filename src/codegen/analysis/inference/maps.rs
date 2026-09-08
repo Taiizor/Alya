@@ -5,7 +5,22 @@ use std::collections::HashSet;
 
 fn expr_is_definitely_map(expr: &Expr, known_maps: &HashSet<String>) -> bool {
     match expr {
-        Expr::Call { name, .. } if name == "map" || name == "set_new" => true,
+        Expr::Call { name, .. } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            matches!(
+                bare,
+                "map"
+                    | "set_new"
+                    | "set_from_array"
+                    | "set_union"
+                    | "set_intersection"
+                    | "set_difference"
+                    | "map_clone"
+                    | "map_merge"
+                    | "map_from_entries"
+            )
+        }
         Expr::Map(_) => true,
         Expr::Identifier(name) => known_maps.contains(name),
         Expr::Index { array, index } => {
@@ -71,7 +86,9 @@ fn collect_map_vars_from_stmts(stmts: &[Stmt], known_maps: &mut HashSet<String>)
             | Stmt::ForEach { body, .. } => {
                 collect_map_vars_from_stmts(body, known_maps);
             }
-            Stmt::Function { .. } => {}
+            Stmt::Function { body, .. } => {
+                collect_map_vars_from_stmts(body, known_maps);
+            }
             _ => {}
         }
     }
@@ -81,7 +98,7 @@ pub fn collect_known_map_vars(program: &Program) -> HashSet<String> {
     let mut known_maps = HashSet::new();
     let mut funcs = Vec::new();
     collect_function_defs(&program.statements, &mut funcs);
-    for _ in 0..8 {
+    for _ in 0..5 {
         let prev_len = known_maps.len();
         collect_map_vars_from_stmts(&program.statements, &mut known_maps);
         for (name, params, _) in &funcs {
@@ -108,13 +125,26 @@ pub fn collect_known_map_vars(program: &Program) -> HashSet<String> {
     known_maps
 }
 
-pub fn infer_param_is_map(func_name: &str, param_idx: usize, program: &Program) -> bool {
-    let known_maps = collect_known_map_vars(program);
+pub fn infer_param_is_map_with(
+    func_name: &str,
+    param_idx: usize,
+    program: &Program,
+    known_maps: &HashSet<String>,
+) -> bool {
+    let bare = func_name.rsplit("::").next().unwrap_or(func_name);
+    let bare = bare.rsplit("__").next().unwrap_or(bare);
     program.statements.iter().any(|s| {
         if let Some(arg) = find_call_arg(s, func_name, param_idx) {
-            expr_is_definitely_map(arg, &known_maps)
+            expr_is_definitely_map(arg, known_maps)
+        } else if let Some(arg) = find_call_arg(s, bare, param_idx) {
+            expr_is_definitely_map(arg, known_maps)
         } else {
             false
         }
     })
+}
+
+pub fn infer_param_is_map(func_name: &str, param_idx: usize, program: &Program) -> bool {
+    let known_maps = collect_known_map_vars(program);
+    infer_param_is_map_with(func_name, param_idx, program, &known_maps)
 }

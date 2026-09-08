@@ -1,4 +1,3 @@
-use super::common::collect_function_defs;
 use crate::ast::*;
 use crate::codegen::analysis::traversal::find_call_arg;
 use std::collections::HashSet;
@@ -26,10 +25,26 @@ fn expr_is_definitely_float(expr: &Expr, known_floats: &HashSet<String>) -> bool
             expr,
         } => expr_is_definitely_float(expr, known_floats),
         Expr::Call { name, .. } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
             matches!(
-                name.as_str(),
-                "float" | "sin" | "cos" | "tan" | "mean" | "deg_to_rad" | "rad_to_deg"
+                bare,
+                "float"
+                    | "sin"
+                    | "cos"
+                    | "tan"
+                    | "mean"
+                    | "deg_to_rad"
+                    | "rad_to_deg"
+                    | "radians"
+                    | "degrees"
+                    | "lerp"
+                    | "norm"
+                    | "smoothstep"
+                    | "variance"
+                    | "_normalize_angle"
             ) || known_floats.contains(&format!("fn_ret_flt:{}", name))
+                || known_floats.contains(&format!("fn_ret_flt:{}", bare))
         }
         Expr::Index { array, .. } => match &**array {
             Expr::Identifier(arr_name) => {
@@ -84,16 +99,140 @@ fn stmts_return_float(stmts: &[Stmt], known_floats: &HashSet<String>) -> bool {
     })
 }
 
-fn collect_float_vars_from_stmts(stmts: &[Stmt], known_floats: &mut HashSet<String>) {
+fn scan_calls_in_expr(expr: &Expr, scope: &HashSet<String>, known_floats: &mut HashSet<String>) {
+    match expr {
+        Expr::Call { name, args } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            for (idx, arg) in args.iter().enumerate() {
+                if expr_is_definitely_float(arg, scope) {
+                    known_floats.insert(format!("fn_param_flt:{}:{}", name, idx));
+                    known_floats.insert(format!("fn_param_flt:{}:{}", bare, idx));
+                }
+                if expr_is_float_array(arg, scope) {
+                    known_floats.insert(format!("fn_param_flt_arr:{}:{}", name, idx));
+                    known_floats.insert(format!("fn_param_flt_arr:{}:{}", bare, idx));
+                }
+                scan_calls_in_expr(arg, scope, known_floats);
+            }
+        }
+        Expr::Binary { left, right, .. } => {
+            scan_calls_in_expr(left, scope, known_floats);
+            scan_calls_in_expr(right, scope, known_floats);
+        }
+        Expr::Unary { expr, .. } => {
+            scan_calls_in_expr(expr, scope, known_floats);
+        }
+        Expr::Array(elems) => {
+            for elem in elems {
+                scan_calls_in_expr(elem, scope, known_floats);
+            }
+        }
+        Expr::Index { array, index } => {
+            scan_calls_in_expr(array, scope, known_floats);
+            scan_calls_in_expr(index, scope, known_floats);
+        }
+        Expr::FieldAccess { object, .. } => {
+            scan_calls_in_expr(object, scope, known_floats);
+        }
+        Expr::StructInit { fields, .. } => {
+            for (_, val) in fields {
+                scan_calls_in_expr(val, scope, known_floats);
+            }
+        }
+        Expr::Map(entries) => {
+            for (k, v) in entries {
+                scan_calls_in_expr(k, scope, known_floats);
+                scan_calls_in_expr(v, scope, known_floats);
+            }
+        }
+        Expr::InterpolatedString(parts) => {
+            for part in parts {
+                scan_calls_in_expr(part, scope, known_floats);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn collect_float_vars_from_stmts(
+    stmts: &[Stmt],
+    scope: &mut HashSet<String>,
+    known_floats: &mut HashSet<String>,
+    is_top_level: bool,
+) {
     for stmt in stmts {
         match stmt {
             Stmt::Let { name, value, .. } | Stmt::Assign { name, value, .. } => {
-                if expr_is_definitely_float(value, known_floats) {
-                    known_floats.insert(name.clone());
+                scan_calls_in_expr(value, scope, known_floats);
+                if expr_is_definitely_float(value, scope) {
+                    scope.insert(name.clone());
+                    if is_top_level {
+                        known_floats.insert(name.clone());
+                    }
                 }
-                if expr_is_float_array(value, known_floats) {
-                    known_floats.insert(format!("arr_is_flt:{}", name));
+                if expr_is_float_array(value, scope) {
+                    scope.insert(format!("arr_is_flt:{}", name));
+                    if is_top_level {
+                        known_floats.insert(format!("arr_is_flt:{}", name));
+                    }
                 }
+            }
+            Stmt::Expr(expr) | Stmt::Say(expr) => {
+                scan_calls_in_expr(expr, scope, known_floats);
+            }
+            Stmt::Return(Some(expr)) => {
+                scan_calls_in_expr(expr, scope, known_floats);
+            }
+            Stmt::Throw(Some(expr)) => {
+                scan_calls_in_expr(expr, scope, known_floats);
+            }
+            Stmt::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
+                scan_calls_in_expr(condition, scope, known_floats);
+                let mut then_scope = scope.clone();
+                collect_float_vars_from_stmts(
+                    then_block,
+                    &mut then_scope,
+                    known_floats,
+                    is_top_level,
+                );
+                if let Some(else_stmts) = else_block {
+                    let mut else_scope = scope.clone();
+                    collect_float_vars_from_stmts(
+                        else_stmts,
+                        &mut else_scope,
+                        known_floats,
+                        is_top_level,
+                    );
+                }
+            }
+            Stmt::While { condition, body } => {
+                scan_calls_in_expr(condition, scope, known_floats);
+                let mut loop_scope = scope.clone();
+                collect_float_vars_from_stmts(body, &mut loop_scope, known_floats, is_top_level);
+            }
+            Stmt::Repeat { body } | Stmt::For { body, .. } => {
+                let mut loop_scope = scope.clone();
+                collect_float_vars_from_stmts(body, &mut loop_scope, known_floats, is_top_level);
+            }
+            Stmt::ForEach {
+                var,
+                iterable,
+                body,
+            } => {
+                scan_calls_in_expr(iterable, scope, known_floats);
+                let mut loop_scope = scope.clone();
+                if expr_is_float_array(iterable, scope) {
+                    loop_scope.insert(var.clone());
+                    if is_top_level {
+                        known_floats.insert(var.clone());
+                    }
+                }
+                collect_float_vars_from_stmts(body, &mut loop_scope, known_floats, is_top_level);
             }
             Stmt::TryCatch {
                 try_block,
@@ -101,45 +240,63 @@ fn collect_float_vars_from_stmts(stmts: &[Stmt], known_floats: &mut HashSet<Stri
                 finally_block,
                 ..
             } => {
-                collect_float_vars_from_stmts(try_block, known_floats);
-                collect_float_vars_from_stmts(catch_block, known_floats);
+                let mut try_scope = scope.clone();
+                collect_float_vars_from_stmts(
+                    try_block,
+                    &mut try_scope,
+                    known_floats,
+                    is_top_level,
+                );
+                let mut catch_scope = scope.clone();
+                collect_float_vars_from_stmts(
+                    catch_block,
+                    &mut catch_scope,
+                    known_floats,
+                    is_top_level,
+                );
                 if let Some(finally_block) = finally_block {
-                    collect_float_vars_from_stmts(finally_block, known_floats);
+                    let mut finally_scope = scope.clone();
+                    collect_float_vars_from_stmts(
+                        finally_block,
+                        &mut finally_scope,
+                        known_floats,
+                        is_top_level,
+                    );
                 }
             }
-            Stmt::If {
-                then_block,
-                else_block,
-                ..
+            Stmt::IndexAssign {
+                array,
+                index,
+                value,
             } => {
-                collect_float_vars_from_stmts(then_block, known_floats);
-                if let Some(else_stmts) = else_block {
-                    collect_float_vars_from_stmts(else_stmts, known_floats);
+                scan_calls_in_expr(array, scope, known_floats);
+                scan_calls_in_expr(index, scope, known_floats);
+                scan_calls_in_expr(value, scope, known_floats);
+            }
+            Stmt::FieldAssign { object, value, .. } => {
+                scan_calls_in_expr(object, scope, known_floats);
+                scan_calls_in_expr(value, scope, known_floats);
+            }
+            Stmt::Function { name, params, body } => {
+                let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+                let bare = bare.rsplit("__").next().unwrap_or(bare);
+                let mut fn_locals = scope.clone();
+                for (idx, param) in params.iter().enumerate() {
+                    if known_floats.contains(&format!("fn_param_flt:{}:{}", name, idx))
+                        || known_floats.contains(&format!("fn_param_flt:{}:{}", bare, idx))
+                    {
+                        fn_locals.insert(param.clone());
+                    }
+                    if known_floats.contains(&format!("fn_param_flt_arr:{}:{}", name, idx))
+                        || known_floats.contains(&format!("fn_param_flt_arr:{}:{}", bare, idx))
+                    {
+                        fn_locals.insert(format!("arr_is_flt:{}", param));
+                    }
                 }
-            }
-            Stmt::While { body, .. } | Stmt::Repeat { body } | Stmt::For { body, .. } => {
-                collect_float_vars_from_stmts(body, known_floats);
-            }
-            Stmt::ForEach {
-                var,
-                iterable,
-                body,
-            } => {
-                if expr_is_float_array(iterable, known_floats) {
-                    known_floats.insert(var.clone());
-                }
-                collect_float_vars_from_stmts(body, known_floats);
-            }
-            Stmt::Function { name, body, .. } => {
-                let mut fn_locals = known_floats.clone();
-                collect_float_vars_from_stmts(body, &mut fn_locals);
+                collect_float_vars_from_stmts(body, &mut fn_locals, known_floats, false);
                 if stmts_return_float(body, &fn_locals) {
                     known_floats.insert(format!("fn_ret_flt:{}", name));
-                }
-                for item in fn_locals {
-                    if item.starts_with("fn_ret_flt:") {
-                        known_floats.insert(item);
-                    }
+                    known_floats.insert(format!("fn_ret_flt:{}", bare));
                 }
             }
             _ => {}
@@ -149,40 +306,10 @@ fn collect_float_vars_from_stmts(stmts: &[Stmt], known_floats: &mut HashSet<Stri
 
 pub fn collect_known_float_vars(program: &Program) -> HashSet<String> {
     let mut known_floats = HashSet::new();
-    let mut funcs = Vec::new();
-    collect_function_defs(&program.statements, &mut funcs);
-    for _ in 0..8 {
+    for _ in 0..5 {
         let prev_len = known_floats.len();
-        collect_float_vars_from_stmts(&program.statements, &mut known_floats);
-        for (name, params, _) in &funcs {
-            for (idx, param) in params.iter().enumerate() {
-                if !known_floats.contains(&format!("arr_is_flt:{}", param)) {
-                    let is_flt_arr = program.statements.iter().any(|s| {
-                        if let Some(arg) = find_call_arg(s, name, idx) {
-                            expr_is_float_array(arg, &known_floats)
-                        } else {
-                            false
-                        }
-                    });
-                    if is_flt_arr {
-                        known_floats.insert(format!("arr_is_flt:{}", param));
-                    }
-                }
-                if known_floats.contains(param) {
-                    continue;
-                }
-                let is_flt_arg = program.statements.iter().any(|s| {
-                    if let Some(arg) = find_call_arg(s, name, idx) {
-                        expr_is_definitely_float(arg, &known_floats)
-                    } else {
-                        false
-                    }
-                });
-                if is_flt_arg {
-                    known_floats.insert(param.clone());
-                }
-            }
-        }
+        let mut scope = known_floats.clone();
+        collect_float_vars_from_stmts(&program.statements, &mut scope, &mut known_floats, true);
         if known_floats.len() == prev_len {
             break;
         }
@@ -190,24 +317,54 @@ pub fn collect_known_float_vars(program: &Program) -> HashSet<String> {
     known_floats
 }
 
+pub fn infer_param_is_float_with(
+    func_name: &str,
+    param_idx: usize,
+    program: &Program,
+    known_floats: &HashSet<String>,
+) -> bool {
+    let bare = func_name.rsplit("::").next().unwrap_or(func_name);
+    let bare = bare.rsplit("__").next().unwrap_or(bare);
+    known_floats.contains(&format!("fn_param_flt:{}:{}", func_name, param_idx))
+        || known_floats.contains(&format!("fn_param_flt:{}:{}", bare, param_idx))
+        || program.statements.iter().any(|s| {
+            if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+                expr_is_definitely_float(arg, known_floats)
+            } else if let Some(arg) = find_call_arg(s, bare, param_idx) {
+                expr_is_definitely_float(arg, known_floats)
+            } else {
+                false
+            }
+        })
+}
+
+pub fn infer_param_is_float_array_with(
+    func_name: &str,
+    param_idx: usize,
+    program: &Program,
+    known_floats: &HashSet<String>,
+) -> bool {
+    let bare = func_name.rsplit("::").next().unwrap_or(func_name);
+    let bare = bare.rsplit("__").next().unwrap_or(bare);
+    known_floats.contains(&format!("fn_param_flt_arr:{}:{}", func_name, param_idx))
+        || known_floats.contains(&format!("fn_param_flt_arr:{}:{}", bare, param_idx))
+        || program.statements.iter().any(|s| {
+            if let Some(arg) = find_call_arg(s, func_name, param_idx) {
+                expr_is_float_array(arg, known_floats)
+            } else if let Some(arg) = find_call_arg(s, bare, param_idx) {
+                expr_is_float_array(arg, known_floats)
+            } else {
+                false
+            }
+        })
+}
+
 pub fn infer_param_is_float(func_name: &str, param_idx: usize, program: &Program) -> bool {
     let known_floats = collect_known_float_vars(program);
-    program.statements.iter().any(|s| {
-        if let Some(arg) = find_call_arg(s, func_name, param_idx) {
-            expr_is_definitely_float(arg, &known_floats)
-        } else {
-            false
-        }
-    })
+    infer_param_is_float_with(func_name, param_idx, program, &known_floats)
 }
 
 pub fn infer_param_is_float_array(func_name: &str, param_idx: usize, program: &Program) -> bool {
     let known_floats = collect_known_float_vars(program);
-    program.statements.iter().any(|s| {
-        if let Some(arg) = find_call_arg(s, func_name, param_idx) {
-            expr_is_float_array(arg, &known_floats)
-        } else {
-            false
-        }
-    })
+    infer_param_is_float_array_with(func_name, param_idx, program, &known_floats)
 }

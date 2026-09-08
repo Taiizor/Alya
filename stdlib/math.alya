@@ -4,12 +4,24 @@
 let PI = 3.141592653589793
 let E = 2.718281828459045
 let TAU = 6.283185307179586
+let SQRT2 = 1.4142135623730951
+let LN2 = 0.6931471805599453
+let LN10 = 2.302585092994046
+let PHI = 1.618033988749895
 
 function deg_to_rad(deg)
     return deg * (3.141592653589793 / 180.0)
 end
 
+function radians(deg)
+    return deg * (3.141592653589793 / 180.0)
+end
+
 function rad_to_deg(rad)
+    return rad * (180.0 / 3.141592653589793)
+end
+
+function degrees(rad)
     return rad * (180.0 / 3.141592653589793)
 end
 
@@ -156,4 +168,105 @@ function median(arr)
     else
         return (sorted[mid - 1] + sorted[mid]) / 2
     end
+end
+
+function variance(arr)
+    let count = len(arr)
+    if count == 0
+        return 0.0
+    end
+    let m = mean(arr)
+    let sum_sq = 0.0
+    let diff = 0.0
+    for x in arr
+        diff = float(x) - m
+        sum_sq += diff * diff
+    end
+    return sum_sq / float(count)
+end
+
+function std_dev(arr)
+    return sqrt(int(variance(arr)))
+end
+
+function lerp(a, b, t)
+    return a + (b - a) * t
+end
+
+function norm(val, min_val, max_val)
+    let span = max_val - min_val
+    if span == 0.0 or span == 0
+        return 0.0
+    end
+    return (val - min_val) / span
+end
+
+function smoothstep(edge0, edge1, x)
+    let span = edge1 - edge0
+    if span == 0.0 or span == 0
+        return 0.0
+    end
+    let t = (x - edge0) / span
+    if t < 0.0
+        return 0.0
+    end
+    if t > 1.0
+        return 1.0
+    end
+    return t * t * (3.0 - 2.0 * t)
+end
+
+function gcd(a, b)
+    let x = abs(a)
+    let y = abs(b)
+    let temp = 0
+    while y != 0
+        temp = y
+        y = x % y
+        x = temp
+    end
+    return x
+end
+
+function lcm(a, b)
+    if a == 0 or b == 0
+        return 0
+    end
+    let g = gcd(a, b)
+    let x = abs(a)
+    let y = abs(b)
+    return (x / g) * y
+end
+
+function factorial(n)
+    if n <= 1
+        return 1
+    end
+    let res = 1
+    let i = 2
+    while i <= n
+        res *= i
+        i += 1
+    end
+    return res
+end
+
+function is_prime(n)
+    if n <= 1
+        return 0
+    end
+    if n <= 3
+        return 1
+    end
+    if n % 2 == 0 or n % 3 == 0
+        return 0
+    end
+    let i = 5
+    while i * i <= n
+        if n % i == 0 or n % (i + 2) == 0
+            return 0
+        end
+        i += 6
+    end
+    return 1
 end

@@ -7,8 +7,10 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
         Expr::String(_) => true,
         Expr::InterpolatedString(_) => true,
         Expr::Call { name, .. } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
             if matches!(
-                name.as_str(),
+                bare,
                 "ask"
                     | "str"
                     | "trim"
@@ -42,7 +44,17 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "str_repeat"
                     | "pad_left"
                     | "pad_right"
+                    | "center"
+                    | "trim_start"
+                    | "ltrim"
+                    | "trim_end"
+                    | "rtrim"
+                    | "trim_char"
                     | "capitalize"
+                    | "title_case"
+                    | "reverse_str"
+                    | "truncate"
+                    | "slugify"
                     | "path_separator"
                     | "path_join"
                     | "file_name"
@@ -51,9 +63,24 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "file_stem"
                     | "base64_encode"
                     | "base64_decode"
+                    | "to_base64"
+                    | "from_base64"
                     | "hex_encode"
                     | "hex_decode"
+                    | "to_hex"
+                    | "from_hex"
                     | "json_object"
+                    | "json_map"
+                    | "json_string_map"
+                    | "json_string"
+                    | "json_escape"
+                    | "json_null"
+                    | "json_int"
+                    | "json_float"
+                    | "json_kv"
+                    | "json_pretty"
+                    | "json_get_string"
+                    | "read_file_or"
             ) {
                 return true;
             }
@@ -108,21 +135,33 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
         Expr::Identifier(name) => {
             matches!(vars.get(name), Some(VarType::Array(_)))
         }
-        Expr::Call { name, .. }
-            if matches!(
-                name.as_str(),
+        Expr::Call { name, .. } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            matches!(
+                bare,
                 "split"
                     | "args"
                     | "cli_args"
                     | "keys"
                     | "values"
                     | "lines"
+                    | "read_lines"
                     | "set_to_array"
                     | "stack_new"
                     | "queue_new"
-            ) =>
-        {
-            true
+                    | "array_slice"
+                    | "array_clone"
+                    | "array_concat"
+                    | "array_reverse"
+                    | "array_reverse_in_place"
+                    | "array_unique"
+                    | "array_sort"
+                    | "array_sort_in_place"
+                    | "array_chunk"
+                    | "array_fill"
+                    | "map_entries"
+            )
         }
         _ => false,
     }
@@ -133,7 +172,22 @@ pub fn is_map_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
         Expr::Identifier(name) => {
             matches!(vars.get(name), Some(VarType::Map(_)))
         }
-        Expr::Call { name, .. } if name == "map" || name == "set_new" => true,
+        Expr::Call { name, .. } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            matches!(
+                bare,
+                "map"
+                    | "set_new"
+                    | "set_from_array"
+                    | "set_union"
+                    | "set_intersection"
+                    | "set_difference"
+                    | "map_clone"
+                    | "map_merge"
+                    | "map_from_entries"
+            )
+        }
         Expr::Map(_) => true,
         Expr::Index { array, index } => {
             if let Expr::String(field) = &**index {
@@ -158,10 +212,13 @@ pub fn is_string_array(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
     match expr {
         Expr::Array(elems) => elems.first().is_some_and(|e| is_string_expr(e, vars)),
         Expr::Identifier(name) => vars.contains_key(&format!("arr_is_str:{}", name)),
-        Expr::Call { name, .. }
-            if name == "split" || name == "args" || name == "cli_args" || name == "lines" =>
-        {
-            true
+        Expr::Call { name, .. } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            matches!(
+                bare,
+                "split" | "args" | "cli_args" | "lines" | "read_lines" | "keys"
+            )
         }
         _ => false,
     }
@@ -206,10 +263,25 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
         } => is_float_expr(expr, vars),
         Expr::Index { array, .. } => is_float_array(array, vars),
         Expr::Call { name, .. } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
             matches!(
-                name.as_str(),
-                "float" | "sin" | "cos" | "tan" | "mean" | "deg_to_rad" | "rad_to_deg"
+                bare,
+                "float"
+                    | "sin"
+                    | "cos"
+                    | "tan"
+                    | "mean"
+                    | "deg_to_rad"
+                    | "rad_to_deg"
+                    | "radians"
+                    | "degrees"
+                    | "lerp"
+                    | "norm"
+                    | "smoothstep"
+                    | "variance"
             ) || vars.contains_key(&format!("fn_ret_flt:{}", name))
+                || vars.contains_key(&format!("fn_ret_flt:{}", bare))
         }
         _ => false,
     }
