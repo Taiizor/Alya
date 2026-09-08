@@ -1,0 +1,448 @@
+# Alya Standard Library - URL Module (std/url)
+# Provides RFC 3986 compliant URL parsing, serialization, percent-encoding/decoding,
+# path manipulation, and query string parameter management.
+
+struct Url
+    url_scheme
+    url_username
+    url_password
+    url_host
+    url_port
+    url_path
+    url_query
+    url_fragment
+end
+
+function _url_is_unreserved(code)
+    if code >= 48 and code <= 57
+        return 1
+    elif code >= 65 and code <= 90
+        return 1
+    elif code >= 97 and code <= 122
+        return 1
+    elif code == 45 or code == 46 or code == 95 or code == 126
+        return 1
+    end
+    return 0
+end
+
+function _url_hex_char(nibble)
+    if nibble < 10
+        return chr(48 + nibble)
+    end
+    return chr(55 + nibble)
+end
+
+function _url_to_hex(code)
+    let hi = (code / 16) % 16
+    let lo = code % 16
+    return _url_hex_char(hi) + _url_hex_char(lo)
+end
+
+function _url_from_hex(ch)
+    let c = ord(ch)
+    if c >= 48 and c <= 57
+        return c - 48
+    elif c >= 65 and c <= 70
+        return c - 55
+    elif c >= 97 and c <= 102
+        return c - 87
+    end
+    return -1
+end
+
+function url_encode(text)
+    let s = str_from_ptr(text)
+    let slen = len(s)
+    let res = ""
+    let i = 0
+    while i < slen
+        let code = char_code_at(s, i)
+        if _url_is_unreserved(code) == 1
+            res = res + chr(code)
+        else
+            res = res + "%" + _url_to_hex(code)
+        end
+        i += 1
+    end
+    return res
+end
+
+function url_decode(text)
+    let s = str_from_ptr(text)
+    let slen = len(s)
+    let res = ""
+    let i = 0
+    while i < slen
+        let ch = char_at(s, i)
+        if ch == "%" and i + 2 < slen
+            let h1 = _url_from_hex(char_at(s, i + 1))
+            let h2 = _url_from_hex(char_at(s, i + 2))
+            if h1 >= 0 and h2 >= 0
+                let code = h1 * 16 + h2
+                res = res + chr(code)
+                i += 2
+            else
+                res = res + ch
+            end
+        elif ch == "+"
+            res = res + " "
+        else
+            res = res + ch
+        end
+        i += 1
+    end
+    return res
+end
+
+function _url_find(s, target, start_idx)
+    let slen = len(s)
+    let tlen = len(target)
+    if tlen == 0
+        return start_idx
+    end
+    let i = start_idx
+    while i + tlen <= slen
+        if substring(s, i, tlen) == target
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+function url_parse(raw_url)
+    let s = str_from_ptr(raw_url)
+    let slen = len(s)
+
+    # 1. Fragment
+    let fragment = ""
+    let hash_idx = _url_find(s, "#", 0)
+    if hash_idx >= 0
+        fragment = substring(s, hash_idx + 1, slen - (hash_idx + 1))
+        s = substring(s, 0, hash_idx)
+        slen = len(s)
+    end
+
+    # 2. Query
+    let query = ""
+    let q_idx = _url_find(s, "?", 0)
+    if q_idx >= 0
+        query = substring(s, q_idx + 1, slen - (q_idx + 1))
+        s = substring(s, 0, q_idx)
+        slen = len(s)
+    end
+
+    # 3. Scheme
+    let scheme = ""
+    let scheme_idx = _url_find(s, "://", 0)
+    if scheme_idx >= 0
+        scheme = substring(s, 0, scheme_idx)
+        s = substring(s, scheme_idx + 3, slen - (scheme_idx + 3))
+        slen = len(s)
+    end
+
+    # 4. Path vs Authority
+    let host = ""
+    let port = ""
+    let username = ""
+    let password = ""
+    let path = ""
+
+    let slash_idx = _url_find(s, "/", 0)
+    let authority = ""
+    if slash_idx >= 0
+        authority = substring(s, 0, slash_idx)
+        path = substring(s, slash_idx, slen - slash_idx)
+    else
+        authority = s
+        if len(scheme) > 0
+            path = "/"
+        else
+            path = ""
+        end
+    end
+
+    # 5. Userinfo
+    let at_idx = _url_find(authority, "@", 0)
+    let hostport = authority
+    if at_idx >= 0
+        let userinfo = substring(authority, 0, at_idx)
+        hostport = substring(authority, at_idx + 1, len(authority) - (at_idx + 1))
+        let colon_u = _url_find(userinfo, ":", 0)
+        if colon_u >= 0
+            username = substring(userinfo, 0, colon_u)
+            password = substring(userinfo, colon_u + 1, len(userinfo) - (colon_u + 1))
+        else
+            username = userinfo
+        end
+    end
+
+    # 6. Host & Port
+    let colon_h = _url_find(hostport, ":", 0)
+    if colon_h >= 0
+        host = substring(hostport, 0, colon_h)
+        port = substring(hostport, colon_h + 1, len(hostport) - (colon_h + 1))
+    else
+        host = hostport
+    end
+
+    return Url(scheme, username, password, host, port, path, query, fragment)
+end
+
+function url_format(u)
+    let res = ""
+    let sc = str_from_ptr(u.url_scheme)
+    if len(sc) > 0
+        res = res + sc + "://"
+    end
+
+    let un = str_from_ptr(u.url_username)
+    let pw = str_from_ptr(u.url_password)
+    if len(un) > 0
+        res = res + un
+        if len(pw) > 0
+            res = res + ":" + pw
+        end
+        res = res + "@"
+    end
+
+    let h = str_from_ptr(u.url_host)
+    res = res + h
+
+    let p = str_from_ptr(u.url_port)
+    if len(p) > 0
+        res = res + ":" + p
+    end
+
+    let pth = str_from_ptr(u.url_path)
+    if len(pth) > 0
+        res = res + pth
+    end
+
+    let q = str_from_ptr(u.url_query)
+    if len(q) > 0
+        res = res + "?" + q
+    end
+
+    let frag = str_from_ptr(u.url_fragment)
+    if len(frag) > 0
+        res = res + "#" + frag
+    end
+
+    return res
+end
+
+function url_to_string(u)
+    return url_format(u)
+end
+
+function url_origin(u)
+    let res = ""
+    let sc = str_from_ptr(u.url_scheme)
+    if len(sc) > 0
+        res = res + sc + "://"
+    end
+    let h = str_from_ptr(u.url_host)
+    res = res + h
+    let p = str_from_ptr(u.url_port)
+    if len(p) > 0
+        res = res + ":" + p
+    end
+    return res
+end
+
+function url_is_https(u)
+    return u.url_scheme == "https"
+end
+
+function url_is_http(u)
+    return u.url_scheme == "http"
+end
+
+function url_default_port(scheme)
+    if scheme == "http"
+        return "80"
+    elif scheme == "https"
+        return "443"
+    elif scheme == "ftp"
+        return "21"
+    elif scheme == "ssh"
+        return "22"
+    end
+    return ""
+end
+
+function url_effective_port(u)
+    let p = str_from_ptr(u.url_port)
+    if len(p) > 0
+        return p
+    end
+    return url_default_port(str_from_ptr(u.url_scheme))
+end
+
+function url_join(base, relative)
+    let b = str_from_ptr(base)
+    let r = str_from_ptr(relative)
+    let blen = len(b)
+    let rlen = len(r)
+
+    if blen == 0
+        return r
+    end
+    if rlen == 0
+        return b
+    end
+
+    let b_ends_slash = char_at(b, blen - 1) == "/"
+    let r_starts_slash = char_at(r, 0) == "/"
+
+    if b_ends_slash == 1 and r_starts_slash == 1
+        return substring(b, 0, blen - 1) + r
+    elif b_ends_slash == 0 and r_starts_slash == 0
+        return b + "/" + r
+    else
+        return b + r
+    end
+end
+
+function url_format_query(m)
+    let ks = keys(m)
+    let klen = array_len(ks)
+    let out = ""
+    let i = 0
+    while i < klen
+        let k = str_from_ptr(ks[i])
+        let v = str_from_ptr(get(m, k))
+        let enc_k = url_encode(k)
+        let enc_v = url_encode(v)
+        let pair = enc_k + "=" + enc_v
+        if i > 0
+            out = out + "&" + pair
+        else
+            out = pair
+        end
+        i += 1
+    end
+    return out
+end
+
+function url_parse_query(query_str)
+    let q = str_from_ptr(query_str)
+    let qlen = len(q)
+    if qlen == 0
+        return {}
+    end
+
+    if char_at(q, 0) == "?"
+        q = substring(q, 1, qlen - 1)
+        qlen = len(q)
+    end
+
+    let res = {}
+    let start = 0
+    let i = 0
+
+    while i <= qlen
+        let is_sep = 0
+        if i == qlen
+            is_sep = 1
+        elif char_at(q, i) == "&"
+            is_sep = 1
+        end
+
+        if is_sep == 1
+            if i > start
+                let pair = substring(q, start, i - start)
+                let eq_idx = _url_find(pair, "=", 0)
+                if eq_idx >= 0
+                    let k = substring(pair, 0, eq_idx)
+                    let v = substring(pair, eq_idx + 1, len(pair) - (eq_idx + 1))
+                    let dec_k = url_decode(k)
+                    let dec_v = url_decode(v)
+                    res[dec_k] = dec_v
+                else
+                    let dec_k = url_decode(pair)
+                    res[dec_k] = ""
+                end
+            end
+            start = i + 1
+        end
+        i += 1
+    end
+
+    return res
+end
+
+function url_get_query_param(raw_url, key)
+    let u = url_parse(raw_url)
+    let q_map = url_parse_query(u.url_query)
+    let k = str_from_ptr(key)
+    if has(q_map, k) == 1
+        return str_from_ptr(get(q_map, k))
+    end
+    return ""
+end
+
+function url_has_query_param(raw_url, key)
+    let u = url_parse(raw_url)
+    let q_map = url_parse_query(u.url_query)
+    let k = str_from_ptr(key)
+    return has(q_map, k)
+end
+
+function url_set_query_param(raw_url, key, value)
+    let u = url_parse(raw_url)
+    let q_map = url_parse_query(u.url_query)
+    let k = str_from_ptr(key)
+    let v = str_from_ptr(value)
+    q_map[k] = v
+    let nq = url_format_query(q_map)
+    u.url_query = nq
+    return url_format(u)
+end
+
+function url_remove_query_param(raw_url, key)
+    let u = url_parse(raw_url)
+    let q_map = url_parse_query(u.url_query)
+    let k_target = str_from_ptr(key)
+    let ks = keys(q_map)
+    let klen = array_len(ks)
+    let new_map = {}
+    let i = 0
+    while i < klen
+        let k = str_from_ptr(ks[i])
+        if k != k_target
+            let v = str_from_ptr(get(q_map, k))
+            new_map[k] = v
+        end
+        i += 1
+    end
+    u.url_query = url_format_query(new_map)
+    return url_format(u)
+end
+
+function url_path_segments(u)
+    let p = str_from_ptr(u.url_path)
+    let plen = len(p)
+    if plen == 0
+        return []
+    end
+    let segs = split(p, "/")
+    let res = []
+    let slen = array_len(segs)
+    let i = 0
+    while i < slen
+        let seg = str_from_ptr(segs[i])
+        if len(seg) > 0
+            res.push(seg)
+        end
+        i += 1
+    end
+    return res
+end
+
+function url_normalize(raw_url)
+    let u = url_parse(raw_url)
+    return url_format(u)
+end

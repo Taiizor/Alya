@@ -186,6 +186,7 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "csv_read_records_with_delimiter"
                     | "tsv_read_file"
                     | "tsv_read_records"
+                    | "url_path_segments"
             )
         }
         Expr::FieldAccess { object, field } => {
@@ -232,6 +233,7 @@ pub fn is_map_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "map_clone"
                     | "map_merge"
                     | "map_from_entries"
+                    | "url_parse_query"
             )
         }
         Expr::Map(_) => true,

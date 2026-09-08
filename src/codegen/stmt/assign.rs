@@ -439,7 +439,10 @@ impl CodeGen {
     }
 
     pub(super) fn generate_index_assign(&mut self, array: &Expr, index: &Expr, value: &Expr) {
-        if is_map_expr(array, &self.ctx.variables) || matches!(index, Expr::String(_)) {
+        if is_map_expr(array, &self.ctx.variables)
+            || is_string_expr(index, &self.ctx.variables)
+            || matches!(index, Expr::String(_))
+        {
             let actual_args = [array, index, value];
             match self.arch {
                 Architecture::X86 => {

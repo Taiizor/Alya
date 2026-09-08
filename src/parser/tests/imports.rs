@@ -361,3 +361,32 @@ fn test_import_embedded_csv_stdlib() {
     assert!(fn_names.contains(&"csv_stringify".to_string()));
     assert!(fn_names.contains(&"csv_parse_records".to_string()));
 }
+
+#[test]
+fn test_import_embedded_url_stdlib() {
+    let source =
+        "import \"std/url\"\nlet u = url_parse(\"https://example.com/test\")\nsay u.url_host";
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Tokenize failed");
+    let mut parser = Parser::new(tokens);
+    let mut ast = parser.parse().expect("Parse failed");
+
+    let current_dir = std::path::Path::new(".");
+    let res = resolve_imports(&mut ast, current_dir);
+    assert!(res.is_ok(), "Importing std/url should succeed");
+
+    let fn_names: Vec<String> = ast
+        .statements
+        .iter()
+        .filter_map(|s| match s {
+            Stmt::Function { name, .. } => Some(name.clone()),
+            _ => None,
+        })
+        .collect();
+
+    assert!(fn_names.contains(&"url_parse".to_string()));
+    assert!(fn_names.contains(&"url_format".to_string()));
+    assert!(fn_names.contains(&"url_encode".to_string()));
+    assert!(fn_names.contains(&"url_decode".to_string()));
+    assert!(fn_names.contains(&"url_parse_query".to_string()));
+}

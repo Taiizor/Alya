@@ -844,7 +844,10 @@ impl CodeGen {
                 }
             }
             Expr::Index { array, index } => {
-                if is_map_expr(array, &self.ctx.variables) || matches!(**index, Expr::String(_)) {
+                if is_map_expr(array, &self.ctx.variables)
+                    || is_string_expr(index, &self.ctx.variables)
+                    || matches!(**index, Expr::String(_))
+                {
                     let actual_args = [array.as_ref(), index.as_ref()];
                     match self.arch {
                         Architecture::X86 => {

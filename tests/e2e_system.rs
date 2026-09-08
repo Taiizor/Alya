@@ -1143,3 +1143,56 @@ say "has_escaped: " + str(contains(serialized, "\"Code, Test\""))
         assert!(output.contains("has_escaped: 1"));
     }
 }
+
+#[test]
+fn test_e2e_url_stdlib() {
+    let code = r#"
+import "std/url"
+
+let raw = "https://user:pass@example.com:8080/path/test?q=hello+alya&lang=en#heading"
+let u = url_parse(raw)
+say "scheme: " + str_from_ptr(u.url_scheme)
+say "user: " + str_from_ptr(u.url_username)
+say "pass: " + str_from_ptr(u.url_password)
+say "host: " + str_from_ptr(u.url_host)
+say "port: " + str_from_ptr(u.url_port)
+say "path: " + str_from_ptr(u.url_path)
+say "query: " + str_from_ptr(u.url_query)
+say "frag: " + str_from_ptr(u.url_fragment)
+say "origin: " + url_origin(u)
+say "is_https: " + str(url_is_https(u))
+
+let q_val = url_get_query_param(raw, "q")
+say "param_q: " + q_val
+say "has_q: " + str(url_has_query_param(raw, "q"))
+
+let joined = url_join("https://api.com/v1/", "/items")
+say "joined: " + joined
+
+let encoded = url_encode("A & B = 100%")
+say "encoded: " + encoded
+say "decoded: " + url_decode(encoded)
+
+let formatted = url_format(u)
+say "matches: " + str(raw == formatted)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("scheme: https"));
+        assert!(output.contains("user: user"));
+        assert!(output.contains("pass: pass"));
+        assert!(output.contains("host: example.com"));
+        assert!(output.contains("port: 8080"));
+        assert!(output.contains("path: /path/test"));
+        assert!(output.contains("query: q=hello+alya&lang=en"));
+        assert!(output.contains("frag: heading"));
+        assert!(output.contains("origin: https://example.com:8080"));
+        assert!(output.contains("is_https: 1"));
+        assert!(output.contains("param_q: hello alya"));
+        assert!(output.contains("has_q: 1"));
+        assert!(output.contains("joined: https://api.com/v1/items"));
+        assert!(output.contains("encoded: A%20%26%20B%20%3D%20100%25"));
+        assert!(output.contains("decoded: A & B = 100%"));
+        assert!(output.contains("matches: 1"));
+    }
+}

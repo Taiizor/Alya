@@ -273,6 +273,7 @@ fn get_embedded_stdlib(module: &str) -> Option<&'static str> {
         "rand" => Some(include_str!("../../stdlib/rand.alya")),
         "cli" | "argparse" => Some(include_str!("../../stdlib/cli.alya")),
         "csv" | "tsv" => Some(include_str!("../../stdlib/csv.alya")),
+        "url" => Some(include_str!("../../stdlib/url.alya")),
         _ => None,
     }
 }

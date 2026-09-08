@@ -291,6 +291,30 @@ fn test_all_examples_execute_with_gcc() {
             continue;
         }
 
+        if example_name == "url_demo.alya" {
+            assert!(
+                actual_stdout.contains("=== Alya std/url Demo ==="),
+                "url_demo missing header:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("Scheme   : https"),
+                "url_demo missing scheme:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("Origin          : https://api.example.com:8443"),
+                "url_demo missing origin:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("Rebuilt matches raw: 1"),
+                "url_demo missing roundtrip:\n{}",
+                actual_stdout
+            );
+            continue;
+        }
+
         let expected = get_expected_output(example_name).unwrap_or_else(|| {
             panic!(
                 "Missing expected output definition for example '{}'!",
