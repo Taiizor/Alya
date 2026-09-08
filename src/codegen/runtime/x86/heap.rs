@@ -11,7 +11,9 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_alloc:\n");
     out.push_str("    push %ebp\n");
     out.push_str("    mov %esp, %ebp\n");
-    out.push_str("    push 8(%ebp)\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    add %eax, alya_allocated_bytes\n");
+    out.push_str("    push %eax\n");
     out.push_str("    call malloc\n");
     out.push_str("    add $4, %esp\n");
     out.push_str("    mov %ebp, %esp\n");
@@ -40,7 +42,9 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_realloc:\n");
     out.push_str("    push %ebp\n");
     out.push_str("    mov %esp, %ebp\n");
-    out.push_str("    push 12(%ebp)\n");
+    out.push_str("    mov 12(%ebp), %eax\n");
+    out.push_str("    add %eax, alya_allocated_bytes\n");
+    out.push_str("    push %eax\n");
     out.push_str("    push 8(%ebp)\n");
     out.push_str("    call realloc\n");
     out.push_str("    add $8, %esp\n");
@@ -154,4 +158,16 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %ebp\n");
     out.push_str("    ret\n\n");
 
+    // fn_mem_allocated
+    out.push_str(".global fn_mem_allocated\n");
+    out.push_str("fn_mem_allocated:\n");
+    out.push_str("    mov alya_allocated_bytes, %eax\n");
+    out.push_str("    ret\n\n");
+
+    // fn_mem_reset_alloc
+    out.push_str(".global fn_mem_reset_alloc\n");
+    out.push_str("fn_mem_reset_alloc:\n");
+    out.push_str("    movl $0, alya_allocated_bytes\n");
+    out.push_str("    xor %eax, %eax\n");
+    out.push_str("    ret\n\n");
 }

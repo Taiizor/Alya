@@ -13,8 +13,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov %rsp, %rbp\n");
     out.push_str("    sub $32, %rsp\n");
     if is_win {
+        out.push_str("    add %rcx, alya_allocated_bytes(%rip)\n");
         out.push_str("    call malloc\n");
     } else {
+        out.push_str("    add %rdi, alya_allocated_bytes(%rip)\n");
         out.push_str(&format!("    call {}malloc\n", p));
     }
     out.push_str("    add $32, %rsp\n");
@@ -51,8 +53,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov %rsp, %rbp\n");
     out.push_str("    sub $32, %rsp\n");
     if is_win {
+        out.push_str("    add %rdx, alya_allocated_bytes(%rip)\n");
         out.push_str("    call realloc\n");
     } else {
+        out.push_str("    add %rsi, alya_allocated_bytes(%rip)\n");
         out.push_str(&format!("    call {}realloc\n", p));
     }
     out.push_str("    add $32, %rsp\n");
@@ -201,4 +205,16 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
 
+    // fn_mem_allocated
+    out.push_str(".global fn_mem_allocated\n");
+    out.push_str("fn_mem_allocated:\n");
+    out.push_str("    mov alya_allocated_bytes(%rip), %rax\n");
+    out.push_str("    ret\n\n");
+
+    // fn_mem_reset_alloc
+    out.push_str(".global fn_mem_reset_alloc\n");
+    out.push_str("fn_mem_reset_alloc:\n");
+    out.push_str("    movq $0, alya_allocated_bytes(%rip)\n");
+    out.push_str("    xor %rax, %rax\n");
+    out.push_str("    ret\n\n");
 }

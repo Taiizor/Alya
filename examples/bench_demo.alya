@@ -19,4 +19,13 @@ while i < 100000
 end
 bench_stop(runner, "gcd(123456, 7890) integer ops")
 
+bench_start(runner, 100000)
+i = 0
+while i < 100000
+    let ptr = alloc(64)
+    free(ptr)
+    i += 1
+end
+bench_stop(runner, "alloc(64) heap allocation")
+
 bench_summary(runner)

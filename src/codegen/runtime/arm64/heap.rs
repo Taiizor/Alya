@@ -11,10 +11,16 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".align 2\n");
     out.push_str(".global fn_alloc\n");
     out.push_str("fn_alloc:\n");
-    out.push_str("    stp x29, x30, [sp, #-16]!\n");
+    out.push_str("    stp x29, x30, [sp, #-32]!\n");
     out.push_str("    mov x29, sp\n");
+    out.push_str("    str x0, [sp, #16]\n");
+    emit_adrp_add(out, "x1", "alya_allocated_bytes", os);
+    out.push_str("    ldr x2, [x1]\n");
+    out.push_str("    add x2, x2, x0\n");
+    out.push_str("    str x2, [x1]\n");
+    out.push_str("    ldr x0, [sp, #16]\n");
     out.push_str(&format!("    bl {}malloc\n", p));
-    out.push_str("    ldp x29, x30, [sp], #16\n");
+    out.push_str("    ldp x29, x30, [sp], #32\n");
     out.push_str("    ret\n\n");
 
     // fn_free
@@ -34,10 +40,18 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".align 2\n");
     out.push_str(".global fn_realloc\n");
     out.push_str("fn_realloc:\n");
-    out.push_str("    stp x29, x30, [sp, #-16]!\n");
+    out.push_str("    stp x29, x30, [sp, #-32]!\n");
     out.push_str("    mov x29, sp\n");
+    out.push_str("    str x0, [sp, #16]\n");
+    out.push_str("    str x1, [sp, #24]\n");
+    emit_adrp_add(out, "x2", "alya_allocated_bytes", os);
+    out.push_str("    ldr x3, [x2]\n");
+    out.push_str("    add x3, x3, x1\n");
+    out.push_str("    str x3, [x2]\n");
+    out.push_str("    ldr x0, [sp, #16]\n");
+    out.push_str("    ldr x1, [sp, #24]\n");
     out.push_str(&format!("    bl {}realloc\n", p));
-    out.push_str("    ldp x29, x30, [sp], #16\n");
+    out.push_str("    ldp x29, x30, [sp], #32\n");
     out.push_str("    ret\n\n");
 
     // fn_copy_mem
@@ -111,4 +125,20 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_str_to_ptr:\n");
     out.push_str("    ret\n\n");
 
+    // fn_mem_allocated
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_mem_allocated\n");
+    out.push_str("fn_mem_allocated:\n");
+    emit_adrp_add(out, "x1", "alya_allocated_bytes", os);
+    out.push_str("    ldr x0, [x1]\n");
+    out.push_str("    ret\n\n");
+
+    // fn_mem_reset_alloc
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_mem_reset_alloc\n");
+    out.push_str("fn_mem_reset_alloc:\n");
+    emit_adrp_add(out, "x1", "alya_allocated_bytes", os);
+    out.push_str("    str xzr, [x1]\n");
+    out.push_str("    mov x0, #0\n");
+    out.push_str("    ret\n\n");
 }

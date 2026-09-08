@@ -38,6 +38,8 @@ pub fn emit_data_sections(
             out.push_str("    .quad 0\n");
             out.push_str("alya_rand_state:\n");
             out.push_str("    .quad 0\n");
+            out.push_str("alya_allocated_bytes:\n");
+            out.push_str("    .quad 0\n");
         }
         Architecture::X86 => {
             out.push_str("alya_str_idx:\n");
@@ -57,6 +59,8 @@ pub fn emit_data_sections(
             out.push_str("alya_err_msg:\n");
             out.push_str("    .long 0\n");
             out.push_str("alya_rand_state:\n");
+            out.push_str("    .long 0\n");
+            out.push_str("alya_allocated_bytes:\n");
             out.push_str("    .long 0\n");
         }
     }

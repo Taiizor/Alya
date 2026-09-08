@@ -1,27 +1,44 @@
 # Alya Standard Library - Benchmark Module (std/bench)
-# Provides micro-benchmarking, throughput, and performance profiling utilities.
+# Provides BenchmarkDotNet-style micro-benchmarking, memory tracking, and performance reporting.
+
+struct BenchRecord
+    op_name
+    op_iters
+    op_elapsed
+    op_alloc
+    op_ns
+    op_throughput
+end
 
 struct BenchRunner
     suite_name
+    records
     total_runs
     total_ms
     start_ms
-    iters
+    start_alloc
+    run_iters
 end
 
 function bench_runner(name)
     say "=== Benchmark Suite: " + name + " ==="
-    return BenchRunner(name, 0, 0, 0, 0)
+    return BenchRunner(name, [], 0, 0, 0, 0, 0)
 end
 
 function bench_start(b, iters)
-    b.iters = iters
+    b.run_iters = iters
+    b.start_alloc = mem_allocated()
     b.start_ms = clock_ms()
 end
 
 function bench_stop(b, name)
     let elapsed = clock_ms() - b.start_ms
-    let iters = b.iters
+    let end_alloc = mem_allocated()
+    let alloc_diff = end_alloc - b.start_alloc
+    if alloc_diff < 0
+        alloc_diff = 0
+    end
+    let iters = b.run_iters
     if iters <= 0
         iters = 1
     end
@@ -31,7 +48,12 @@ function bench_stop(b, name)
     end
     let ns_per_op = (safe_elapsed * 1000000) / iters
     let ops_sec = (iters * 1000) / safe_elapsed
+    let alloc_per_op = alloc_diff / iters
+
     say "  * " + name + ": " + str(iters) + " iters in " + str(elapsed) + " ms (~" + str(ns_per_op) + " ns/op | " + str(ops_sec) + " ops/sec)"
+
+    let rec = BenchRecord(name, iters, elapsed, alloc_per_op, ns_per_op, ops_sec)
+    push(b.records, rec)
     b.total_runs += 1
     b.total_ms += elapsed
     return elapsed
@@ -48,7 +70,144 @@ function bench_measure(name, iters, elapsed_ms)
     return elapsed_ms
 end
 
+# Internal helpers for BenchmarkDotNet-style table formatting
+function _bench_pad_right(s, width)
+    let res = str_from_ptr(s)
+    let slen = len(res)
+    while slen < width
+        res = res + " "
+        slen += 1
+    end
+    return res
+end
+
+function _bench_pad_left(s, width)
+    let res = str_from_ptr(s)
+    let slen = len(res)
+    while slen < width
+        res = " " + res
+        slen += 1
+    end
+    return res
+end
+
+function _bench_repeat(c, count)
+    let res = ""
+    let i = 0
+    while i < count
+        res = res + c
+        i += 1
+    end
+    return res
+end
+
+function _bench_format_alloc(bytes)
+    if bytes <= 0
+        return "-"
+    end
+    if bytes < 1024
+        return str(bytes) + " B"
+    end
+    if bytes < 1048576
+        let kb_val = bytes / 1024
+        return str(kb_val) + " KB"
+    end
+    let mb_val = bytes / 1048576
+    return str(mb_val) + " MB"
+end
+
+function _bench_format_ns(ns)
+    if ns < 1000
+        return str(ns) + " ns"
+    end
+    if ns < 1000000
+        let us = ns / 1000
+        return str(us) + " µs"
+    end
+    let ms = ns / 1000000
+    return str(ms) + " ms"
+end
+
+function _bench_format_throughput(ops)
+    if ops < 1000
+        return str(ops) + " ops/s"
+    end
+    if ops < 1000000
+        let k = ops / 1000
+        return str(k) + "K ops/s"
+    end
+    let m = ops / 1000000
+    return str(m) + "M ops/s"
+end
+
 function bench_summary(b)
+    let num_records = b.total_runs
+    if num_records > 0
+        say "\n// * Summary *\n"
+        say "Benchmark Suite: " + str_from_ptr(b.suite_name)
+        say "Measurements   : " + str(num_records) + " methods\n"
+
+        let max_name_len = 6
+        let k = 0
+        while k < num_records
+            let r_k = b.records[k]
+            let nlen = len(str_from_ptr(r_k.op_name))
+            if nlen > max_name_len
+                max_name_len = nlen
+            end
+            k += 1
+        end
+
+        let col_width = max_name_len + 2
+        if col_width < 26
+            col_width = 26
+        end
+
+        let header_name = _bench_pad_right("Method", col_width)
+        let dashes = ":" + _bench_repeat("-", col_width + 1)
+
+        say "| " + header_name + " | Mean (ns/op) | Total Time | Ratio | Allocated |   Throughput |"
+        say "|" + dashes + "|-------------:|-----------:|------:|----------:|-------------:|"
+
+        let baseline_rec = b.records[0]
+        let baseline_ns = baseline_rec.op_ns
+        if baseline_ns <= 0
+            baseline_ns = 1
+        end
+
+        let i = 0
+        while i < num_records
+            let r = b.records[i]
+
+            let ratio_val = (r.op_ns * 100) / baseline_ns
+            let ratio_int = ratio_val / 100
+            let ratio_dec = ratio_val % 100
+            let ratio_str = str(ratio_int) + "."
+            if ratio_dec < 10
+                ratio_str = ratio_str + "0"
+            end
+            ratio_str = ratio_str + str(ratio_dec)
+
+            let name_str = str_from_ptr(r.op_name)
+            let col_name = _bench_pad_right(name_str, col_width)
+            let col_mean = _bench_pad_left(_bench_format_ns(r.op_ns), 12)
+            let col_time = _bench_pad_left(str(r.op_elapsed) + " ms", 10)
+            let col_ratio = _bench_pad_left(ratio_str, 5)
+            let col_alloc = _bench_pad_left(_bench_format_alloc(r.op_alloc), 9)
+            let col_tp = _bench_pad_left(_bench_format_throughput(r.op_throughput), 12)
+
+            say "| " + col_name + " | " + col_mean + " | " + col_time + " | " + col_ratio + " | " + col_alloc + " | " + col_tp + " |"
+            i += 1
+        end
+
+        say "\n// * Legends *"
+        say "  Mean (ns/op) : Nanoseconds per single operation"
+        say "  Total Time   : Total elapsed time for all iterations"
+        say "  Ratio        : Time ratio relative to baseline (" + str_from_ptr(baseline_rec.op_name) + ")"
+        say "  Allocated    : Allocated heap memory per single operation"
+        say "  Throughput   : Operations executed per second\n"
+    end
+
     let runs = str(b.total_runs)
     let ms = str(b.total_ms)
     say "----------------------------------------"

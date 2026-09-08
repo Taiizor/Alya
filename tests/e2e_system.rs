@@ -984,6 +984,8 @@ bench_summary(b)
         assert!(output.contains("=== Benchmark Suite: E2E Test Suite ==="));
         assert!(output.contains("* loop_sum: 100 iters in"));
         assert!(output.contains("sum: 4950"));
+        assert!(output.contains("// * Summary *"));
+        assert!(output.contains("// * Legends *"));
         assert!(output.contains("Finished 1 benchmark(s) in"));
     }
 }

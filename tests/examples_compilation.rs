@@ -222,7 +222,12 @@ fn test_all_examples_execute_with_gcc() {
                 actual_stdout
             );
             assert!(
-                actual_stdout.contains("Finished 2 benchmark(s) in"),
+                actual_stdout.contains("// * Summary *"),
+                "bench_demo missing summary section:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("Finished 3 benchmark(s) in"),
                 "bench_demo missing summary:\n{}",
                 actual_stdout
             );
