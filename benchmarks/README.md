@@ -9,10 +9,10 @@ Comprehensive performance benchmarks evaluating both the **Alya Compiler (throug
 All implementations solve the exact same algorithmic problem on identical inputs, with mathematically verified outputs across all targets.
 
 ### Test Environment
-* **Operating System:** Windows 11 Pro x64
-* **C Compiler:** gcc (tdm64-1) 10.3.0 (`-O2` optimization)
+* **Operating System:** Ubuntu 24.04.4 LTS (x64)
+* **C Compiler:** gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0 (`-O2` optimization)
 * **JavaScript Engine:** Bun 1.4.2 (JavaScriptCore JIT)
-* **Python Runtime:** Python 3.12.5
+* **Python Runtime:** Python 3.12.14
 * **Alya Version:** 0.0.3 (Compiled with `alyac build` in Release mode)
 * **Measurement Methodology:** 1 warmup run, followed by 5 timed runs. Median execution time reported.
 
@@ -22,10 +22,10 @@ All implementations solve the exact same algorithmic problem on identical inputs
 
 | Benchmark | Target Workload | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs C | Alya vs Python | Alya vs Bun |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Recursive Fibonacci** | `fib(30)` (~2.69M calls) | `11.0 ms` | **`16.8 ms`** | `39.8 ms` | `149.1 ms` | **1.5x** | **8.9x faster** | **2.4x faster** |
-| **Mandelbrot Fractal** | 200×100 grid, 200 iters | `11.1 ms` | **`15.9 ms`** | `27.8 ms` | `115.5 ms` | **1.4x** | **7.3x faster** | **1.8x faster** |
-| **Sieve of Eratosthenes** | Primes under 50,000 | `9.5 ms` | **`10.9 ms`** | `26.1 ms` | `39.3 ms` | **1.1x** | **3.6x faster** | **2.4x faster** |
-| **FNV-1a String Hash** | 50,000 hash calculations | `12.3 ms` | **`16.9 ms`** | `40.1 ms` | `483.2 ms` | **1.4x** | **28.6x faster** | **2.4x faster** |
+| **Recursive Fibonacci** | `fib(30)` (~2.69M calls) | `1.8 ms` | **`7.6 ms`** | `10.3 ms` | `98.0 ms` | **4.1x** | **12.9x faster** | **1.4x faster** |
+| **Mandelbrot Fractal** | 200×100 grid, 200 iters | `2.7 ms` | **`6.8 ms`** | `7.6 ms` | `104.4 ms` | **2.5x** | **15.3x faster** | **1.1x faster** |
+| **Sieve of Eratosthenes** | Primes under 50,000 | `0.8 ms` | **`1.3 ms`** | `5.3 ms` | `14.8 ms` | **1.6x** | **11.5x faster** | **4.1x faster** |
+| **FNV-1a String Hash** | 50,000 hash calculations | `4.0 ms` | **`6.0 ms`** | `10.7 ms` | `369.4 ms` | **1.5x** | **61.5x faster** | **1.8x faster** |
 
 ---
 
@@ -34,22 +34,22 @@ All implementations solve the exact same algorithmic problem on identical inputs
 ### 1. Recursive Fibonacci (`fib(30)`)
 * **Measures:** Function call overhead, standard ABI calling conventions, stack frame push/pop.
 * **Why Alya is Fast:** Alya emits native assembly (ARM64, x64, x86) adhering strictly to platform ABIs with direct branch and link (`bl` / `call`) and return instructions. There are no virtual machine dispatch loops, garbage collection pauses, or interpreter frames.
-* **Result:** **1.5x of C (-O2)**, **2.4x faster than Bun**, and **8.9x faster than Python**.
+* **Result:** **4.1x of C (-O2)**, **1.4x faster than Bun**, and **12.9x faster than Python**.
 
 ### 2. Mandelbrot Fractal (`200x100x200`)
 * **Measures:** Double-precision floating-point arithmetic (`f64`), tight nested loops, register persistence.
 * **Why Alya is Fast:** Alya binds 64-bit float operations directly to hardware floating-point registers (`d0-d2` on ARM64, `xmm0-xmm1` on x64/x86) and fuses loop comparisons directly into single conditional branches.
-* **Result:** **1.4x of C (-O2)**, **1.8x faster than Bun**, and **7.3x faster than Python**.
+* **Result:** **2.5x of C (-O2)**, **1.1x faster than Bun**, and **15.3x faster than Python**.
 
 ### 3. Sieve of Eratosthenes (50,000 elements)
 * **Measures:** Memory allocation, dynamic array indexing, bounds safety overhead.
 * **Why Alya is Fast:** Alya performs single-comparison unsigned bounds checks (`b.hs` / `jae`) and calculates element addresses with native scaled base + index pointer arithmetic (`[x0, x1, lsl #3]` / `[rax + rbx*8]`).
-* **Result:** **1.1x of C (-O2)**, **2.4x faster than Bun**, and **3.6x faster than Python**.
+* **Result:** **1.6x of C (-O2)**, **4.1x faster than Bun**, and **11.5x faster than Python**.
 
 ### 4. FNV-1a String Hashing (50,000 iterations)
 * **Measures:** String iteration, character lookup (`char_at`, `ord`), bitwise XOR and integer multiplication.
 * **Why Alya is Fast:** Direct string index intrinsics bypass runtime function call overhead; bitwise masking is optimized natively (`ubfx` on ARM64, direct immediate bitwise ops on x64/x86); and loop conditions use zero-overhead branch fusion.
-* **Result:** **1.4x of C (-O2)**, **2.4x faster than Bun**, and **28.6x faster than Python**.
+* **Result:** **1.5x of C (-O2)**, **1.8x faster than Bun**, and **61.5x faster than Python**.
 
 ---
 
@@ -61,11 +61,11 @@ Alya features a lightweight single-pass frontend with immediate native x64 assem
 
 | Benchmark Stage | Iterations | Average Time | Min Time | Max Time | Measured Throughput |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **`Lexer::tokenize`** | 995 | `402.17µs` | `319.00µs` | `1.17ms` | **54.0 MB/s** |
-| **`Parser::parse`** | 591 | `677.85µs` | `524.50µs` | `4.07ms` | **1736363 lines/s** |
-| **`ProgramInference::analyze`** | 83 | `4.87ms` | `4.70ms` | `7.76ms` | **205 ops/s** |
-| **`CodeGen::generate (x64)`** | 20 | `20.70ms` | `20.49ms` | `21.59ms` | **428301 asm lines/s** |
-| **`Full Frontend Pipeline`** | 22 | `22.83ms` | `21.47ms` | `30.51ms` | **43.8 files/s** |
+| **`Lexer::tokenize`** | 1706 | `234.48µs` | `227.50µs` | `357.29µs` | **92.6 MB/s** |
+| **`Parser::parse`** | 878 | `455.83µs` | `402.08µs` | `666.40µs` | **2582083 lines/s** |
+| **`ProgramInference::analyze`** | 74 | `5.47ms` | `5.31ms` | `8.85ms` | **183 ops/s** |
+| **`CodeGen::generate (x64)`** | 18 | `22.96ms` | `22.91ms` | `23.04ms` | **386071 asm lines/s** |
+| **`Full Frontend Pipeline`** | 22 | `23.63ms` | `23.51ms` | `23.78ms` | **42.3 files/s** |
 
 ---
 
