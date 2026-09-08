@@ -296,4 +296,18 @@ fn test_tokenize_multiline_and_raw_strings() {
         TokenType::String("raw string\nwith newlines".into())
     );
     assert_eq!(tokens[3].token_type, TokenType::Eof);
+
+    // Test with CRLF line endings to ensure normalization to LF
+    let crlf_source = "\"\"\"\r\nHello\r\nWorld\r\n\"\"\"\r\n`raw\r\nstring`";
+    let mut crlf_lexer = Lexer::new(crlf_source);
+    let crlf_tokens = crlf_lexer.tokenize().expect("CRLF Tokenization failed");
+    assert_eq!(
+        crlf_tokens[0].token_type,
+        TokenType::String("Hello\nWorld\n".into())
+    );
+    assert_eq!(crlf_tokens[1].token_type, TokenType::Newline);
+    assert_eq!(
+        crlf_tokens[2].token_type,
+        TokenType::String("raw\nstring".into())
+    );
 }

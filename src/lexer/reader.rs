@@ -97,6 +97,12 @@ impl Lexer {
                 self.advance();
                 self.advance();
                 return Ok(result);
+            } else if ch == '\r' {
+                self.advance();
+                if self.current_char() == Some('\n') {
+                    self.advance();
+                }
+                result.push('\n');
             } else if ch == '\\' {
                 self.advance();
                 match self.current_char() {
@@ -142,6 +148,12 @@ impl Lexer {
             if ch == '`' {
                 self.advance(); // Skip closing `
                 return Ok(result);
+            } else if ch == '\r' {
+                self.advance();
+                if self.current_char() == Some('\n') {
+                    self.advance();
+                }
+                result.push('\n');
             } else {
                 result.push(ch);
                 self.advance();
