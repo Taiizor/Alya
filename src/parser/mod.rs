@@ -276,6 +276,7 @@ fn get_embedded_stdlib(module: &str) -> Option<&'static str> {
         "url" => Some(include_str!("../../stdlib/url.alya")),
         "color" | "term" | "ansi" => Some(include_str!("../../stdlib/color.alya")),
         "log" | "logger" => Some(include_str!("../../stdlib/log.alya")),
+        "glob" => Some(include_str!("../../stdlib/glob.alya")),
         _ => None,
     }
 }

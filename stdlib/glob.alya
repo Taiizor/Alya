@@ -1,0 +1,306 @@
+# Alya Standard Library - Glob Module (std/glob)
+# Provides wildcard pattern matching (*, **, ?, [a-z], [!0-9]),
+# array filtering, string pattern escaping, and filesystem globbing.
+
+function _glob_find(s, target, start_idx)
+    let slen = len(s)
+    let tlen = len(target)
+    if tlen == 0 return start_idx end
+    let i = start_idx
+    while i + tlen <= slen
+        if substring(s, i, tlen) == target
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+function _glob_match_class(content, ch)
+    let clen = len(content)
+    if clen == 0 return 0 end
+
+    let negated = 0
+    let start = 0
+    if char_at(content, 0) == "!" or char_at(content, 0) == "^"
+        negated = 1
+        start = 1
+    end
+
+    let ch_code = ord(ch)
+    let matched = 0
+    let i = start
+    while i < clen
+        if i + 2 < clen and char_at(content, i + 1) == "-"
+            let r_start = ord(char_at(content, i))
+            let r_end = ord(char_at(content, i + 2))
+            if ch_code >= r_start and ch_code <= r_end
+                matched = 1
+                break
+            end
+            i += 3
+        else
+            if char_at(content, i) == ch
+                matched = 1
+                break
+            end
+            i += 1
+        end
+    end
+
+    if negated == 1
+        if matched == 1 return 0 else return 1 end
+    end
+    return matched
+end
+
+function _glob_match_path_rec(p, p_idx, s, s_idx)
+    let plen = len(p)
+    let slen = len(s)
+
+    while p_idx < plen
+        let pch = char_at(p, p_idx)
+
+        # Check for ** (double star) in path mode
+        if pch == "*" and p_idx + 1 < plen and char_at(p, p_idx + 1) == "*"
+            let next_p = p_idx + 2
+            if next_p < plen and char_at(p, next_p) == "/"
+                next_p += 1
+            end
+
+            let try_s = s_idx
+            while try_s <= slen
+                if _glob_match_path_rec(p, next_p, s, try_s) == 1
+                    return 1
+                end
+                try_s += 1
+            end
+            return 0
+        end
+
+        # Check for * (single star - does NOT cross /)
+        if pch == "*"
+            let next_p = p_idx + 1
+            let try_s = s_idx
+            while try_s <= slen
+                let res = _glob_match_path_rec(p, next_p, s, try_s)
+                if res == 1
+                    return 1
+                end
+                if try_s < slen
+                    let cur_ch = char_at(s, try_s)
+                    if cur_ch == "/"
+                        return 0
+                    end
+                end
+                try_s += 1
+            end
+            return 0
+        end
+
+        if s_idx >= slen
+            return 0
+        end
+
+        let sch = char_at(s, s_idx)
+
+        if pch == "?"
+            if sch == "/"
+                return 0
+            end
+            p_idx += 1
+            s_idx += 1
+        elif pch == "["
+            let close_bracket = _glob_find(p, "]", p_idx + 1)
+            if close_bracket < 0
+                if pch != sch return 0 end
+                p_idx += 1
+                s_idx += 1
+            else
+                let class_content = substring(p, p_idx + 1, close_bracket - (p_idx + 1))
+                let matched_class = _glob_match_class(class_content, sch)
+                if matched_class == 0
+                    return 0
+                end
+                p_idx = close_bracket + 1
+                s_idx += 1
+            end
+        elif pch == "\\"
+            p_idx += 1
+            if p_idx >= plen return 0 end
+            pch = char_at(p, p_idx)
+            if pch != sch return 0 end
+            p_idx += 1
+            s_idx += 1
+        else
+            if pch != sch
+                return 0
+            end
+            p_idx += 1
+            s_idx += 1
+        end
+    end
+
+    return s_idx == slen
+end
+
+function _glob_match_simple_rec(p, p_idx, s, s_idx)
+    let plen = len(p)
+    let slen = len(s)
+
+    while p_idx < plen
+        let pch = char_at(p, p_idx)
+
+        if pch == "*"
+            let next_p = p_idx + 1
+            let try_s = s_idx
+            while try_s <= slen
+                if _glob_match_simple_rec(p, next_p, s, try_s) == 1
+                    return 1
+                end
+                try_s += 1
+            end
+            return 0
+        end
+
+        if s_idx >= slen
+            return 0
+        end
+
+        let sch = char_at(s, s_idx)
+
+        if pch == "?"
+            p_idx += 1
+            s_idx += 1
+        elif pch == "["
+            let close_bracket = _glob_find(p, "]", p_idx + 1)
+            if close_bracket < 0
+                if pch != sch return 0 end
+                p_idx += 1
+                s_idx += 1
+            else
+                let class_content = substring(p, p_idx + 1, close_bracket - (p_idx + 1))
+                let matched_class = _glob_match_class(class_content, sch)
+                if matched_class == 0
+                    return 0
+                end
+                p_idx = close_bracket + 1
+                s_idx += 1
+            end
+        elif pch == "\\"
+            p_idx += 1
+            if p_idx >= plen return 0 end
+            pch = char_at(p, p_idx)
+            if pch != sch return 0 end
+            p_idx += 1
+            s_idx += 1
+        else
+            if pch != sch
+                return 0
+            end
+            p_idx += 1
+            s_idx += 1
+        end
+    end
+
+    return s_idx == slen
+end
+
+function glob_match(pattern, text)
+    return _glob_match_path_rec(str_from_ptr(pattern), 0, str_from_ptr(text), 0)
+end
+
+function glob_match_simple(pattern, text)
+    return _glob_match_simple_rec(str_from_ptr(pattern), 0, str_from_ptr(text), 0)
+end
+
+function fnmatch(pattern, text)
+    return glob_match_simple(pattern, text)
+end
+
+function glob_filter(pattern, list)
+    let res = []
+    let total = array_len(list)
+    let i = 0
+    while i < total
+        let item = str_from_ptr(list[i])
+        if glob_match(pattern, item) == 1
+            res.push(item)
+        end
+        i += 1
+    end
+    return res
+end
+
+function glob_is_pattern(pattern)
+    let s = str_from_ptr(pattern)
+    let slen = len(s)
+    let i = 0
+    while i < slen
+        let ch = char_at(s, i)
+        if ch == "*" or ch == "?" or ch == "[" or ch == "{"
+            return 1
+        end
+        i += 1
+    end
+    return 0
+end
+
+function glob_escape(s)
+    let text = str_from_ptr(s)
+    let tlen = len(text)
+    let res = ""
+    let i = 0
+    while i < tlen
+        let ch = char_at(text, i)
+        if ch == "*" or ch == "?" or ch == "[" or ch == "]" or ch == "{" or ch == "}" or ch == "\\"
+            res = res + "\\" + ch
+        else
+            res = res + ch
+        end
+        i += 1
+    end
+    return res
+end
+
+function _glob_read_lines(file_path)
+    if file_exists(file_path) == 0
+        return []
+    end
+    let content = read_file(file_path)
+    let raw_lines = split(content, "\n")
+    let count = array_len(raw_lines)
+    let res = []
+    let i = 0
+    while i < count
+        let line = str_from_ptr(raw_lines[i])
+        let llen = len(line)
+        if llen > 0 and char_at(line, llen - 1) == "\r"
+            line = substring(line, 0, llen - 1)
+        end
+        if len(line) > 0
+            res.push(line)
+        end
+        i += 1
+    end
+    return res
+end
+
+function glob_dir(pattern, dir_path)
+    let d = str_from_ptr(dir_path)
+    let tmp = "temp_glob_" + str(clock_ms()) + ".tmp"
+    let cmd = ""
+    if target_os() == "windows"
+        cmd = "cmd /c dir /b \"" + d + "\" > " + tmp + " 2>NUL"
+    else
+        cmd = "ls -1 \"" + d + "\" > " + tmp + " 2>/dev/null"
+    end
+    system_exec(cmd)
+    let raw_lines = _glob_read_lines(tmp)
+    remove_file(tmp)
+    return glob_filter(pattern, raw_lines)
+end
+
+function glob(pattern)
+    return glob_dir(pattern, ".")
+end

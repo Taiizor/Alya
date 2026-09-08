@@ -1231,3 +1231,48 @@ logger_error(l, "visible error")
         assert!(!output.contains("hidden debug"));
     }
 }
+
+#[test]
+fn test_e2e_glob_stdlib() {
+    let code = r#"
+import "std/glob"
+
+say "m1: " + str(glob_match("*.alya", "main.alya"))
+say "m2: " + str(glob_match("*.alya", "main.rs"))
+say "m3: " + str(glob_match("src/**/*.rs", "src/codegen/expr.rs"))
+say "m4: " + str(glob_match("src/*.rs", "src/codegen/expr.rs"))
+say "m5: " + str(glob_match("file_?.txt", "file_1.txt"))
+say "m6: " + str(glob_match("file_?.txt", "file_12.txt"))
+say "m7: " + str(glob_match("code_[0-9].rs", "code_7.rs"))
+say "m8: " + str(glob_match("code_[!0-9].rs", "code_x.rs"))
+say "m9: " + str(glob_match("code_[!0-9].rs", "code_7.rs"))
+
+say "is_pat: " + str(glob_is_pattern("*.txt"))
+say "not_pat: " + str(glob_is_pattern("plain.txt"))
+say "esc: " + glob_escape("a*b?c[1]")
+
+let items = ["apple.txt", "banana.csv", "cherry.txt"]
+let filtered = glob_filter("*.txt", items)
+say "f_len: " + str(array_len(filtered))
+say "f0: " + str_from_ptr(filtered[0])
+say "f1: " + str_from_ptr(filtered[1])
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("m1: 1"));
+        assert!(output.contains("m2: 0"));
+        assert!(output.contains("m3: 1"));
+        assert!(output.contains("m4: 0"));
+        assert!(output.contains("m5: 1"));
+        assert!(output.contains("m6: 0"));
+        assert!(output.contains("m7: 1"));
+        assert!(output.contains("m8: 1"));
+        assert!(output.contains("m9: 0"));
+        assert!(output.contains("is_pat: 1"));
+        assert!(output.contains("not_pat: 0"));
+        assert!(output.contains(r"esc: a\*b\?c\[1\]"));
+        assert!(output.contains("f_len: 2"));
+        assert!(output.contains("f0: apple.txt"));
+        assert!(output.contains("f1: cherry.txt"));
+    }
+}

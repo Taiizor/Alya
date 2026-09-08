@@ -109,6 +109,11 @@ import "std/collections"
 import "std/test"
 import "std/rand"
 import "std/cli"
+import "std/csv"
+import "std/url"
+import "std/color"
+import "std/log"
+import "std/glob"
 say PI
 "#;
     let mut lexer = Lexer::new(code);
@@ -176,6 +181,31 @@ say PI
         _ => false,
     });
 
+    let has_csv_parse = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "csv_parse",
+        _ => false,
+    });
+
+    let has_url_parse = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "url_parse",
+        _ => false,
+    });
+
+    let has_color_red = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "color_red",
+        _ => false,
+    });
+
+    let has_logger_new = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "logger_new",
+        _ => false,
+    });
+
+    let has_glob_match = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "glob_match",
+        _ => false,
+    });
+
     assert!(has_hypot, "Missing hypot from std/math");
     assert!(has_now, "Missing now from std/time");
     assert!(has_env, "Missing env from std/os");
@@ -189,6 +219,11 @@ say PI
     assert!(has_assert_eq, "Missing assert_eq from std/test");
     assert!(has_uuid_v4, "Missing uuid_v4 from std/rand");
     assert!(has_cli_parser, "Missing cli_parser from std/cli");
+    assert!(has_csv_parse, "Missing csv_parse from std/csv");
+    assert!(has_url_parse, "Missing url_parse from std/url");
+    assert!(has_color_red, "Missing color_red from std/color");
+    assert!(has_logger_new, "Missing logger_new from std/log");
+    assert!(has_glob_match, "Missing glob_match from std/glob");
 }
 
 #[test]

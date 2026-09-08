@@ -81,6 +81,7 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "json_pretty"
                     | "json_get_string"
                     | "read_file_or"
+                    | "glob_escape"
             ) {
                 return true;
             }
@@ -187,6 +188,9 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "tsv_read_file"
                     | "tsv_read_records"
                     | "url_path_segments"
+                    | "glob"
+                    | "glob_dir"
+                    | "glob_filter"
             )
         }
         Expr::FieldAccess { object, field } => {
