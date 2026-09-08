@@ -185,6 +185,9 @@ fn test_all_examples_execute_with_gcc() {
             format!("./{}", temp_exe)
         };
 
+        let _ = fs::remove_file("target/demo_file.txt");
+        let _ = fs::remove_file("demo_file.txt");
+
         let mut child = std::process::Command::new(&run_cmd)
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::piped())
@@ -212,6 +215,20 @@ fn test_all_examples_execute_with_gcc() {
         );
 
         let actual_stdout = String::from_utf8_lossy(&output.stdout).replace("\r\n", "\n");
+        if example_name == "bench_demo.alya" {
+            assert!(
+                actual_stdout.contains("=== Benchmark Suite: Alya Builtin Micro-Benchmarks ==="),
+                "bench_demo missing suite header:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("Finished 2 benchmark(s) in"),
+                "bench_demo missing summary:\n{}",
+                actual_stdout
+            );
+            continue;
+        }
+
         let expected = get_expected_output(example_name).unwrap_or_else(|| {
             panic!(
                 "Missing expected output definition for example '{}'!",

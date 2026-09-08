@@ -99,3 +99,21 @@ fn test_run_with_trailing_args_without_dash() {
     assert_eq!(parsed.input_file, "examples/cli_args.alya");
     assert_eq!(parsed.run_args, vec!["foo", "bar", "baz"]);
 }
+
+#[test]
+fn test_time_and_stats_flags() {
+    let args = to_args(&["alyac", "build", "main.alya", "--time"]);
+    let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
+    assert!(parsed.time);
+    assert!(!parsed.stats);
+
+    let args_stats = to_args(&["alyac", "main.alya", "--stats"]);
+    let parsed_stats = CliArgs::parse_from(&args_stats).unwrap().unwrap();
+    assert!(parsed_stats.time);
+    assert!(parsed_stats.stats);
+
+    let args_bench = to_args(&["alyac", "main.alya", "--bench"]);
+    let parsed_bench = CliArgs::parse_from(&args_bench).unwrap().unwrap();
+    assert!(parsed_bench.time);
+    assert!(parsed_bench.stats);
+}

@@ -269,6 +269,7 @@ fn get_embedded_stdlib(module: &str) -> Option<&'static str> {
         "hash" => Some(include_str!("../../stdlib/hash.alya")),
         "collections" => Some(include_str!("../../stdlib/collections.alya")),
         "test" => Some(include_str!("../../stdlib/test.alya")),
+        "bench" => Some(include_str!("../../stdlib/bench.alya")),
         _ => None,
     }
 }

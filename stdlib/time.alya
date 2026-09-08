@@ -5,6 +5,10 @@ function now()
     return time()
 end
 
+function now_ms()
+    return clock_ms()
+end
+
 function delay(ms)
     return sleep(ms)
 end
@@ -15,6 +19,10 @@ end
 
 function elapsed(start_time)
     return time() - start_time
+end
+
+function elapsed_ms(start_time_ms)
+    return clock_ms() - start_time_ms
 end
 
 function seconds(s)

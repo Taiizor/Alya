@@ -936,3 +936,29 @@ end
         );
     }
 }
+
+#[test]
+fn test_e2e_bench_stdlib() {
+    let code = r#"
+import "std/bench"
+
+let b = bench_runner("E2E Test Suite")
+bench_start(b, 100)
+let i = 0
+let sum = 0
+while i < 100
+    sum = sum + i
+    i = i + 1
+end
+bench_stop(b, "loop_sum")
+say "sum: {sum}"
+bench_summary(b)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("=== Benchmark Suite: E2E Test Suite ==="));
+        assert!(output.contains("* loop_sum: 100 iters in"));
+        assert!(output.contains("sum: 4950"));
+        assert!(output.contains("Finished 1 benchmark(s) in"));
+    }
+}

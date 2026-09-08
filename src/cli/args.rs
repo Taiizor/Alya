@@ -20,6 +20,8 @@ pub struct CliArgs {
     pub arch: Architecture,
     pub os: OperatingSystem,
     pub quiet: bool,
+    pub time: bool,
+    pub stats: bool,
     pub run_args: Vec<String>,
 }
 
@@ -86,6 +88,8 @@ impl CliArgs {
         let mut input_file = None;
         let mut output_file = None;
         let mut quiet = false;
+        let mut time = false;
+        let mut stats = false;
         let mut run_args = Vec::new();
         let mut arch = if cfg!(target_arch = "aarch64") {
             Architecture::ARM64
@@ -146,6 +150,13 @@ impl CliArgs {
                 }
                 "-q" | "--quiet" => {
                     quiet = true;
+                }
+                "--time" => {
+                    time = true;
+                }
+                "--stats" | "--bench" => {
+                    stats = true;
+                    time = true;
                 }
                 "--arch" => {
                     if i + 1 < args.len() {
@@ -217,6 +228,8 @@ impl CliArgs {
             arch,
             os,
             quiet,
+            time,
+            stats,
             run_args,
         }))
     }

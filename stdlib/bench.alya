@@ -1,0 +1,57 @@
+# Alya Standard Library - Benchmark Module (std/bench)
+# Provides micro-benchmarking, throughput, and performance profiling utilities.
+
+struct BenchRunner
+    suite_name
+    total_runs
+    total_ms
+    start_ms
+    iters
+end
+
+function bench_runner(name)
+    say "=== Benchmark Suite: " + name + " ==="
+    return BenchRunner(name, 0, 0, 0, 0)
+end
+
+function bench_start(b, iters)
+    b.iters = iters
+    b.start_ms = clock_ms()
+end
+
+function bench_stop(b, name)
+    let elapsed = clock_ms() - b.start_ms
+    let iters = b.iters
+    if iters <= 0
+        iters = 1
+    end
+    let safe_elapsed = elapsed
+    if safe_elapsed < 1
+        safe_elapsed = 1
+    end
+    let ns_per_op = (safe_elapsed * 1000000) / iters
+    let ops_sec = (iters * 1000) / safe_elapsed
+    say "  * " + name + ": " + str(iters) + " iters in " + str(elapsed) + " ms (~" + str(ns_per_op) + " ns/op | " + str(ops_sec) + " ops/sec)"
+    b.total_runs += 1
+    b.total_ms += elapsed
+    return elapsed
+end
+
+function bench_measure(name, iters, elapsed_ms)
+    let safe_elapsed = elapsed_ms
+    if safe_elapsed < 1
+        safe_elapsed = 1
+    end
+    let ns_per_op = (safe_elapsed * 1000000) / iters
+    let ops_sec = (iters * 1000) / safe_elapsed
+    say "  * " + name + ": " + str(iters) + " iters in " + str(elapsed_ms) + " ms (~" + str(ns_per_op) + " ns/op | " + str(ops_sec) + " ops/sec)"
+    return elapsed_ms
+end
+
+function bench_summary(b)
+    let runs = str(b.total_runs)
+    let ms = str(b.total_ms)
+    say "----------------------------------------"
+    say "Finished " + runs + " benchmark(s) in " + ms + " ms."
+    say "========================================"
+end

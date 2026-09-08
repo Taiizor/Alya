@@ -4,17 +4,23 @@ use crate::lexer::Lexer;
 use crate::parser::Parser;
 use std::fs;
 use std::path::Path;
+use std::time::Instant;
 pub mod runner;
 
 pub fn run(args: CliArgs) -> Result<(), String> {
+    let total_start = Instant::now();
+
     let source = fs::read_to_string(&args.input_file)
         .map_err(|e| format!("Error: Cannot read file '{}': {}", args.input_file, e))?;
 
     // 1. Lexical Analysis
+    let t_lex = Instant::now();
     let mut lexer = Lexer::new(&source);
     let tokens = lexer
         .tokenize()
         .map_err(|e| crate::diagnostics::render_error(&args.input_file, &source, &e))?;
+    let d_lex = t_lex.elapsed();
+    let token_count = tokens.len();
 
     if args.command == CommandKind::EmitTokens {
         println!("{:<12} {:<30}", "POSITION", "TOKEN");
@@ -30,16 +36,22 @@ pub fn run(args: CliArgs) -> Result<(), String> {
     }
 
     // 2. Syntactic Analysis (Parsing)
+    let t_parse = Instant::now();
     let mut parser = Parser::new(tokens);
     let mut ast = parser
         .parse()
         .map_err(|e| crate::diagnostics::render_error(&args.input_file, &source, &e))?;
+    let d_parse = t_parse.elapsed();
+    let stmt_count = ast.statements.len();
 
+    // 3. Module Resolution
+    let t_import = Instant::now();
     let base_dir = Path::new(&args.input_file)
         .parent()
         .unwrap_or_else(|| Path::new("."));
     crate::parser::resolve_imports(&mut ast, base_dir)
         .map_err(|e| format!("Module import error in '{}': {}", args.input_file, e))?;
+    let d_import = t_import.elapsed();
 
     if args.command == CommandKind::EmitAst {
         println!("{:#?}", ast);
@@ -49,6 +61,30 @@ pub fn run(args: CliArgs) -> Result<(), String> {
     if args.command == CommandKind::Check {
         if !args.quiet {
             println!("✓ Syntax OK: {}", args.input_file);
+        }
+        if args.time || args.stats {
+            let total_dur = total_start.elapsed();
+            println!("\n=== Check Profile: {} ===", args.input_file);
+            println!(
+                "  [1/3] Lexing:      {:>8.2} ms ({} tokens)",
+                d_lex.as_secs_f64() * 1000.0,
+                token_count
+            );
+            println!(
+                "  [2/3] Parsing:     {:>8.2} ms ({} stmts)",
+                d_parse.as_secs_f64() * 1000.0,
+                stmt_count
+            );
+            println!(
+                "  [3/3] Imports:     {:>8.2} ms",
+                d_import.as_secs_f64() * 1000.0
+            );
+            println!("  ----------------------------------------");
+            println!(
+                "  Total Check Time:  {:>8.2} ms",
+                total_dur.as_secs_f64() * 1000.0
+            );
+            println!("========================================");
         }
         return Ok(());
     }
@@ -97,21 +133,31 @@ pub fn run(args: CliArgs) -> Result<(), String> {
         (asm_name, None)
     };
 
-    // 3. Code Generation
+    // 4. Code Generation
+    let t_codegen = Instant::now();
     let code = codegen::generate(&ast, args.arch, args.os);
+    let d_codegen = t_codegen.elapsed();
+    let asm_lines = code.lines().count();
 
     fs::write(&asm_file, code)
         .map_err(|e| format!("Error: Cannot write to '{}': {}", asm_file, e))?;
+
+    let mut d_gcc = None;
+    let mut d_exec = None;
 
     if let Some(exe_file) = final_output {
         if !args.quiet && args.command != CommandKind::Run {
             println!("Compiling to executable: {}", exe_file);
         }
 
+        let t_gcc = Instant::now();
         runner::compile_with_gcc(&asm_file, &exe_file, args.arch, args.os)?;
+        d_gcc = Some(t_gcc.elapsed());
 
         if args.command == CommandKind::Run {
+            let t_exec = Instant::now();
             runner::execute_binary(&exe_file, &args.run_args, args.output_file.is_none())?;
+            d_exec = Some(t_exec.elapsed());
         } else if !args.quiet {
             println!("✓ Successfully compiled to {}", exe_file);
             println!("\nRun your program:");
@@ -130,6 +176,58 @@ pub fn run(args: CliArgs) -> Result<(), String> {
         } else {
             println!("  ./{}", default_stem);
         }
+    }
+
+    if args.time || args.stats {
+        let compile_time = total_start.elapsed();
+        println!("\n=== Compilation Profile: {} ===", args.input_file);
+        println!("  Source Size:       {} bytes", source.len());
+        println!(
+            "  [1/5] Lexing:      {:>8.2} ms ({} tokens)",
+            d_lex.as_secs_f64() * 1000.0,
+            token_count
+        );
+        println!(
+            "  [2/5] Parsing:     {:>8.2} ms ({} stmts)",
+            d_parse.as_secs_f64() * 1000.0,
+            stmt_count
+        );
+        println!(
+            "  [3/5] Imports:     {:>8.2} ms",
+            d_import.as_secs_f64() * 1000.0
+        );
+        println!(
+            "  [4/5] Codegen:     {:>8.2} ms ({} asm lines)",
+            d_codegen.as_secs_f64() * 1000.0,
+            asm_lines
+        );
+        if let Some(dur) = d_gcc {
+            println!(
+                "  [5/5] GCC Link:    {:>8.2} ms",
+                dur.as_secs_f64() * 1000.0
+            );
+        }
+        println!("  ----------------------------------------");
+        if let Some(dur) = d_exec {
+            println!(
+                "  Compile Time:      {:>8.2} ms",
+                (compile_time - dur).as_secs_f64() * 1000.0
+            );
+            println!(
+                "  Execution Time:    {:>8.2} ms",
+                dur.as_secs_f64() * 1000.0
+            );
+            println!(
+                "  Total Time:        {:>8.2} ms",
+                compile_time.as_secs_f64() * 1000.0
+            );
+        } else {
+            println!(
+                "  Total Time:        {:>8.2} ms",
+                compile_time.as_secs_f64() * 1000.0
+            );
+        }
+        println!("========================================\n");
     }
 
     Ok(())

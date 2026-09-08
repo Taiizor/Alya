@@ -240,4 +240,32 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
 
+    // fn_clock
+    out.push_str(".global fn_clock\n");
+    out.push_str("fn_clock:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    sub $32, %rsp\n");
+    out.push_str(&format!("    call {}clock\n", p));
+    out.push_str("    add $32, %rsp\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_clock_ms
+    out.push_str(".global fn_clock_ms\n");
+    out.push_str("fn_clock_ms:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    sub $32, %rsp\n");
+    out.push_str(&format!("    call {}clock\n", p));
+    out.push_str("    add $32, %rsp\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    if !matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov $1000, %rcx\n");
+        out.push_str("    xor %rdx, %rdx\n");
+        out.push_str("    div %rcx\n");
+    }
+    out.push_str("    ret\n\n");
 }

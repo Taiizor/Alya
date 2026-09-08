@@ -98,6 +98,8 @@ Options:
       --check              Only check syntax and parse without code generation
       --ast                Print AST structure
       --tokens             Print lexer token stream
+      --time               Display detailed compilation and execution phase timings
+      --stats, --bench     Display compilation statistics and timings
   -q, --quiet              Suppress banner and informational compiler output
       --arch <arch>        Target architecture: x86, x64, arm64 (default: auto-detected)
       --os <os>            Target operating system: windows, linux, macos (default: auto-detected)
@@ -110,6 +112,9 @@ Options:
 ```bash
 # Compile and run immediately
 alyac run examples/hello.alya
+
+# Run with detailed stage timings & profiling
+alyac run examples/hello.alya --time
 
 # Build an executable with a custom name
 alyac build examples/calculator.alya -o calc.exe
@@ -566,6 +571,40 @@ gcc mini_output.s -o mini_program.exe
 ./mini_program.exe
 ```
 
+### 18. Benchmarking & Performance Profiling
+
+Alya features built-in micro-benchmarking (`std/bench`), high-resolution wall-clock builtins (`clock_ms()`, `clock()`), and full compiler stage profiling (`--time` / `--stats`):
+
+```alya
+import "std/bench"
+import "std/math"
+
+let runner = bench_runner("Alya Micro-Benchmarks")
+
+bench_start(runner, 100000)
+let i = 0
+while i < 100000
+    sin(0.5)
+    i += 1
+end
+bench_stop(runner, "sin(0.5) calculation")
+
+bench_summary(runner)
+```
+
+Run Rust-level compiler throughput benchmarks (Lexer MB/s, Parser lines/s, Codegen lines/s):
+```bash
+cargo bench
+```
+
+Run the benchmark test suite examples:
+```bash
+alyac run examples/benchmarks/fibonacci.alya
+alyac run examples/benchmarks/mandelbrot.alya
+alyac run examples/benchmarks/sieve.alya
+alyac run examples/benchmarks/str_hash.alya
+```
+
 ---
 
 ## Platform & Architecture Matrix
@@ -591,7 +630,9 @@ Alya/
 │   ├── workflows/             # CI and Automated Release workflows
 │   ├── ISSUE_TEMPLATE/        # Bug report and Feature request forms
 │   └── PULL_REQUEST_TEMPLATE.md
-├── examples/                  # 27 rich example programs and modules
+├── benches/                   # Standalone compiler throughput benchmarks
+├── examples/                  # 30+ rich example programs and benchmarks
+│   └── benchmarks/            # Algorithmic benchmark suite (fib, mandelbrot, sieve, hash)
 ├── src/
 │   ├── cli/                   # Argument parser, help, and commands
 │   ├── codegen/               # Assembly code generator (x86, x64, ARM64)
@@ -602,8 +643,9 @@ Alya/
 │   ├── parser/                # Syntax tree generation and AST nodes
 │   ├── lib.rs                 # Library entry point
 │   └── main.rs                # alyac CLI entry point
+├── stdlib/                    # Pre-bundled standard library (bench, math, str, fs, etc.)
 ├── tests/
-│   ├── e2e_execution.rs       # End-to-end compiler execution test suite
+│   ├── e2e_system.rs          # End-to-end compiler execution test suite
 │   └── examples_compilation.rs# Verification of all example files
 ├── Cargo.toml                 # Package manifest & metadata
 ├── CONTRIBUTING.md            # Guidelines for contributors

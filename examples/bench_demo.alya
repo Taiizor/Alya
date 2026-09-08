@@ -1,0 +1,22 @@
+import "std/bench"
+import "std/math"
+
+let runner = bench_runner("Alya Builtin Micro-Benchmarks")
+
+bench_start(runner, 100000)
+let i = 0
+while i < 100000
+    sin(0.5)
+    i += 1
+end
+bench_stop(runner, "sin(0.5) calculation")
+
+bench_start(runner, 100000)
+i = 0
+while i < 100000
+    gcd(123456, 7890)
+    i += 1
+end
+bench_stop(runner, "gcd(123456, 7890) integer ops")
+
+bench_summary(runner)

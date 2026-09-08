@@ -150,4 +150,27 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    ldp x29, x30, [sp], #16\n");
     out.push_str("    ret\n\n");
 
+    // fn_clock
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_clock\n");
+    out.push_str("fn_clock:\n");
+    out.push_str("    stp x29, x30, [sp, #-16]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str(&format!("    bl {}clock\n", p));
+    out.push_str("    ldp x29, x30, [sp], #16\n");
+    out.push_str("    ret\n\n");
+
+    // fn_clock_ms
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_clock_ms\n");
+    out.push_str("fn_clock_ms:\n");
+    out.push_str("    stp x29, x30, [sp, #-16]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str(&format!("    bl {}clock\n", p));
+    out.push_str("    ldp x29, x30, [sp], #16\n");
+    if !matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov x1, #1000\n");
+        out.push_str("    udiv x0, x0, x1\n");
+    }
+    out.push_str("    ret\n\n");
 }

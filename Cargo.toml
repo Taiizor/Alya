@@ -24,6 +24,10 @@ path = "src/lib.rs"
 name = "alyac"
 path = "src/main.rs"
 
+[[bench]]
+name = "compiler_bench"
+harness = false
+
 [profile.release]
 opt-level = 3
 lto = true

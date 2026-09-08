@@ -34,6 +34,8 @@ pub fn print_usage() {
     );
     println!("  --os <os>             Target OS: windows, linux, macos (default: auto-detected)");
     println!("  -q, --quiet           Suppress status messages and compiler banner");
+    println!("  --time                Display timing for each compilation phase");
+    println!("  --stats, --bench      Display detailed compilation and execution metrics");
     println!("  -v, --version         Show compiler version");
     println!("  -h, --help            Show this help message\n");
     println!("EXAMPLES:");
