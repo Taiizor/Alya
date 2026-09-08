@@ -113,10 +113,10 @@ Alya is engineered for rapid compilation and high-performance native execution a
 
 | Benchmark | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs Bun | Alya vs Python |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Recursive Fibonacci (n=30)** | `1.8 ms` | **`5.0 ms`** | `10.3 ms` | `80.7 ms` | **2.1x faster** | **16.1x faster** |
-| **Mandelbrot Fractal (200×100)** | `2.7 ms` | **`5.2 ms`** | `8.1 ms` | `78.7 ms` | **1.6x faster** | **15.2x faster** |
-| **Sieve of Eratosthenes (50k)** | `0.7 ms` | **`1.1 ms`** | `4.8 ms` | `12.7 ms` | **4.3x faster** | **11.6x faster** |
-| **FNV-1a String Hash (50k)** | `3.7 ms` | **`6.7 ms`** | `10.4 ms` | `328.4 ms` | **1.6x faster** | **49.4x faster** |
+| **Recursive Fibonacci (n=30)** | `2.4 ms` | **`8.9 ms`** | `13.3 ms` | `123.7 ms` | **1.5x faster** | **13.9x faster** |
+| **Mandelbrot Fractal (200×100)** | `3.2 ms` | **`8.1 ms`** | `9.4 ms` | `127.1 ms` | **1.2x faster** | **15.7x faster** |
+| **Sieve of Eratosthenes (50k)** | `1.1 ms` | **`1.7 ms`** | `6.9 ms` | `18.9 ms` | **4.0x faster** | **10.9x faster** |
+| **FNV-1a String Hash (50k)** | `5.0 ms` | **`9.1 ms`** | `13.0 ms` | `425.7 ms` | **1.4x faster** | **46.7x faster** |
 
 > 📊 For full cross-platform benchmark results (Linux, macOS, Windows), compiler throughput benchmarks, and reproduction instructions, see **[benchmarks/README.md](benchmarks/README.md)**.
 
