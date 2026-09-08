@@ -9,10 +9,10 @@ Comprehensive performance benchmarks evaluating both the **Alya Compiler (throug
 All implementations solve the exact same algorithmic problem on identical inputs, with mathematically verified outputs across all targets.
 
 ### Test Environment
-* **Operating System:** Windows 11 Pro x64
-* **C Compiler:** gcc (tdm64-1) 10.3.0 (`-O2` optimization)
+* **Operating System:** Ubuntu 24.04.4 LTS (x64)
+* **C Compiler:** gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0 (`-O2` optimization)
 * **JavaScript Engine:** Bun 1.4.2 (JavaScriptCore JIT)
-* **Python Runtime:** Python 3.12.5
+* **Python Runtime:** Python 3.12.14
 * **Alya Version:** 0.0.3 (Compiled with `alyac build` in Release mode)
 * **Measurement Methodology:** 1 warmup run, followed by 5 timed runs. Median execution time reported.
 
@@ -22,10 +22,10 @@ All implementations solve the exact same algorithmic problem on identical inputs
 
 | Benchmark | Target Workload | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs C | Alya vs Python | Alya vs Bun |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Recursive Fibonacci** | `fib(30)` (~2.69M calls) | `9.6 ms` | **`13.6 ms`** | `37.5 ms` | `135.9 ms` | **1.4x** | **10.0x faster** | **2.8x faster** |
-| **Mandelbrot Fractal** | 200×100 grid, 200 iters | `11.0 ms` | **`18.5 ms`** | `28.7 ms` | `119.9 ms` | **1.7x** | **6.5x faster** | **1.5x faster** |
-| **Sieve of Eratosthenes** | Primes under 50,000 | `9.9 ms` | **`10.6 ms`** | `26.9 ms` | `37.6 ms` | **1.1x** | **3.5x faster** | **2.5x faster** |
-| **FNV-1a String Hash** | 50,000 hash calculations | `17.6 ms` | **`100.9 ms`** | `31.4 ms` | `462.0 ms` | **5.7x** | **4.6x faster** | `3.2x slower` |
+| **Recursive Fibonacci** | `fib(30)` (~2.69M calls) | `2.4 ms` | **`10.3 ms`** | `13.6 ms` | `121.9 ms` | **4.4x** | **11.8x faster** | **1.3x faster** |
+| **Mandelbrot Fractal** | 200×100 grid, 200 iters | `3.2 ms` | **`10.7 ms`** | `9.7 ms` | `122.3 ms` | **3.3x** | **11.4x faster** | `1.1x slower` |
+| **Sieve of Eratosthenes** | Primes under 50,000 | `1.1 ms` | **`1.6 ms`** | `6.7 ms` | `18.6 ms` | **1.5x** | **11.4x faster** | **4.1x faster** |
+| **FNV-1a String Hash** | 50,000 hash calculations | `4.8 ms` | **`85.1 ms`** | `13.5 ms` | `426.1 ms` | **17.6x** | **5.0x faster** | `6.3x slower` |
 
 ---
 
@@ -61,11 +61,11 @@ Alya features a lightweight single-pass frontend with immediate native x64 assem
 
 | Benchmark Stage | Iterations | Average Time | Min Time | Max Time | Measured Throughput |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **`Lexer::tokenize`** | 905 | `442.25µs` | `344.60µs` | `1.91ms` | **49.1 MB/s** |
-| **`Parser::parse`** | 620 | `645.52µs` | `531.10µs` | `1.13ms` | **1823345 lines/s** |
-| **`ProgramInference::analyze`** | 75 | `5.35ms` | `5.24ms` | `6.72ms` | **187 ops/s** |
-| **`CodeGen::generate (x64)`** | 18 | `22.95ms` | `22.60ms` | `24.12ms` | **519303 asm lines/s** |
-| **`Full Frontend Pipeline`** | 22 | `23.71ms` | `23.34ms` | `24.94ms` | **42.2 files/s** |
+| **`Lexer::tokenize`** | 1334 | `300.18µs` | `290.86µs` | `697.44µs` | **72.4 MB/s** |
+| **`Parser::parse`** | 710 | `563.58µs` | `501.13µs` | `1.17ms` | **2088436 lines/s** |
+| **`ProgramInference::analyze`** | 49 | `8.32ms` | `7.91ms` | `16.05ms` | **120 ops/s** |
+| **`CodeGen::generate (x64)`** | 13 | `33.13ms` | `32.85ms` | `33.42ms` | **359749 asm lines/s** |
+| **`Full Frontend Pipeline`** | 15 | `33.83ms` | `33.19ms` | `34.23ms` | **29.6 files/s** |
 
 ---
 
