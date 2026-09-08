@@ -300,7 +300,11 @@ Maximum of 10 and 20: 20\n",
             "*-------------------*\n",
             "| Welcome to Alya!  |\n",
             "*-------------------*\n\n",
-            "Raw path: C:\\path\\to\\config.json\n",
+            "Raw path: C:\\path\\to\\config.json\n\n",
+            "=== 4. Null Coalescing (??) ===\n",
+            "Port: 8080\n",
+            "User: Anonymous\n",
+            "Host: localhost\n",
         )),
         "modules.alya" => Some(
             "=== Modules & Imports ===\n\

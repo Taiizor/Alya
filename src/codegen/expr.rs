@@ -245,6 +245,50 @@ impl CodeGen {
 
                 self.output.push_str(&format!("{}:\n", end_label));
             }
+            Expr::NullCoalesce { value, default } => {
+                let end_label = self.ctx.next_label();
+                let is_flt = is_float_expr(value, &self.ctx.variables)
+                    || is_float_expr(default, &self.ctx.variables);
+
+                if is_flt {
+                    let default_label = self.ctx.next_label();
+                    self.generate_expression(value);
+                    if !is_float_expr(value, &self.ctx.variables) {
+                        arch::emit_cmp_imm(&mut self.output, self.arch, 0);
+                        arch::emit_cond_jump(
+                            &mut self.output,
+                            self.arch,
+                            BinaryOp::Equal,
+                            false,
+                            &default_label,
+                        );
+                        arch::emit_int_to_float(&mut self.output, self.arch);
+                        arch::emit_jump(&mut self.output, self.arch, &end_label);
+                    } else {
+                        arch::emit_jump(&mut self.output, self.arch, &end_label);
+                    }
+
+                    self.output.push_str(&format!("{}:\n", default_label));
+                    self.generate_expression(default);
+                    if !is_float_expr(default, &self.ctx.variables) {
+                        arch::emit_int_to_float(&mut self.output, self.arch);
+                    }
+                    self.output.push_str(&format!("{}:\n", end_label));
+                } else {
+                    self.generate_expression(value);
+                    arch::emit_cmp_imm(&mut self.output, self.arch, 0);
+                    arch::emit_cond_jump(
+                        &mut self.output,
+                        self.arch,
+                        BinaryOp::NotEqual,
+                        false,
+                        &end_label,
+                    );
+                    self.generate_expression(default);
+                    self.output.push_str(&format!("{}:\n", end_label));
+                }
+            }
+
             Expr::Call { name, args } => {
                 if let Some(sdef) = self.ctx.structs.get(name).cloned() {
                     let desc_label = format!("alya_struct_desc_{}", name);

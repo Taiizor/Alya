@@ -267,6 +267,10 @@ fn prefix_expr(expr: &mut Expr, alias: &str, local_fns: &std::collections::HashS
             prefix_expr(then_branch, alias, local_fns);
             prefix_expr(else_branch, alias, local_fns);
         }
+        Expr::NullCoalesce { value, default } => {
+            prefix_expr(value, alias, local_fns);
+            prefix_expr(default, alias, local_fns);
+        }
         _ => {}
     }
 }
@@ -623,6 +627,10 @@ fn expand_defaults_in_expr(
             expand_defaults_in_expr(condition, fn_defs);
             expand_defaults_in_expr(then_branch, fn_defs);
             expand_defaults_in_expr(else_branch, fn_defs);
+        }
+        Expr::NullCoalesce { value, default } => {
+            expand_defaults_in_expr(value, fn_defs);
+            expand_defaults_in_expr(default, fn_defs);
         }
         Expr::Array(elems) => {
             for elem in elems {

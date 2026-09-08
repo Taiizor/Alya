@@ -79,6 +79,7 @@ pub enum TokenType {
     Colon,        // :
     ColonColon,   // ::
     Question,     // ?
+    NullCoalesce, // ??
     Dot,          // .
     DotDot,       // ..
     Newline,      // \n
@@ -209,6 +210,7 @@ impl std::fmt::Display for TokenType {
             TokenType::Colon => write!(f, "':'"),
             TokenType::ColonColon => write!(f, "'::'"),
             TokenType::Question => write!(f, "'?'"),
+            TokenType::NullCoalesce => write!(f, "'??'"),
             TokenType::Dot => write!(f, "'.'"),
             TokenType::DotDot => write!(f, "'..'"),
             TokenType::Newline => write!(f, "newline"),

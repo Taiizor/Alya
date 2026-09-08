@@ -405,3 +405,39 @@ say templ
         );
     }
 }
+
+#[test]
+fn test_e2e_null_coalescing() {
+    let code = r#"
+let custom_port = null
+let port = custom_port ?? 8080
+say port
+
+let active_port = 3000
+let port2 = active_port ?? 8080
+say port2
+
+let user = null
+let name = user ?? "Guest"
+say name
+
+let logged_in = "Alice"
+let name2 = logged_in ?? "Guest"
+say name2
+
+let a = null
+let b = null
+let c = "Fallback"
+let chosen = a ?? b ?? c
+say chosen
+
+let x = null ?? 42
+say x
+
+let direct = "Direct" ?? "Ignored"
+say direct
+"#;
+    if let Some(output) = run_alya_code(code) {
+        assert_eq!(output, "8080\n3000\nGuest\nAlice\nFallback\n42\nDirect\n");
+    }
+}

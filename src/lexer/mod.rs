@@ -223,11 +223,20 @@ impl Lexer {
                 }
                 '?' => {
                     self.advance();
-                    tokens.push(Token {
-                        token_type: TokenType::Question,
-                        line,
-                        column,
-                    });
+                    if self.current_char() == Some('?') {
+                        self.advance();
+                        tokens.push(Token {
+                            token_type: TokenType::NullCoalesce,
+                            line,
+                            column,
+                        });
+                    } else {
+                        tokens.push(Token {
+                            token_type: TokenType::Question,
+                            line,
+                            column,
+                        });
+                    }
                 }
                 '.' => {
                     if self.peek_char() == Some('.') {

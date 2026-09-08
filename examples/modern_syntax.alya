@@ -5,6 +5,7 @@
    - Inline if-expression (if condition then then_val else else_val)
    - Default function parameters
    - Multiline strings ("""...""") and raw strings (`...`)
+   - Null coalescing operator (??)
 */
 
 // 1. Ternary Operator & Inline If
@@ -58,3 +59,18 @@ say banner
 
 let raw_path = `C:\path\to\config.json`
 say "Raw path: {raw_path}"
+
+// 4. Null Coalescing Operator (??)
+say ""
+say "=== 4. Null Coalescing (??) ==="
+let custom_port = null
+let port = custom_port ?? 8080
+say "Port: {port}"
+
+let user_name = null
+let display_name = user_name ?? "Anonymous"
+say "User: {display_name}"
+
+let configured_host = "localhost"
+let host = configured_host ?? "127.0.0.1"
+say "Host: {host}"

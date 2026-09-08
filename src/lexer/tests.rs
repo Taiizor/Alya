@@ -311,3 +311,21 @@ fn test_tokenize_multiline_and_raw_strings() {
         TokenType::String("raw\nstring".into())
     );
 }
+
+#[test]
+fn test_tokenize_question_and_null_coalesce() {
+    let source = "? ?? ? ??";
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Tokenization failed");
+    let types: Vec<_> = tokens.into_iter().map(|t| t.token_type).collect();
+    assert_eq!(
+        types,
+        vec![
+            TokenType::Question,
+            TokenType::NullCoalesce,
+            TokenType::Question,
+            TokenType::NullCoalesce,
+            TokenType::Eof,
+        ]
+    );
+}

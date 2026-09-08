@@ -148,6 +148,9 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             else_branch,
             ..
         } => is_string_expr(then_branch, vars) || is_string_expr(else_branch, vars),
+        Expr::NullCoalesce { value, default } => {
+            is_string_expr(value, vars) || is_string_expr(default, vars)
+        }
         _ => false,
     }
 }
@@ -232,6 +235,9 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             else_branch,
             ..
         } => is_array_expr(then_branch, vars) || is_array_expr(else_branch, vars),
+        Expr::NullCoalesce { value, default } => {
+            is_array_expr(value, vars) || is_array_expr(default, vars)
+        }
         _ => false,
     }
 }
@@ -300,6 +306,9 @@ pub fn is_map_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             else_branch,
             ..
         } => is_map_expr(then_branch, vars) || is_map_expr(else_branch, vars),
+        Expr::NullCoalesce { value, default } => {
+            is_map_expr(value, vars) || is_map_expr(default, vars)
+        }
         _ => false,
     }
 }
@@ -400,6 +409,9 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             else_branch,
             ..
         } => is_float_expr(then_branch, vars) || is_float_expr(else_branch, vars),
+        Expr::NullCoalesce { value, default } => {
+            is_float_expr(value, vars) || is_float_expr(default, vars)
+        }
         _ => false,
     }
 }
@@ -413,6 +425,9 @@ pub fn is_null_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             else_branch,
             ..
         } => is_null_expr(then_branch, vars) && is_null_expr(else_branch, vars),
+        Expr::NullCoalesce { value, default } => {
+            is_null_expr(value, vars) && is_null_expr(default, vars)
+        }
         _ => false,
     }
 }

@@ -506,3 +506,34 @@ fn test_parse_ternary_and_inline_if() {
         other => panic!("Expected Expr::Ternary, got {:?}", other),
     }
 }
+
+#[test]
+fn test_parse_null_coalesce() {
+    let program = parse_code("say port ?? 8080").expect("Parse failed");
+    match &program.statements[0] {
+        Stmt::Say(Expr::NullCoalesce { value, default }) => {
+            assert_eq!(**value, Expr::Identifier("port".into()));
+            assert_eq!(**default, Expr::Number(8080.0));
+        }
+        other => panic!("Expected Expr::NullCoalesce, got {:?}", other),
+    }
+
+    // Chained ??
+    let program2 = parse_code("say a ?? b ?? 10").expect("Parse failed");
+    match &program2.statements[0] {
+        Stmt::Say(Expr::NullCoalesce { value, default }) => {
+            assert_eq!(**default, Expr::Number(10.0));
+            match &**value {
+                Expr::NullCoalesce {
+                    value: v1,
+                    default: d1,
+                } => {
+                    assert_eq!(**v1, Expr::Identifier("a".into()));
+                    assert_eq!(**d1, Expr::Identifier("b".into()));
+                }
+                other => panic!("Expected inner NullCoalesce, got {:?}", other),
+            }
+        }
+        other => panic!("Expected Expr::NullCoalesce, got {:?}", other),
+    }
+}

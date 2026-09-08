@@ -22,7 +22,7 @@ impl Parser {
             });
         }
 
-        let expr = self.parse_or()?;
+        let expr = self.parse_null_coalesce()?;
 
         if matches!(self.current_token().token_type, TokenType::Question) {
             self.advance();
@@ -37,6 +37,21 @@ impl Parser {
         }
 
         Ok(expr)
+    }
+
+    fn parse_null_coalesce(&mut self) -> Result<Expr, String> {
+        let mut left = self.parse_or()?;
+
+        while matches!(self.current_token().token_type, TokenType::NullCoalesce) {
+            self.advance();
+            let right = self.parse_or()?;
+            left = Expr::NullCoalesce {
+                value: Box::new(left),
+                default: Box::new(right),
+            };
+        }
+
+        Ok(left)
     }
 
     fn parse_or(&mut self) -> Result<Expr, String> {
