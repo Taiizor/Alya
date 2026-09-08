@@ -237,3 +237,12 @@ pub fn emit_for_each_load_element(
         }
     }
 }
+
+pub fn emit_char_code_at(out: &mut String, arch: Architecture, done_label: &str) {
+    match arch {
+        Architecture::X86 => x86::builtins::emit_char_code_at(out, done_label),
+        Architecture::X64 => x64::builtins::emit_char_code_at(out, done_label),
+        Architecture::ARM64 => arm64::builtins::emit_char_code_at(out, done_label),
+    }
+}
+

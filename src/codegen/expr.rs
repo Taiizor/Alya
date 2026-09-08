@@ -192,6 +192,66 @@ impl CodeGen {
                     return;
                 }
 
+                if (name == "bit_and"
+                    || name == "bit_or"
+                    || name == "bit_xor"
+                    || name == "bit_shl"
+                    || name == "bit_shr")
+                    && args.len() == 2
+                {
+                    self.generate_expression(&args[0]);
+                    arch::emit_push_temp(&mut self.output, self.arch);
+                    self.generate_expression(&args[1]);
+                    arch::emit_bit_op(&mut self.output, self.arch, name);
+                    return;
+                }
+
+                if name == "bit_not" && args.len() == 1 {
+                    self.generate_expression(&args[0]);
+                    arch::emit_bit_not(&mut self.output, self.arch);
+                    return;
+                }
+
+                if (name == "char_code" || name == "char_code_at" || name == "byte_at")
+                    && args.len() == 2
+                {
+                    self.generate_expression(&args[0]);
+                    arch::emit_push_temp(&mut self.output, self.arch);
+                    self.generate_expression(&args[1]);
+                    let done_label = self.ctx.next_label();
+                    arch::emit_char_code_at(&mut self.output, self.arch, &done_label);
+                    return;
+                }
+
+                if (name == "ord" || name == "char_code") && args.len() == 1 {
+                    if let Expr::Call {
+                        name: inner_name,
+                        args: inner_args,
+                    } = &args[0]
+                    {
+                        if (inner_name == "char_at" || inner_name == "charAt")
+                            && inner_args.len() == 2
+                        {
+                            self.generate_expression(&inner_args[0]);
+                            arch::emit_push_temp(&mut self.output, self.arch);
+                            self.generate_expression(&inner_args[1]);
+                            let done_label = self.ctx.next_label();
+                            arch::emit_char_code_at(&mut self.output, self.arch, &done_label);
+                            return;
+                        }
+                    } else if let Expr::Index { array, index } = &args[0] {
+                        if is_string_expr(array, &self.ctx.variables) {
+                            self.generate_expression(array);
+                            arch::emit_push_temp(&mut self.output, self.arch);
+                            self.generate_expression(index);
+                            let done_label = self.ctx.next_label();
+                            arch::emit_char_code_at(&mut self.output, self.arch, &done_label);
+                            return;
+                        }
+                    }
+                }
+
+
                 let (call_name, actual_args): (&str, Vec<Expr>) =
                     if (name == "substring" || name == "substr") && args.len() == 2 {
                         (

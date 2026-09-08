@@ -133,3 +133,20 @@ pub fn emit_float_unary_op(out: &mut String, op: UnaryOp) {
         }
     }
 }
+
+pub fn emit_bit_op(out: &mut String, op: &str) {
+    out.push_str("    ldr x1, [sp], #16\n");
+    match op {
+        "bit_and" => out.push_str("    and x0, x1, x0\n"),
+        "bit_or" => out.push_str("    orr x0, x1, x0\n"),
+        "bit_xor" => out.push_str("    eor x0, x1, x0\n"),
+        "bit_shl" => out.push_str("    lsl x0, x1, x0\n"),
+        "bit_shr" => out.push_str("    lsr x0, x1, x0\n"),
+        _ => {}
+    }
+}
+
+pub fn emit_bit_not(out: &mut String) {
+    out.push_str("    mvn x0, x0\n");
+}
+

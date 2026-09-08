@@ -33,3 +33,20 @@ pub fn emit_float_unary_op(out: &mut String, arch: Architecture, op: UnaryOp) {
         Architecture::X86 => x86::emit_float_unary_op(out, op),
     }
 }
+
+pub fn emit_bit_op(out: &mut String, arch: Architecture, op: &str) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_bit_op(out, op),
+        Architecture::X64 => x64::emit_bit_op(out, op),
+        Architecture::X86 => x86::emit_bit_op(out, op),
+    }
+}
+
+pub fn emit_bit_not(out: &mut String, arch: Architecture) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_bit_not(out),
+        Architecture::X64 => x64::emit_bit_not(out),
+        Architecture::X86 => x86::emit_bit_not(out),
+    }
+}
+

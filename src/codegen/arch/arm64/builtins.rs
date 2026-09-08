@@ -160,3 +160,14 @@ pub fn emit_string_equality_call(out: &mut String, op: BinaryOp) {
         out.push_str("    eor x0, x0, #1\n");
     }
 }
+
+pub fn emit_char_code_at(out: &mut String, done_label: &str) {
+    out.push_str("    mov x1, x0\n");
+    out.push_str("    ldr x2, [sp], #16\n");
+    out.push_str("    mov x0, #0\n");
+    out.push_str(&format!("    cbz x2, {}\n", done_label));
+    out.push_str(&format!("    tbnz x1, #63, {}\n", done_label));
+    out.push_str("    ldrb w0, [x2, x1]\n");
+    out.push_str(&format!("{}:\n", done_label));
+}
+
