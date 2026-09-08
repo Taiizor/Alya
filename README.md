@@ -65,11 +65,12 @@ end
 
 ## Key Highlights
 
-- ⚡ **Direct Native Codegen**: Emits clean assembly for **ARM64** (Apple Silicon & AArch64), **x64**, and **x86 (32-bit)** with branch fusion and zero-cycle idioms.
+- ⚡ **Direct Native Codegen**: Emits clean assembly for **ARM64** (Apple Silicon & AArch64), **x64**, and **x86 (32-bit)** with branch fusion, immediate range splitting (`movz`/`movk`), and zero-cycle idioms.
 - 🚀 **Near-C Execution Speed**: Runs within 1.0x–2.0x of C (GCC `-O2`) and outperforms JavaScript JIT engines (Bun / V8) without VM warmup delays.
-- 📚 **Batteries-Included Standard Library**: Built-in, zero-dependency modules for `std/str`, `std/math`, `std/fs`, `std/path`, `std/json`, `std/hash`, `std/collections`, `std/test`, and `std/mem` (Arena allocator).
-- 🛡️ **Safety Without Runtime Penalties**: Single-instruction unsigned bounds checks (`jae` / `b.hs`), division/modulo zero protection, and structured `try ... catch`.
-- 🗺️ **First-Class Types**: Dynamic arrays (`[1, 2]`), hash maps (`map()`), 64-bit IEEE 754 floats (`f64`), and composite structs (`struct Point ... end`).
+- 🛠️ **Built-in Developer Tooling**: In-place code formatter (`alyac fmt`) and test runner (`alyac test`) built directly into the compiler binary—no external dependencies needed.
+- 📚 **Batteries-Included Standard Library**: Zero-dependency modules for `std/net` (TCP/HTTP), `std/console` (terminal control), `std/glob`, `std/rand` (SplitMix64, UUID v4/v7, ULID), `std/csv`, `std/color`, `std/log`, `std/str`, `std/math`, `std/fs`, `std/path`, `std/json`, `std/hash`, `std/collections`, `std/test`, and `std/mem` (Arena allocator).
+- 🛡️ **Safety Without Runtime Penalties**: Single-instruction unsigned bounds checks (`jae` / `b.hs`), division/modulo zero protection, null safety (`null`, `??`), and structured `try ... catch`.
+- 🗺️ **First-Class Types & Static Inference**: Dynamic arrays (`[1, 2]`), hash maps (`map()`), 64-bit IEEE 754 floats (`f64`), composite structs (`struct Point ... end`), and compile-time multi-pass struct type inference.
 - 🎯 **Lightweight Single-Pass Compiler**: Sub-millisecond parser throughput parsing ~2 million lines per second with rich diagnostics and execution profiling (`--time`).
 
 ---
@@ -98,6 +99,12 @@ alyac run examples/hello.alya --time
 
 # Compile directly to a standalone binary
 alyac build examples/calculator.alya -o calculator
+
+# Format source files across project in-place (or --check in CI)
+alyac fmt .
+
+# Discover and run test suites across the project
+alyac test
 
 # Check syntax only without code generation
 alyac check examples/calculator.alya
@@ -136,7 +143,7 @@ Alya is engineered for rapid compilation and high-performance native execution a
 
 - 📚 **[Alya Documentation Wiki](docs/README.md)**: Structured 8-chapter guide progressing from beginner concepts to advanced compiler architectures.
 - 📖 **[Single-Page Language Guide](docs/language-guide.md)**: Quick full-language reference and syntax cheat-sheet.
-- 🧪 **[Code Examples](examples/)**: 30+ practical programs, algorithms, and self-hosting compiler prototypes.
+- 🧪 **[Code Examples](examples/)**: 50+ practical programs, algorithms, interactive terminal apps (TicTacToe), and self-hosting compiler prototypes.
 - ⚡ **[Benchmark Suite](benchmarks/)**: Cross-language performance benchmark sources and runner.
 
 ---
