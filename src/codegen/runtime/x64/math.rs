@@ -214,11 +214,23 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jnz .L_x64_rand_ok\n");
     out.push_str("    mov $123456789, %rax\n");
     out.push_str(".L_x64_rand_ok:\n");
-    out.push_str("    mov $1103515245, %rdx\n");
-    out.push_str("    imul %rdx, %rax\n");
-    out.push_str("    add $12345, %rax\n");
-    out.push_str("    and $0x7fffffff, %rax\n");
+    out.push_str("    mov $0x9e3779b97f4a7c15, %rcx\n");
+    out.push_str("    add %rcx, %rax\n");
     out.push_str("    mov %rax, alya_rand_state(%rip)\n");
+    out.push_str("    mov %rax, %rdx\n");
+    out.push_str("    shr $30, %rdx\n");
+    out.push_str("    xor %rdx, %rax\n");
+    out.push_str("    mov $0xbf58476d1ce4e5b9, %rdx\n");
+    out.push_str("    imul %rdx, %rax\n");
+    out.push_str("    mov %rax, %rdx\n");
+    out.push_str("    shr $27, %rdx\n");
+    out.push_str("    xor %rdx, %rax\n");
+    out.push_str("    mov $0x94d049bb133111eb, %rdx\n");
+    out.push_str("    imul %rdx, %rax\n");
+    out.push_str("    mov %rax, %rdx\n");
+    out.push_str("    shr $31, %rdx\n");
+    out.push_str("    xor %rdx, %rax\n");
+    out.push_str("    btr $63, %rax\n");
     out.push_str("    ret\n\n");
 
     out.push_str(".global fn_rand_seed\n");
