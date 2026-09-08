@@ -38,10 +38,34 @@ pub fn emit_load_num(out: &mut String, val: i64) {
     emit_load_reg_imm64(out, "x0", val);
 }
 
+pub fn emit_load_float_reg(out: &mut String, reg: &str, val: f64) {
+    if val == 0.0 && val.to_bits() == 0 {
+        out.push_str(&format!("    fmov {}, xzr\n", reg));
+    } else if val == 1.0
+        || val == 2.0
+        || val == 4.0
+        || val == 0.5
+        || val == 1.5
+        || val == 3.0
+        || val == -1.5
+        || val == -2.0
+    {
+        out.push_str(&format!("    fmov {}, #{:.1}\n", reg, val));
+    } else {
+        let bits = val.to_bits();
+        emit_load_reg_u64(out, "x9", bits);
+        out.push_str(&format!("    fmov {}, x9\n", reg));
+    }
+}
+
 pub fn emit_load_float(out: &mut String, val: f64) {
-    let bits = val.to_bits();
-    emit_load_reg_u64(out, "x0", bits);
-    out.push_str("    fmov d0, x0\n");
+    if val == 0.0 && val.to_bits() == 0 {
+        out.push_str("    fmov d0, xzr\n");
+        out.push_str("    mov x0, #0\n");
+    } else {
+        emit_load_float_reg(out, "d0", val);
+        out.push_str("    fmov x0, d0\n");
+    }
 }
 
 pub fn emit_int_to_float(out: &mut String) {
@@ -98,8 +122,20 @@ pub fn emit_load_var(out: &mut String, offset: i32, _stack_offset: i32) {
     emit_arm64_load_x29_offset(out, "x0", offset, "x9");
 }
 
+pub fn emit_load_var_to_scratch(out: &mut String, offset: i32, is_float: bool) {
+    if is_float {
+        emit_arm64_load_x29_offset(out, "d1", offset, "x9");
+    } else {
+        emit_arm64_load_x29_offset(out, "x1", offset, "x9");
+    }
+}
+
 pub fn emit_store_var(out: &mut String, offset: i32, _stack_offset: i32) {
     emit_arm64_store_x29_offset(out, "x0", offset, "x9");
+}
+
+pub fn emit_store_var_float(out: &mut String, offset: i32) {
+    emit_arm64_store_x29_offset(out, "d0", offset, "x9");
 }
 
 pub fn emit_allocate_var(out: &mut String, stack_offset: &mut i32) {

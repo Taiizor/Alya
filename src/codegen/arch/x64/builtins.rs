@@ -295,3 +295,13 @@ pub fn emit_char_code_at(out: &mut String, done_label: &str) {
     out.push_str("    movzbl (%rdx, %rcx), %eax\n");
     out.push_str(&format!("{}:\n", done_label));
 }
+
+pub fn emit_char_code_at_direct(out: &mut String, done_label: &str) {
+    out.push_str("    xor %eax, %eax\n");
+    out.push_str("    test %rdx, %rdx\n");
+    out.push_str(&format!("    jz {}\n", done_label));
+    out.push_str("    test %rcx, %rcx\n");
+    out.push_str(&format!("    jl {}\n", done_label));
+    out.push_str("    movzbl (%rdx, %rcx), %eax\n");
+    out.push_str(&format!("{}:\n", done_label));
+}

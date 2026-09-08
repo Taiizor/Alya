@@ -229,12 +229,21 @@ impl CodeGen {
                 | VarType::Array(offset)
                 | VarType::Map(offset)
                 | VarType::Struct { offset, .. } => {
-                    arch::emit_store_var(
-                        &mut self.output,
-                        self.arch,
-                        offset,
-                        self.ctx.stack_offset,
-                    );
+                    if is_flt {
+                        arch::emit_store_var_float(
+                            &mut self.output,
+                            self.arch,
+                            offset,
+                            self.ctx.stack_offset,
+                        );
+                    } else {
+                        arch::emit_store_var(
+                            &mut self.output,
+                            self.arch,
+                            offset,
+                            self.ctx.stack_offset,
+                        );
+                    }
                     if is_map {
                         self.ctx
                             .variables

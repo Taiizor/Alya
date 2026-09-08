@@ -49,10 +49,26 @@ pub fn emit_load_var(out: &mut String, arch: Architecture, offset: i32, stack_of
     }
 }
 
+pub fn emit_load_var_to_scratch(out: &mut String, arch: Architecture, offset: i32, is_float: bool) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_load_var_to_scratch(out, offset, is_float),
+        Architecture::X64 => x64::emit_load_var_to_scratch(out, offset, is_float),
+        Architecture::X86 => {}
+    }
+}
+
 pub fn emit_store_var(out: &mut String, arch: Architecture, offset: i32, stack_offset: i32) {
     match arch {
         Architecture::ARM64 => arm64::emit_store_var(out, offset, stack_offset),
         Architecture::X64 => x64::emit_store_var(out, offset),
+        Architecture::X86 => x86::emit_store_var(out, offset),
+    }
+}
+
+pub fn emit_store_var_float(out: &mut String, arch: Architecture, offset: i32, _stack_offset: i32) {
+    match arch {
+        Architecture::ARM64 => arm64::emit_store_var_float(out, offset),
+        Architecture::X64 => x64::emit_store_var_float(out, offset),
         Architecture::X86 => x86::emit_store_var(out, offset),
     }
 }

@@ -26,8 +26,20 @@ pub fn emit_load_var(out: &mut String, offset: i32) {
     out.push_str(&format!("    mov -{}(%rbp), %rax\n", offset));
 }
 
+pub fn emit_load_var_to_scratch(out: &mut String, offset: i32, is_float: bool) {
+    if is_float {
+        out.push_str(&format!("    movsd -{}(%rbp), %xmm1\n", offset));
+    } else {
+        out.push_str(&format!("    mov -{}(%rbp), %rbx\n", offset));
+    }
+}
+
 pub fn emit_store_var(out: &mut String, offset: i32) {
     out.push_str(&format!("    mov %rax, -{}(%rbp)\n", offset));
+}
+
+pub fn emit_store_var_float(out: &mut String, offset: i32) {
+    out.push_str(&format!("    movsd %xmm0, -{}(%rbp)\n", offset));
 }
 
 pub fn emit_allocate_var(out: &mut String, stack_offset: &mut i32) {

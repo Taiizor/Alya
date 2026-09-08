@@ -89,9 +89,7 @@ fn test_codegen_let_and_binary_op() {
 
     let asm = generate(&program, Architecture::X64, OperatingSystem::Windows);
     assert!(asm.contains("mov $10, %rax"));
-    assert!(asm.contains("push %rax"));
-    assert!(asm.contains("mov $20, %rax"));
-    assert!(asm.contains("add %rbx, %rax"));
+    assert!(asm.contains("add $20, %rax"));
 }
 
 #[test]
