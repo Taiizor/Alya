@@ -275,3 +275,40 @@ say { "inline": 777 }["inline"]
         );
     }
 }
+
+#[test]
+fn test_e2e_struct_array_iteration_and_field_interpolation() {
+    let code = r#"
+struct Player
+    name
+    score
+end
+
+function rank_player(p)
+    if p.score >= 90
+        return "Master"
+    elif p.score >= 75
+        return "Expert"
+    else
+        return "Challenger"
+    end
+end
+
+let team = [
+    Player { name: "Alice", score: 95 },
+    Player { name: "Bob", score: 82 }
+]
+
+for member in team
+    let tier = rank_player(member)
+    say "Player {member.name} scored {member.score} pts -> [{tier}]"
+end
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            "Player Alice scored 95 pts -> [Master]\nPlayer Bob scored 82 pts -> [Expert]\n"
+        );
+    }
+}

@@ -409,10 +409,6 @@ Priority 2: Medium\n",
             "----------------------------------------\n",
             "Test suite finished with code: 0\n",
         )),
-        "test.alya" => Some(
-            "Player Alice scored 95 pts -> [Master]\n\
-Player Bob scored 82 pts -> [Expert]\n",
-        ),
         "try_catch.alya" => Some(
             "=== Try-Catch Demo ===\n\
 \n\
