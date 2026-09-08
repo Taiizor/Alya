@@ -1,0 +1,75 @@
+name: Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      update_readme:
+        description: 'Update benchmarks/README.md with results'
+        type: boolean
+        required: false
+        default: true
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'src/**'
+      - 'stdlib/**'
+      - 'benchmarks/**'
+      - 'benches/**'
+      - 'Cargo.toml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark:
+    name: Performance Benchmarks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build Alya compiler (Release)
+        run: cargo build --release
+
+      - name: Run cross-language benchmarks & update README
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.update_readme }}" = "false" ]; then
+            bun run benchmarks/cross_lang/runner.ts
+          else
+            bun run benchmarks/cross_lang/runner.ts --update-readme
+          fi
+
+      - name: Commit and push benchmark results
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || inputs.update_readme == true
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add benchmarks/README.md
+          if git diff --staged --quiet; then
+            echo "No changes in benchmark results."
+          else
+            git commit -m "docs(benchmarks): update benchmark results [skip ci]"
+            git push
+          fi
