@@ -1,0 +1,10 @@
+import "std/hash"
+
+let sample = "The quick brown fox jumps over the lazy dog! Alya is fast and modern."
+let i = 0
+let h = 0
+while i < 50000
+    h = fnv1a(sample)
+    i = i + 1
+end
+say h

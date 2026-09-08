@@ -17,6 +17,7 @@
   <a href="#installation">Installation</a> •
   <a href="#cli-usage">CLI Usage</a> •
   <a href="#language-tour">Language Tour</a> •
+  <a href="#benchmarks">Benchmarks</a> •
   <a href="#platform--architecture-matrix">Platforms</a> •
   <a href="#contributing">Contributing</a>
 </p>
@@ -592,12 +593,68 @@ bench_stop(runner, "sin(0.5) calculation")
 bench_summary(runner)
 ```
 
-Run Rust-level compiler throughput benchmarks (Lexer MB/s, Parser lines/s, Codegen lines/s):
+---
+
+## Benchmarks
+
+Alya is engineered for both rapid compilation and high-performance native execution. Below are empirical benchmark results measuring both compiler throughput and runtime execution speed against other popular programming languages.
+
+### 1. Cross-Language Execution Performance
+
+All benchmarks run identical algorithms with verified, mathematically equivalent output across all targets.
+
+> **Environment:** Windows 11 x64, GCC 10.3.0 (`-O2`), Bun 1.4.2 (JavaScript JIT), Python 3.12.5.  
+> **Metric:** Median execution time of 5 consecutive runs (lower is better).
+
+| Benchmark | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs C | Alya vs Python | Alya vs Bun |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Recursive Fibonacci (n=30)** | `10.6 ms` | **`14.2 ms`** | `31.9 ms` | `127.4 ms` | **1.3x** | **9.0x faster** | **2.2x faster** |
+| **Mandelbrot Fractal (200x100x200)** | `11.5 ms` | **`17.1 ms`** | `25.5 ms` | `120.6 ms` | **1.5x** | **7.0x faster** | **1.5x faster** |
+| **Sieve of Eratosthenes (50,000)** | `8.8 ms` | **`10.4 ms`** | `26.2 ms` | `54.8 ms` | **1.2x** | **5.3x faster** | **2.5x faster** |
+| **FNV-1a String Hash (50,000 iters)** | `12.0 ms` | **`92.6 ms`** | `28.7 ms` | `389.7 ms` | **7.7x** | **4.2x faster** | `3.2x slower` |
+
+#### Key Takeaways:
+- **Near-C Speed on Core Algorithms:** Alya achieves **1.2x - 1.5x of C (GCC -O2)** on CPU-intensive recursion, iterative loops, and array manipulations.
+- **Significantly Faster than Python:** Alya executes **4x to 9x faster than Python 3.12** out of the box with zero runtime startup overhead.
+- **Faster than JavaScript JIT:** Outperforms Bun / V8 on recursion and array traversals by eliminating JIT warmup and dynamic type checking overhead.
+
+To reproduce the cross-language benchmark suite:
 ```bash
-cargo bench
+bun run benchmarks/cross_lang/runner.ts
 ```
 
-Run the benchmark test suite examples:
+---
+
+### 2. Compiler Throughput (`cargo bench`)
+
+Alya features a lightweight single-pass frontend with direct native x64 assembly generation, avoiding heavy intermediate representation (IR) overhead:
+
+> **Workload:** 1,177 lines, 22.24 KB synthetic program (50+ functions, structs, control flow)
+
+| Benchmark Stage | Iterations | Average Time | Min Time | Max Time | Measured Throughput |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **`Lexer::tokenize`** | 971 | `412.29 µs` | `327.20 µs` | `648.20 µs` | **52.7 MB/s** |
+| **`Parser::parse`** | 665 | `601.74 µs` | `511.50 µs` | `954.60 µs` | **1,955,996 lines/s** |
+| **`ProgramInference::analyze`** | 80 | `5.04 ms` | `4.94 ms` | `6.13 ms` | **198 ops/s** |
+| **`CodeGen::generate (x64)`** | 19 | `21.86 ms` | `21.44 ms` | `24.07 ms` | **545,180 asm lines/s** |
+| **`Full Frontend Pipeline`** | 22 | `22.92 ms` | `22.32 ms` | `27.44 ms` | **43.6 files/s** |
+
+To run the compiler benchmarks:
+```bash
+cargo bench --bench compiler_bench
+```
+
+---
+
+### 3. Stage Timings & In-Code Profiling
+
+Profile compilation and execution phases directly from the CLI:
+```bash
+# Display microsecond breakdown of lexing, parsing, imports, codegen, linking, and execution
+alyac run examples/hello.alya --time
+```
+
+Run individual benchmark suite examples:
 ```bash
 alyac run examples/benchmarks/fibonacci.alya
 alyac run examples/benchmarks/mandelbrot.alya
@@ -630,6 +687,8 @@ Alya/
 │   ├── workflows/             # CI and Automated Release workflows
 │   ├── ISSUE_TEMPLATE/        # Bug report and Feature request forms
 │   └── PULL_REQUEST_TEMPLATE.md
+├── benchmarks/                # Cross-language performance benchmark suite & runner
+│   └── cross_lang/            # Alya vs C vs Bun vs Python benchmarks & runner.ts
 ├── benches/                   # Standalone compiler throughput benchmarks
 ├── examples/                  # 30+ rich example programs and benchmarks
 │   └── benchmarks/            # Algorithmic benchmark suite (fib, mandelbrot, sieve, hash)
