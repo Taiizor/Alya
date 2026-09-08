@@ -405,12 +405,12 @@
             <div class="feature-text"><b>Native Assembly Codegen</b> — x86, x64 &amp; ARM64</div>
           </div>
           <div class="feature-pill">
-            <div class="feature-icon-box icon-cyan">🛡️</div>
-            <div class="feature-text"><b>Robust Exception Safety</b> — Built-in <code>try...catch</code></div>
+            <div class="feature-icon-box icon-cyan">🛠️</div>
+            <div class="feature-text"><b>Built-in Tooling &amp; Stdlib</b> — <code>fmt</code>, <code>test</code> &amp; 20+ modules</div>
           </div>
           <div class="feature-pill">
             <div class="feature-icon-box icon-emerald">💬</div>
-            <div class="feature-text"><b>English-Like Syntax</b> — <code>say</code>, <code>ask</code>, <code>when</code>, <code>repeat</code></div>
+            <div class="feature-text"><b>Intuitive &amp; Expressive</b> — <code>say</code>, <code>when</code>, <code>??</code>, <code>?:</code></div>
           </div>
         </div>
 
@@ -442,16 +442,16 @@
           </div>
 
           <div class="editor-body">
-            <div class="code-line"><span class="cmt"># Clean, expressive &amp; type-safe</span></div>
-            <div class="code-line"><span class="kw">function</span> <span class="fn">greet</span>(<span class="var">user</span>)</div>
+            <div class="code-line"><span class="cmt"># Modern ergonomics &amp; native speed</span></div>
+            <div class="code-line"><span class="kw">function</span> <span class="fn">greet</span>(<span class="var">user</span> <span class="op">=</span> <span class="str">"World"</span>)</div>
             <div class="code-line">    <span class="fn">say</span> <span class="str">"Hello, {user}! Welcome to Alya."</span></div>
             <div class="code-line"><span class="kw">end</span></div>
             <div class="code-line">&nbsp;</div>
             <div class="code-line"><span class="kw">try</span></div>
-            <div class="code-line">    <span class="kw">let</span> <span class="var">name</span> <span class="op">=</span> <span class="fn">ask</span> <span class="str">"Enter name: "</span></div>
+            <div class="code-line">    <span class="kw">let</span> <span class="var">name</span> <span class="op">=</span> <span class="fn">ask</span> <span class="str">"Name: "</span> <span class="op">??</span> <span class="str">"Developer"</span></div>
+            <div class="code-line">    <span class="kw">let</span> <span class="var">tier</span> <span class="op">=</span> <span class="var">name</span> <span class="op">==</span> <span class="str">"Admin"</span> <span class="op">?</span> <span class="str">"Master"</span> <span class="op">:</span> <span class="str">"Dev"</span></div>
             <div class="code-line">    <span class="fn">greet</span>(<span class="var">name</span>)</div>
-            <div class="code-line">    <span class="kw">let</span> <span class="var">speed</span> <span class="op">=</span> <span class="num">100</span> <span class="op">/</span> <span class="num">2</span></div>
-            <div class="code-line">    <span class="fn">say</span> <span class="str">"Speed: {speed} ops/sec"</span></div>
+            <div class="code-line">    <span class="fn">say</span> <span class="str">"Role: [{tier}] | Ready to run"</span></div>
             <div class="code-line"><span class="kw">catch</span> <span class="err">err</span></div>
             <div class="code-line">    <span class="fn">say</span> <span class="str">"Handled safely: "</span> <span class="op">+</span> <span class="err">err</span></div>
             <div class="code-line"><span class="kw">end</span></div>
