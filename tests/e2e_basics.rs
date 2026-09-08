@@ -273,3 +273,80 @@ end
         );
     }
 }
+
+#[test]
+fn test_e2e_bitwise_operators() {
+    let code = r#"
+# Test bitwise AND, OR, XOR, Shift Left, Shift Right, Bitwise NOT
+let a = 12
+let b = 10
+
+say a & b
+say a | b
+say a ^ b
+say 1 << 4
+say 32 >> 2
+say ~0
+
+# Test compound assignment
+let x = 7
+x &= 3
+say x
+
+x |= 8
+say x
+
+x ^= 2
+say x
+
+x <<= 2
+say x
+
+x >>= 3
+say x
+"#;
+    if let Some(output) = run_alya_code(code) {
+        assert_eq!(output, "8\n14\n6\n16\n8\n-1\n3\n11\n9\n36\n4\n");
+    }
+}
+
+#[test]
+fn test_e2e_null_literal() {
+    let code = r#"
+let a = null
+let b = nil
+
+say a
+say b
+say null
+
+if a == null
+    say "a is null"
+end
+
+if b == nil
+    say "b is nil"
+end
+
+if a == b
+    say "null equals nil"
+end
+
+let c = 42
+if c != null
+    say "c is not null"
+end
+
+say "value: {a}"
+say str(a)
+
+let x = null
+x = 100
+say x
+x = null
+say x
+"#;
+    if let Some(output) = run_alya_code(code) {
+        assert_eq!(output, "null\nnull\nnull\na is null\nb is nil\nnull equals nil\nc is not null\nvalue: null\nnull\n100\nnull\n");
+    }
+}

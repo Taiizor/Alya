@@ -1,7 +1,7 @@
 use super::CodeGen;
 use crate::ast::{BinaryOp, Expr};
 use crate::codegen::analysis::{
-    escape_string, is_array_expr, is_float_expr, is_map_expr, is_string_expr,
+    escape_string, is_array_expr, is_float_expr, is_map_expr, is_null_expr, is_string_expr,
 };
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
@@ -10,6 +10,9 @@ use crate::codegen::target::Architecture;
 impl CodeGen {
     pub(crate) fn generate_expression(&mut self, expr: &Expr) {
         match expr {
+            Expr::Null => {
+                arch::emit_load_num(&mut self.output, self.arch, 0);
+            }
             Expr::Number(n) => {
                 if n.fract() != 0.0 {
                     arch::emit_load_float(&mut self.output, self.arch, *n);
@@ -36,6 +39,7 @@ impl CodeGen {
                         | VarType::StringOffset(offset)
                         | VarType::Array(offset)
                         | VarType::Map(offset)
+                        | VarType::Null(offset)
                         | VarType::Struct { offset, .. } => {
                             arch::emit_load_var(
                                 &mut self.output,
@@ -149,7 +153,13 @@ impl CodeGen {
                     }
                     let is_commutative = matches!(
                         op,
-                        BinaryOp::Add | BinaryOp::Multiply | BinaryOp::Equal | BinaryOp::NotEqual
+                        BinaryOp::Add
+                            | BinaryOp::Multiply
+                            | BinaryOp::Equal
+                            | BinaryOp::NotEqual
+                            | BinaryOp::BitAnd
+                            | BinaryOp::BitOr
+                            | BinaryOp::BitXor
                     );
                     if is_commutative {
                         if let Expr::Number(n) = &**left {
@@ -344,10 +354,15 @@ impl CodeGen {
                     return;
                 }
 
-                if name == "str" && args.len() == 1 && is_string_expr(&args[0], &self.ctx.variables)
-                {
-                    self.generate_expression(&args[0]);
-                    return;
+                if name == "str" && args.len() == 1 {
+                    if is_string_expr(&args[0], &self.ctx.variables) {
+                        self.generate_expression(&args[0]);
+                        return;
+                    }
+                    if is_null_expr(&args[0], &self.ctx.variables) {
+                        self.generate_expression(&Expr::String("null".into()));
+                        return;
+                    }
                 }
 
                 if (name == "bit_and"

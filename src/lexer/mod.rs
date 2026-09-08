@@ -276,11 +276,19 @@ impl Lexer {
                             line,
                             column,
                         });
+                    } else if self.current_char() == Some('=') {
+                        self.advance();
+                        tokens.push(Token {
+                            token_type: TokenType::BitAndAssign,
+                            line,
+                            column,
+                        });
                     } else {
-                        return Err(format!(
-                            "Unexpected character '&' at line {}, column {}. Did you mean '&&'?",
-                            line, column
-                        ));
+                        tokens.push(Token {
+                            token_type: TokenType::BitAnd,
+                            line,
+                            column,
+                        });
                     }
                 }
                 '|' => {
@@ -292,16 +300,65 @@ impl Lexer {
                             line,
                             column,
                         });
+                    } else if self.current_char() == Some('=') {
+                        self.advance();
+                        tokens.push(Token {
+                            token_type: TokenType::BitOrAssign,
+                            line,
+                            column,
+                        });
                     } else {
-                        return Err(format!(
-                            "Unexpected character '|' at line {}, column {}. Did you mean '||'?",
-                            line, column
-                        ));
+                        tokens.push(Token {
+                            token_type: TokenType::BitOr,
+                            line,
+                            column,
+                        });
                     }
+                }
+                '^' => {
+                    self.advance();
+                    if self.current_char() == Some('=') {
+                        self.advance();
+                        tokens.push(Token {
+                            token_type: TokenType::BitXorAssign,
+                            line,
+                            column,
+                        });
+                    } else {
+                        tokens.push(Token {
+                            token_type: TokenType::BitXor,
+                            line,
+                            column,
+                        });
+                    }
+                }
+                '~' => {
+                    self.advance();
+                    tokens.push(Token {
+                        token_type: TokenType::BitNot,
+                        line,
+                        column,
+                    });
                 }
                 '<' => {
                     self.advance();
-                    if self.current_char() == Some('=') {
+                    if self.current_char() == Some('<') {
+                        self.advance();
+                        if self.current_char() == Some('=') {
+                            self.advance();
+                            tokens.push(Token {
+                                token_type: TokenType::ShlAssign,
+                                line,
+                                column,
+                            });
+                        } else {
+                            tokens.push(Token {
+                                token_type: TokenType::Shl,
+                                line,
+                                column,
+                            });
+                        }
+                    } else if self.current_char() == Some('=') {
                         self.advance();
                         tokens.push(Token {
                             token_type: TokenType::LessEqual,
@@ -318,7 +375,23 @@ impl Lexer {
                 }
                 '>' => {
                     self.advance();
-                    if self.current_char() == Some('=') {
+                    if self.current_char() == Some('>') {
+                        self.advance();
+                        if self.current_char() == Some('=') {
+                            self.advance();
+                            tokens.push(Token {
+                                token_type: TokenType::ShrAssign,
+                                line,
+                                column,
+                            });
+                        } else {
+                            tokens.push(Token {
+                                token_type: TokenType::Shr,
+                                line,
+                                column,
+                            });
+                        }
+                    } else if self.current_char() == Some('=') {
                         self.advance();
                         tokens.push(Token {
                             token_type: TokenType::GreaterEqual,

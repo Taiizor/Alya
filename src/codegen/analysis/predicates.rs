@@ -383,3 +383,11 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
         _ => false,
     }
 }
+
+pub fn is_null_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
+    match expr {
+        Expr::Null => true,
+        Expr::Identifier(name) => matches!(vars.get(name), Some(VarType::Null(_))),
+        _ => false,
+    }
+}

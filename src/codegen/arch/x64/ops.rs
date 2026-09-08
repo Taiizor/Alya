@@ -50,8 +50,17 @@ pub fn emit_binary_op(out: &mut String, op: BinaryOp) {
             out.push_str("    setge %al\n");
             out.push_str("    movzbq %al, %rax\n");
         }
-        BinaryOp::And => out.push_str("    and %rbx, %rax\n"),
-        BinaryOp::Or => out.push_str("    or %rbx, %rax\n"),
+        BinaryOp::And | BinaryOp::BitAnd => out.push_str("    and %rbx, %rax\n"),
+        BinaryOp::Or | BinaryOp::BitOr => out.push_str("    or %rbx, %rax\n"),
+        BinaryOp::BitXor => out.push_str("    xor %rbx, %rax\n"),
+        BinaryOp::Shl => {
+            out.push_str("    mov %rbx, %rcx\n");
+            out.push_str("    shl %cl, %rax\n");
+        }
+        BinaryOp::Shr => {
+            out.push_str("    mov %rbx, %rcx\n");
+            out.push_str("    shr %cl, %rax\n");
+        }
     }
 }
 
@@ -103,8 +112,17 @@ pub fn emit_binary_op_reg(out: &mut String, op: BinaryOp) {
             out.push_str("    setge %al\n");
             out.push_str("    movzbq %al, %rax\n");
         }
-        BinaryOp::And => out.push_str("    and %rbx, %rax\n"),
-        BinaryOp::Or => out.push_str("    or %rbx, %rax\n"),
+        BinaryOp::And | BinaryOp::BitAnd => out.push_str("    and %rbx, %rax\n"),
+        BinaryOp::Or | BinaryOp::BitOr => out.push_str("    or %rbx, %rax\n"),
+        BinaryOp::BitXor => out.push_str("    xor %rbx, %rax\n"),
+        BinaryOp::Shl => {
+            out.push_str("    mov %rbx, %rcx\n");
+            out.push_str("    shl %cl, %rax\n");
+        }
+        BinaryOp::Shr => {
+            out.push_str("    mov %rbx, %rcx\n");
+            out.push_str("    shr %cl, %rax\n");
+        }
     }
 }
 
@@ -197,20 +215,29 @@ pub fn emit_binary_op_imm(out: &mut String, op: BinaryOp, imm: i64) {
             }
             out.push_str("    setge %al\n    movzbq %al, %rax\n");
         }
-        BinaryOp::And => {
+        BinaryOp::And | BinaryOp::BitAnd => {
             if fits_i32 {
                 out.push_str(&format!("    and ${}, %rax\n", imm));
             } else {
                 out.push_str(&format!("    movabs ${}, %rbx\n    and %rbx, %rax\n", imm));
             }
         }
-        BinaryOp::Or => {
+        BinaryOp::Or | BinaryOp::BitOr => {
             if fits_i32 {
                 out.push_str(&format!("    or ${}, %rax\n", imm));
             } else {
                 out.push_str(&format!("    movabs ${}, %rbx\n    or %rbx, %rax\n", imm));
             }
         }
+        BinaryOp::BitXor => {
+            if fits_i32 {
+                out.push_str(&format!("    xor ${}, %rax\n", imm));
+            } else {
+                out.push_str(&format!("    movabs ${}, %rbx\n    xor %rbx, %rax\n", imm));
+            }
+        }
+        BinaryOp::Shl => out.push_str(&format!("    shl ${}, %rax\n", imm & 63)),
+        BinaryOp::Shr => out.push_str(&format!("    shr ${}, %rax\n", imm & 63)),
     }
 }
 
@@ -222,6 +249,7 @@ pub fn emit_unary_op(out: &mut String, op: UnaryOp) {
             out.push_str("    sete %al\n");
             out.push_str("    movzbq %al, %rax\n");
         }
+        UnaryOp::BitNot => out.push_str("    not %rax\n"),
     }
 }
 
@@ -284,6 +312,7 @@ pub fn emit_float_binary_op_reg(out: &mut String, op: BinaryOp) {
         }
         BinaryOp::And => out.push_str("    and %rbx, %rax\n"),
         BinaryOp::Or => out.push_str("    or %rbx, %rax\n"),
+        _ => {}
     }
 }
 
@@ -356,6 +385,7 @@ pub fn emit_float_binary_op(out: &mut String, op: BinaryOp) {
         }
         BinaryOp::And => out.push_str("    and %rbx, %rax\n"),
         BinaryOp::Or => out.push_str("    or %rbx, %rax\n"),
+        _ => {}
     }
 }
 
@@ -371,6 +401,7 @@ pub fn emit_float_unary_op(out: &mut String, op: UnaryOp) {
             out.push_str("    sete %al\n");
             out.push_str("    movzbq %al, %rax\n");
         }
+        _ => {}
     }
 }
 

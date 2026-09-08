@@ -24,11 +24,11 @@ impl Parser {
     }
 
     fn parse_and(&mut self) -> Result<Expr, String> {
-        let mut left = self.parse_comparison()?;
+        let mut left = self.parse_bitwise_or()?;
 
         while matches!(self.current_token().token_type, TokenType::And) {
             self.advance();
-            let right = self.parse_comparison()?;
+            let right = self.parse_bitwise_or()?;
             left = Expr::Binary {
                 left: Box::new(left),
                 op: BinaryOp::And,
@@ -39,8 +39,56 @@ impl Parser {
         Ok(left)
     }
 
+    fn parse_bitwise_or(&mut self) -> Result<Expr, String> {
+        let mut left = self.parse_bitwise_xor()?;
+
+        while matches!(self.current_token().token_type, TokenType::BitOr) {
+            self.advance();
+            let right = self.parse_bitwise_xor()?;
+            left = Expr::Binary {
+                left: Box::new(left),
+                op: BinaryOp::BitOr,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(left)
+    }
+
+    fn parse_bitwise_xor(&mut self) -> Result<Expr, String> {
+        let mut left = self.parse_bitwise_and()?;
+
+        while matches!(self.current_token().token_type, TokenType::BitXor) {
+            self.advance();
+            let right = self.parse_bitwise_and()?;
+            left = Expr::Binary {
+                left: Box::new(left),
+                op: BinaryOp::BitXor,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(left)
+    }
+
+    fn parse_bitwise_and(&mut self) -> Result<Expr, String> {
+        let mut left = self.parse_comparison()?;
+
+        while matches!(self.current_token().token_type, TokenType::BitAnd) {
+            self.advance();
+            let right = self.parse_comparison()?;
+            left = Expr::Binary {
+                left: Box::new(left),
+                op: BinaryOp::BitAnd,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(left)
+    }
+
     fn parse_comparison(&mut self) -> Result<Expr, String> {
-        let mut left = self.parse_term()?;
+        let mut left = self.parse_shift()?;
 
         while let Some(op) = match &self.current_token().token_type {
             TokenType::Equal => Some(BinaryOp::Equal),
@@ -49,6 +97,26 @@ impl Parser {
             TokenType::Greater => Some(BinaryOp::Greater),
             TokenType::LessEqual => Some(BinaryOp::LessEqual),
             TokenType::GreaterEqual => Some(BinaryOp::GreaterEqual),
+            _ => None,
+        } {
+            self.advance();
+            let right = self.parse_shift()?;
+            left = Expr::Binary {
+                left: Box::new(left),
+                op,
+                right: Box::new(right),
+            };
+        }
+
+        Ok(left)
+    }
+
+    fn parse_shift(&mut self) -> Result<Expr, String> {
+        let mut left = self.parse_term()?;
+
+        while let Some(op) = match &self.current_token().token_type {
+            TokenType::Shl => Some(BinaryOp::Shl),
+            TokenType::Shr => Some(BinaryOp::Shr),
             _ => None,
         } {
             self.advance();
@@ -119,6 +187,14 @@ impl Parser {
                 let expr = self.parse_unary()?;
                 Ok(Expr::Unary {
                     op: UnaryOp::Not,
+                    expr: Box::new(expr),
+                })
+            }
+            TokenType::BitNot => {
+                self.advance();
+                let expr = self.parse_unary()?;
+                Ok(Expr::Unary {
+                    op: UnaryOp::BitNot,
                     expr: Box::new(expr),
                 })
             }
@@ -209,6 +285,10 @@ impl Parser {
             TokenType::False => {
                 self.advance();
                 Ok(Expr::Number(0.0))
+            }
+            TokenType::Null => {
+                self.advance();
+                Ok(Expr::Null)
             }
             TokenType::Ask => {
                 self.advance();

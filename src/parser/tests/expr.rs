@@ -381,3 +381,83 @@ fn test_parse_map_literal() {
         other => panic!("Expected Stmt::Let with map literal, got {:?}", other),
     }
 }
+
+#[test]
+fn test_parse_null_and_nil_literals() {
+    let program = parse_code("let x = null\nlet y = nil").expect("Parse failed");
+    assert_eq!(program.statements.len(), 2);
+    match &program.statements[0] {
+        Stmt::Let { name, value } => {
+            assert_eq!(name, "x");
+            assert_eq!(*value, Expr::Null);
+        }
+        other => panic!("Expected Stmt::Let, got {:?}", other),
+    }
+    match &program.statements[1] {
+        Stmt::Let { name, value } => {
+            assert_eq!(name, "y");
+            assert_eq!(*value, Expr::Null);
+        }
+        other => panic!("Expected Stmt::Let, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_bitwise_operators_and_precedence() {
+    // 1 | 2 ^ 3 & 4
+    let program = parse_code("say 1 | 2 ^ 3 & 4").expect("Parse failed");
+    match &program.statements[0] {
+        Stmt::Say(Expr::Binary { left, op, right }) => {
+            assert_eq!(*op, BinaryOp::BitOr);
+            assert_eq!(**left, Expr::Number(1.0));
+            match &**right {
+                Expr::Binary {
+                    left: xleft,
+                    op: xop,
+                    right: xright,
+                } => {
+                    assert_eq!(*xop, BinaryOp::BitXor);
+                    assert_eq!(**xleft, Expr::Number(2.0));
+                    match &**xright {
+                        Expr::Binary {
+                            left: aleft,
+                            op: aop,
+                            right: aright,
+                        } => {
+                            assert_eq!(*aop, BinaryOp::BitAnd);
+                            assert_eq!(**aleft, Expr::Number(3.0));
+                            assert_eq!(**aright, Expr::Number(4.0));
+                        }
+                        other => panic!("Expected BitAnd, got {:?}", other),
+                    }
+                }
+                other => panic!("Expected BitXor, got {:?}", other),
+            }
+        }
+        other => panic!("Expected Stmt::Say with BitOr, got {:?}", other),
+    }
+
+    // ~a
+    let program_not = parse_code("say ~5").expect("Parse failed");
+    match &program_not.statements[0] {
+        Stmt::Say(Expr::Unary { op, expr }) => {
+            assert_eq!(*op, UnaryOp::BitNot);
+            assert_eq!(**expr, Expr::Number(5.0));
+        }
+        other => panic!("Expected Unary BitNot, got {:?}", other),
+    }
+
+    // 1 << 2 + 3 -> 1 << (2 + 3)
+    let program_shift = parse_code("say 1 << 2 + 3").expect("Parse failed");
+    match &program_shift.statements[0] {
+        Stmt::Say(Expr::Binary { left, op, right }) => {
+            assert_eq!(*op, BinaryOp::Shl);
+            assert_eq!(**left, Expr::Number(1.0));
+            match &**right {
+                Expr::Binary { op: top, .. } => assert_eq!(*top, BinaryOp::Add),
+                other => panic!("Expected Add on right of shift, got {:?}", other),
+            }
+        }
+        other => panic!("Expected Shl, got {:?}", other),
+    }
+}

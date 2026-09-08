@@ -292,6 +292,22 @@ Product: 48\n\
 Square of 12: 144\n\
 Inline call: 2\n",
         ),
+        "null_and_bitwise.alya" => Some(concat!(
+            "Initial value: null\n",
+            "Value is null\n",
+            "Updated value: 42\n",
+            "Value is not null\n",
+            "Bitwise AND: 8\n",
+            "Bitwise OR:  14\n",
+            "Bitwise XOR: 6\n",
+            "Shift left:  16\n",
+            "Shift right: 8\n",
+            "After &= 3: 3\n",
+            "After |= 8: 11\n",
+            "After ^= 2: 9\n",
+            "After <<= 2: 36\n",
+            "After >>= 3: 4\n",
+        )),
         "pattern_matching.alya" => Some(
             "=== HTTP Status Code Resolver ===\n\
 Success response received\n\

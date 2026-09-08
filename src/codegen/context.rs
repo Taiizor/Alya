@@ -14,6 +14,7 @@ pub enum VarType {
     StringOffset(i32),   // Stack offset for string pointers
     Array(i32),          // Stack offset for array pointers
     Map(i32),            // Stack offset for map pointers
+    Null(i32),           // Stack offset for null variables
     Struct { struct_name: String, offset: i32 },
 }
 

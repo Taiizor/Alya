@@ -39,11 +39,20 @@ pub fn emit_binary_op(out: &mut String, op: BinaryOp) {
             out.push_str("    cmp x1, x0\n");
             out.push_str("    cset x0, ge\n");
         }
-        BinaryOp::And => {
+        BinaryOp::And | BinaryOp::BitAnd => {
             out.push_str("    and x0, x1, x0\n");
         }
-        BinaryOp::Or => {
+        BinaryOp::Or | BinaryOp::BitOr => {
             out.push_str("    orr x0, x1, x0\n");
+        }
+        BinaryOp::BitXor => {
+            out.push_str("    eor x0, x1, x0\n");
+        }
+        BinaryOp::Shl => {
+            out.push_str("    lsl x0, x1, x0\n");
+        }
+        BinaryOp::Shr => {
+            out.push_str("    lsr x0, x1, x0\n");
         }
     }
 }
@@ -86,11 +95,20 @@ pub fn emit_binary_op_reg(out: &mut String, op: BinaryOp) {
             out.push_str("    cmp x0, x1\n");
             out.push_str("    cset x0, ge\n");
         }
-        BinaryOp::And => {
+        BinaryOp::And | BinaryOp::BitAnd => {
             out.push_str("    and x0, x0, x1\n");
         }
-        BinaryOp::Or => {
+        BinaryOp::Or | BinaryOp::BitOr => {
             out.push_str("    orr x0, x0, x1\n");
+        }
+        BinaryOp::BitXor => {
+            out.push_str("    eor x0, x0, x1\n");
+        }
+        BinaryOp::Shl => {
+            out.push_str("    lsl x0, x0, x1\n");
+        }
+        BinaryOp::Shr => {
+            out.push_str("    lsr x0, x0, x1\n");
         }
     }
 }
@@ -192,14 +210,25 @@ pub fn emit_binary_op_imm(out: &mut String, op: BinaryOp, imm: i64) {
             }
             out.push_str("    cset x0, ge\n");
         }
-        BinaryOp::And => {
-            super::loads::emit_load_reg_imm64(out, "x1", imm);
-            out.push_str("    and x0, x0, x1\n");
+        BinaryOp::And | BinaryOp::BitAnd => {
+            if imm > 0 && (imm & (imm + 1)) == 0 {
+                let width = (64 - imm.leading_zeros()) as usize;
+                out.push_str(&format!("    ubfx x0, x0, #0, #{}\n", width));
+            } else {
+                super::loads::emit_load_reg_imm64(out, "x1", imm);
+                out.push_str("    and x0, x0, x1\n");
+            }
         }
-        BinaryOp::Or => {
+        BinaryOp::Or | BinaryOp::BitOr => {
             super::loads::emit_load_reg_imm64(out, "x1", imm);
             out.push_str("    orr x0, x0, x1\n");
         }
+        BinaryOp::BitXor => {
+            super::loads::emit_load_reg_imm64(out, "x1", imm);
+            out.push_str("    eor x0, x0, x1\n");
+        }
+        BinaryOp::Shl => out.push_str(&format!("    lsl x0, x0, #{}\n", imm & 63)),
+        BinaryOp::Shr => out.push_str(&format!("    lsr x0, x0, #{}\n", imm & 63)),
     }
 }
 
@@ -210,6 +239,7 @@ pub fn emit_unary_op(out: &mut String, op: UnaryOp) {
             out.push_str("    cmp x0, #0\n");
             out.push_str("    cset x0, eq\n");
         }
+        UnaryOp::BitNot => out.push_str("    mvn x0, x0\n"),
     }
 }
 
@@ -269,6 +299,7 @@ pub fn emit_float_binary_op_reg(out: &mut String, op: BinaryOp) {
         BinaryOp::Or => {
             out.push_str("    orr x0, x0, x1\n");
         }
+        _ => {}
     }
 }
 
@@ -336,6 +367,7 @@ pub fn emit_float_binary_op(out: &mut String, op: BinaryOp) {
             out.push_str("    ldr x1, [sp, #-16]\n");
             out.push_str("    orr x0, x1, x0\n");
         }
+        _ => {}
     }
 }
 
@@ -349,6 +381,7 @@ pub fn emit_float_unary_op(out: &mut String, op: UnaryOp) {
             out.push_str("    cmp x0, #0\n");
             out.push_str("    cset x0, eq\n");
         }
+        _ => {}
     }
 }
 

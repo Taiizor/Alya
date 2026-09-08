@@ -4,6 +4,7 @@ pub enum Expr {
     Float(f64),
     String(String),
     Identifier(String),
+    Null,
     Binary {
         left: Box<Expr>,
         op: BinaryOp,
@@ -49,10 +50,16 @@ pub enum BinaryOp {
     GreaterEqual,
     And,
     Or,
+    BitAnd,
+    BitOr,
+    BitXor,
+    Shl,
+    Shr,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UnaryOp {
     Negate,
     Not,
+    BitNot,
 }

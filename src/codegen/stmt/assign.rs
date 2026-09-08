@@ -1,8 +1,8 @@
 use super::CodeGen;
 use crate::ast::Expr;
 use crate::codegen::analysis::{
-    escape_string, is_array_expr, is_float_array, is_float_expr, is_map_expr, is_string_array,
-    is_string_expr,
+    escape_string, is_array_expr, is_float_array, is_float_expr, is_map_expr, is_null_expr,
+    is_string_array, is_string_expr,
 };
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
@@ -12,6 +12,13 @@ impl CodeGen {
     pub(super) fn generate_let(&mut self, name: &str, value: &Expr) {
         let name = name.to_string();
         match value {
+            Expr::Null => {
+                self.generate_expression(value);
+                arch::emit_allocate_var(&mut self.output, self.arch, &mut self.ctx.stack_offset);
+                self.ctx
+                    .variables
+                    .insert(name.clone(), VarType::Null(self.ctx.stack_offset));
+            }
             Expr::String(s) => {
                 let label = self.ctx.next_string_label();
                 self.emit_rodata_section();
@@ -228,6 +235,7 @@ impl CodeGen {
                 };
                 let is_flt = is_float_expr(value, &self.ctx.variables);
                 let is_map = is_map_expr(value, &self.ctx.variables);
+                let is_null = is_null_expr(value, &self.ctx.variables);
                 self.generate_expression(value);
 
                 arch::emit_allocate_var(&mut self.output, self.arch, &mut self.ctx.stack_offset);
@@ -294,6 +302,10 @@ impl CodeGen {
                     self.ctx
                         .variables
                         .insert(name.clone(), VarType::Float(self.ctx.stack_offset));
+                } else if is_null {
+                    self.ctx
+                        .variables
+                        .insert(name.clone(), VarType::Null(self.ctx.stack_offset));
                 } else {
                     self.ctx
                         .variables
@@ -309,6 +321,7 @@ impl CodeGen {
         let is_str = is_string_expr(value, &self.ctx.variables);
         let is_arr = is_array_expr(value, &self.ctx.variables);
         let is_map = is_map_expr(value, &self.ctx.variables);
+        let is_null = is_null_expr(value, &self.ctx.variables);
         self.generate_expression(value);
 
         if let Some(var_type) = self.ctx.variables.get(&name).cloned() {
@@ -318,6 +331,7 @@ impl CodeGen {
                 | VarType::StringOffset(offset)
                 | VarType::Array(offset)
                 | VarType::Map(offset)
+                | VarType::Null(offset)
                 | VarType::Struct { offset, .. } => {
                     if is_flt {
                         arch::emit_store_var_float(
@@ -334,7 +348,11 @@ impl CodeGen {
                             self.ctx.stack_offset,
                         );
                     }
-                    if is_map {
+                    if is_null {
+                        self.ctx
+                            .variables
+                            .insert(name.clone(), VarType::Null(offset));
+                    } else if is_map {
                         self.ctx
                             .variables
                             .insert(name.clone(), VarType::Map(offset));
@@ -388,6 +406,10 @@ impl CodeGen {
                                 .variables
                                 .insert(format!("arr_is_flt:{}", name), VarType::Number(0));
                         }
+                    } else {
+                        self.ctx
+                            .variables
+                            .insert(name.clone(), VarType::Number(offset));
                     }
                 }
                 VarType::StringLabel(_) => {}
@@ -411,12 +433,15 @@ impl CodeGen {
             let field_key = format!("{}.{}", obj_name, field);
             let is_flt = is_float_expr(value, &self.ctx.variables);
             let is_str = is_string_expr(value, &self.ctx.variables);
+            let is_null = is_null_expr(value, &self.ctx.variables);
             if is_str {
                 self.ctx
                     .variables
                     .insert(field_key, VarType::StringOffset(0));
             } else if is_flt {
                 self.ctx.variables.insert(field_key, VarType::Float(0));
+            } else if is_null {
+                self.ctx.variables.insert(field_key, VarType::Null(0));
             } else {
                 self.ctx.variables.insert(field_key, VarType::Number(0));
             }

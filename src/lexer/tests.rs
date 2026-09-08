@@ -252,3 +252,30 @@ fn test_tokenize_as_and_colon_colon() {
         ]
     );
 }
+
+#[test]
+fn test_tokenize_null_nil_and_bitwise_operators() {
+    let source = "null nil & | ^ ~ << >> &= |= ^= <<= >>=";
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Tokenization failed");
+    let types: Vec<_> = tokens.into_iter().map(|t| t.token_type).collect();
+    assert_eq!(
+        types,
+        vec![
+            TokenType::Null,
+            TokenType::Null,
+            TokenType::BitAnd,
+            TokenType::BitOr,
+            TokenType::BitXor,
+            TokenType::BitNot,
+            TokenType::Shl,
+            TokenType::Shr,
+            TokenType::BitAndAssign,
+            TokenType::BitOrAssign,
+            TokenType::BitXorAssign,
+            TokenType::ShlAssign,
+            TokenType::ShrAssign,
+            TokenType::Eof,
+        ]
+    );
+}

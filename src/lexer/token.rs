@@ -34,6 +34,7 @@ pub enum TokenType {
     Identifier(String),
     True,
     False,
+    Null,
 
     // Operators
     Plus,           // +
@@ -46,6 +47,11 @@ pub enum TokenType {
     MinusAssign,    // -=
     MultiplyAssign, // *=
     DivideAssign,   // /=
+    BitAndAssign,   // &=
+    BitOrAssign,    // |=
+    BitXorAssign,   // ^=
+    ShlAssign,      // <<=
+    ShrAssign,      // >>=
     Equal,          // ==
     NotEqual,       // !=
     Less,           // <
@@ -55,6 +61,12 @@ pub enum TokenType {
     And,            // and, &&
     Or,             // or, ||
     Not,            // not, !
+    BitAnd,         // &
+    BitOr,          // |
+    BitXor,         // ^
+    BitNot,         // ~
+    Shl,            // <<
+    Shr,            // >>
 
     // Delimiters
     LeftParen,    // (
@@ -104,6 +116,8 @@ impl TokenType {
             "struct" => TokenType::Struct,
             "true" => TokenType::True,
             "false" => TokenType::False,
+            "null" => TokenType::Null,
+            "nil" => TokenType::Null,
             "and" => TokenType::And,
             "or" => TokenType::Or,
             "not" => TokenType::Not,
@@ -153,6 +167,7 @@ impl std::fmt::Display for TokenType {
             TokenType::Identifier(s) => write!(f, "identifier '{}'", s),
             TokenType::True => write!(f, "'true'"),
             TokenType::False => write!(f, "'false'"),
+            TokenType::Null => write!(f, "'null'"),
             TokenType::Plus => write!(f, "'+'"),
             TokenType::Minus => write!(f, "'-'"),
             TokenType::Multiply => write!(f, "'*'"),
@@ -163,6 +178,11 @@ impl std::fmt::Display for TokenType {
             TokenType::MinusAssign => write!(f, "'-='"),
             TokenType::MultiplyAssign => write!(f, "'*='"),
             TokenType::DivideAssign => write!(f, "'/='"),
+            TokenType::BitAndAssign => write!(f, "'&='"),
+            TokenType::BitOrAssign => write!(f, "'|='"),
+            TokenType::BitXorAssign => write!(f, "'^='"),
+            TokenType::ShlAssign => write!(f, "'<<='"),
+            TokenType::ShrAssign => write!(f, "'>>='"),
             TokenType::Equal => write!(f, "'=='"),
             TokenType::NotEqual => write!(f, "'!='"),
             TokenType::Less => write!(f, "'<'"),
@@ -172,6 +192,12 @@ impl std::fmt::Display for TokenType {
             TokenType::And => write!(f, "'and'"),
             TokenType::Or => write!(f, "'or'"),
             TokenType::Not => write!(f, "'not'"),
+            TokenType::BitAnd => write!(f, "'&'"),
+            TokenType::BitOr => write!(f, "'|'"),
+            TokenType::BitXor => write!(f, "'^'"),
+            TokenType::BitNot => write!(f, "'~'"),
+            TokenType::Shl => write!(f, "'<<'"),
+            TokenType::Shr => write!(f, "'>>'"),
             TokenType::LeftParen => write!(f, "'('"),
             TokenType::RightParen => write!(f, "')'"),
             TokenType::LeftBracket => write!(f, "'['"),

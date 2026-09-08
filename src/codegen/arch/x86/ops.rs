@@ -50,8 +50,17 @@ pub fn emit_binary_op(out: &mut String, op: BinaryOp) {
             out.push_str("    setge %al\n");
             out.push_str("    movzbl %al, %eax\n");
         }
-        BinaryOp::And => out.push_str("    and %ebx, %eax\n"),
-        BinaryOp::Or => out.push_str("    or %ebx, %eax\n"),
+        BinaryOp::And | BinaryOp::BitAnd => out.push_str("    and %ebx, %eax\n"),
+        BinaryOp::Or | BinaryOp::BitOr => out.push_str("    or %ebx, %eax\n"),
+        BinaryOp::BitXor => out.push_str("    xor %ebx, %eax\n"),
+        BinaryOp::Shl => {
+            out.push_str("    mov %ebx, %ecx\n");
+            out.push_str("    shl %cl, %eax\n");
+        }
+        BinaryOp::Shr => {
+            out.push_str("    mov %ebx, %ecx\n");
+            out.push_str("    shr %cl, %eax\n");
+        }
     }
 }
 
@@ -63,6 +72,7 @@ pub fn emit_unary_op(out: &mut String, op: UnaryOp) {
             out.push_str("    sete %al\n");
             out.push_str("    movzbl %al, %eax\n");
         }
+        UnaryOp::BitNot => out.push_str("    not %eax\n"),
     }
 }
 
@@ -115,6 +125,7 @@ pub fn emit_float_binary_op(out: &mut String, op: BinaryOp) {
         }
         BinaryOp::And => out.push_str("    and %ebx, %eax\n"),
         BinaryOp::Or => out.push_str("    or %ebx, %eax\n"),
+        _ => {}
     }
 }
 
@@ -130,6 +141,7 @@ pub fn emit_float_unary_op(out: &mut String, op: UnaryOp) {
             out.push_str("    sete %al\n");
             out.push_str("    movzbl %al, %eax\n");
         }
+        _ => {}
     }
 }
 
@@ -204,8 +216,17 @@ pub fn emit_binary_op_reg(out: &mut String, op: BinaryOp) {
             out.push_str("    setge %al\n");
             out.push_str("    movzbl %al, %eax\n");
         }
-        BinaryOp::And => out.push_str("    and %ebx, %eax\n"),
-        BinaryOp::Or => out.push_str("    or %ebx, %eax\n"),
+        BinaryOp::And | BinaryOp::BitAnd => out.push_str("    and %ebx, %eax\n"),
+        BinaryOp::Or | BinaryOp::BitOr => out.push_str("    or %ebx, %eax\n"),
+        BinaryOp::BitXor => out.push_str("    xor %ebx, %eax\n"),
+        BinaryOp::Shl => {
+            out.push_str("    mov %ebx, %ecx\n");
+            out.push_str("    shl %cl, %eax\n");
+        }
+        BinaryOp::Shr => {
+            out.push_str("    mov %ebx, %ecx\n");
+            out.push_str("    shr %cl, %eax\n");
+        }
     }
 }
 
@@ -267,8 +288,11 @@ pub fn emit_binary_op_imm(out: &mut String, op: BinaryOp, imm: i64) {
                 imm32
             ));
         }
-        BinaryOp::And => out.push_str(&format!("    and ${}, %eax\n", imm32)),
-        BinaryOp::Or => out.push_str(&format!("    or ${}, %eax\n", imm32)),
+        BinaryOp::And | BinaryOp::BitAnd => out.push_str(&format!("    and ${}, %eax\n", imm32)),
+        BinaryOp::Or | BinaryOp::BitOr => out.push_str(&format!("    or ${}, %eax\n", imm32)),
+        BinaryOp::BitXor => out.push_str(&format!("    xor ${}, %eax\n", imm32)),
+        BinaryOp::Shl => out.push_str(&format!("    shl ${}, %eax\n", imm & 31)),
+        BinaryOp::Shr => out.push_str(&format!("    shr ${}, %eax\n", imm & 31)),
     }
 }
 

@@ -122,12 +122,22 @@ impl Parser {
                         TokenType::PlusAssign
                         | TokenType::MinusAssign
                         | TokenType::MultiplyAssign
-                        | TokenType::DivideAssign => {
+                        | TokenType::DivideAssign
+                        | TokenType::BitAndAssign
+                        | TokenType::BitOrAssign
+                        | TokenType::BitXorAssign
+                        | TokenType::ShlAssign
+                        | TokenType::ShrAssign => {
                             let bin_op = match self.current_token().token_type {
                                 TokenType::PlusAssign => BinaryOp::Add,
                                 TokenType::MinusAssign => BinaryOp::Subtract,
                                 TokenType::MultiplyAssign => BinaryOp::Multiply,
                                 TokenType::DivideAssign => BinaryOp::Divide,
+                                TokenType::BitAndAssign => BinaryOp::BitAnd,
+                                TokenType::BitOrAssign => BinaryOp::BitOr,
+                                TokenType::BitXorAssign => BinaryOp::BitXor,
+                                TokenType::ShlAssign => BinaryOp::Shl,
+                                TokenType::ShrAssign => BinaryOp::Shr,
                                 _ => unreachable!(),
                             };
                             self.advance();
@@ -209,6 +219,66 @@ impl Parser {
                             value: Expr::Binary {
                                 left: Box::new(Expr::Identifier(ident)),
                                 op: BinaryOp::Divide,
+                                right: Box::new(value),
+                            },
+                        }])
+                    }
+                    TokenType::BitAndAssign => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        Ok(vec![Stmt::Assign {
+                            name: ident.clone(),
+                            value: Expr::Binary {
+                                left: Box::new(Expr::Identifier(ident)),
+                                op: BinaryOp::BitAnd,
+                                right: Box::new(value),
+                            },
+                        }])
+                    }
+                    TokenType::BitOrAssign => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        Ok(vec![Stmt::Assign {
+                            name: ident.clone(),
+                            value: Expr::Binary {
+                                left: Box::new(Expr::Identifier(ident)),
+                                op: BinaryOp::BitOr,
+                                right: Box::new(value),
+                            },
+                        }])
+                    }
+                    TokenType::BitXorAssign => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        Ok(vec![Stmt::Assign {
+                            name: ident.clone(),
+                            value: Expr::Binary {
+                                left: Box::new(Expr::Identifier(ident)),
+                                op: BinaryOp::BitXor,
+                                right: Box::new(value),
+                            },
+                        }])
+                    }
+                    TokenType::ShlAssign => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        Ok(vec![Stmt::Assign {
+                            name: ident.clone(),
+                            value: Expr::Binary {
+                                left: Box::new(Expr::Identifier(ident)),
+                                op: BinaryOp::Shl,
+                                right: Box::new(value),
+                            },
+                        }])
+                    }
+                    TokenType::ShrAssign => {
+                        self.advance();
+                        let value = self.parse_expression()?;
+                        Ok(vec![Stmt::Assign {
+                            name: ident.clone(),
+                            value: Expr::Binary {
+                                left: Box::new(Expr::Identifier(ident)),
+                                op: BinaryOp::Shr,
                                 right: Box::new(value),
                             },
                         }])

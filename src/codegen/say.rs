@@ -1,6 +1,8 @@
 use super::CodeGen;
 use crate::ast::{BinaryOp, Expr};
-use crate::codegen::analysis::{escape_string, is_float_expr, is_map_expr, is_string_expr};
+use crate::codegen::analysis::{
+    escape_string, is_float_expr, is_map_expr, is_null_expr, is_string_expr,
+};
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
 use crate::codegen::target::Architecture;
@@ -8,6 +10,22 @@ use crate::codegen::target::Architecture;
 impl CodeGen {
     pub(crate) fn generate_say(&mut self, expr: &Expr) {
         match expr {
+            Expr::Null => {
+                let label = self.ctx.next_string_label();
+                self.emit_rodata_section();
+                self.output.push_str(&format!("{}:\n", label));
+                self.emit_string_directive("null\\n");
+                self.output.push_str(".text\n");
+
+                arch::emit_say_str_lit(
+                    &mut self.output,
+                    self.arch,
+                    &label,
+                    self.ctx.stack_offset,
+                    self.os,
+                );
+                self.output.push('\n');
+            }
             Expr::String(s) => {
                 let label = self.ctx.next_string_label();
                 self.emit_rodata_section();
@@ -35,16 +53,20 @@ impl CodeGen {
                             format_str.push_str(&escape_string(s).replace('%', "%%"));
                         }
                         _ => {
-                            let is_flt = is_float_expr(part, &self.ctx.variables);
-                            if is_string_expr(part, &self.ctx.variables) {
-                                format_str.push_str("%s");
-                            } else if is_flt {
-                                format_str.push_str("%g");
+                            if is_null_expr(part, &self.ctx.variables) {
+                                format_str.push_str("null");
                             } else {
-                                format_str.push_str("%ld");
+                                let is_flt = is_float_expr(part, &self.ctx.variables);
+                                if is_string_expr(part, &self.ctx.variables) {
+                                    format_str.push_str("%s");
+                                } else if is_flt {
+                                    format_str.push_str("%g");
+                                } else {
+                                    format_str.push_str("%ld");
+                                }
+                                exprs.push(part);
+                                is_floats.push(is_flt);
                             }
-                            exprs.push(part);
-                            is_floats.push(is_flt);
                         }
                     }
                 }
@@ -256,6 +278,22 @@ impl CodeGen {
                             );
                             self.output.push('\n');
                         }
+                        VarType::Null(_) => {
+                            let label = self.ctx.next_string_label();
+                            self.emit_rodata_section();
+                            self.output.push_str(&format!("{}:\n", label));
+                            self.emit_string_directive("null\\n");
+                            self.output.push_str(".text\n");
+
+                            arch::emit_say_str_lit(
+                                &mut self.output,
+                                self.arch,
+                                &label,
+                                self.ctx.stack_offset,
+                                self.os,
+                            );
+                            self.output.push('\n');
+                        }
                     }
                 }
             }
@@ -342,6 +380,24 @@ impl CodeGen {
                 }
             }
             _ => {
+                if is_null_expr(expr, &self.ctx.variables) {
+                    let label = self.ctx.next_string_label();
+                    self.emit_rodata_section();
+                    self.output.push_str(&format!("{}:\n", label));
+                    self.emit_string_directive("null\\n");
+                    self.output.push_str(".text\n");
+
+                    arch::emit_say_str_lit(
+                        &mut self.output,
+                        self.arch,
+                        &label,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                    self.output.push('\n');
+                    return;
+                }
+
                 if is_map_expr(expr, &self.ctx.variables) {
                     self.generate_expression(expr);
                     arch::emit_print_map(
