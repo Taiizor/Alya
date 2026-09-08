@@ -1017,6 +1017,15 @@ let uuid = uuid_v4()
 say "uuid len: {len(uuid)}"
 say "uuid v4: {char_at(uuid, 14)}"
 
+let u7 = uuid_v7()
+say "u7 len: {len(u7)}"
+say "u7 ver: {char_at(u7, 14)}"
+let u7_sim = uuid_v7_simple()
+say "u7 sim len: {len(u7_sim)}"
+let u7_a = uuid_v7_at(1000000000000)
+let u7_b = uuid_v7_at(1000000001000)
+say "u7 sort: {u7_a < u7_b}"
+
 let ulid = ulid_generate()
 say "ulid len: {len(ulid)}"
 
@@ -1033,6 +1042,10 @@ say "rng ok: {rng_val >= 100 and rng_val <= 200}"
         assert!(output.contains("digits len: 6"));
         assert!(output.contains("uuid len: 36"));
         assert!(output.contains("uuid v4: 4"));
+        assert!(output.contains("u7 len: 36"));
+        assert!(output.contains("u7 ver: 7"));
+        assert!(output.contains("u7 sim len: 32"));
+        assert!(output.contains("u7 sort: 1"));
         assert!(output.contains("ulid len: 26"));
         assert!(output.contains("rng ok: 1"));
     }

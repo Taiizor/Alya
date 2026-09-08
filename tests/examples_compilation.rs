@@ -246,6 +246,11 @@ fn test_all_examples_execute_with_gcc() {
                 actual_stdout
             );
             assert!(
+                actual_stdout.contains("UUID v7"),
+                "rand_demo missing UUID v7:\n{}",
+                actual_stdout
+            );
+            assert!(
                 actual_stdout.contains("ULID"),
                 "rand_demo missing ULID:\n{}",
                 actual_stdout

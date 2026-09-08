@@ -82,6 +82,14 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "json_get_string"
                     | "read_file_or"
                     | "glob_escape"
+                    | "uuid_v4"
+                    | "uuid_v4_simple"
+                    | "uuid_v7"
+                    | "uuid_v7_at"
+                    | "uuid_v7_simple"
+                    | "uuid_v7_simple_at"
+                    | "ulid_generate"
+                    | "ulid_at"
             ) {
                 return true;
             }

@@ -31,7 +31,10 @@ say "Sampled 3     : " + str(sample[0]) + ", " + str(sample[1]) + ", " + str(sam
 say "\n--- 4. Unique Identifiers ---"
 let uuid = uuid_v4()
 say "UUID v4       : " + uuid
-say "UUID simple   : " + uuid_v4_simple()
+say "UUID v4 simple: " + uuid_v4_simple()
+let uuid7 = uuid_v7()
+say "UUID v7       : " + uuid7
+say "UUID v7 simple: " + uuid_v7_simple()
 let ulid = ulid_generate()
 say "ULID          : " + ulid
 
