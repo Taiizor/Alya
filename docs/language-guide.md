@@ -102,6 +102,12 @@ let count = 42
 say "Total items: " + count          # Auto-converts number to string: "Total items: 42"
 say 100 + " percent completed"      # Auto-converts: "100 percent completed"
 say str(count)                      # Explicit string conversion: "42"
+
+# String-to-number parsing
+say int("123")                      # Converts string to integer: 123
+say float("3.14159")                # Converts string to float: 3.14159
+say to_int("456")                   # Alias: 456
+say to_float("99.9")                # Alias: 99.9
 ```
 
 ---
@@ -320,7 +326,9 @@ say "Area: {area}"
 let count = 4
 let average = (10.0 + 20.0 + 30.5 + 40.5) / float(count)
 say "Average: {average}"    # 25.25
-say int(average)             # 25
+say int(average)             # Float to integer: 25
+say float("19.95")           # String to float: 19.95
+say int("50")                # String to integer: 50
 ```
 
 ---

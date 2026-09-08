@@ -68,6 +68,23 @@ let name = ask "Enter your name: "
 say "Hello, " + name
 ```
 
+### Type Conversions & Numeric Parsing
+Since `ask` returns a string, use built-in functions to convert between strings and numbers without requiring imports:
+* `int(x)` / `to_int(x)` / `parse_int(x)`: Parses a string into a 64-bit integer, or converts float to int.
+* `float(x)` / `to_float(x)` / `parse_float(x)`: Parses a string into a 64-bit float, or converts int to float.
+* `str(x)`: Converts any numeric value to its string representation.
+
+```alya
+let raw_qty = ask "Enter quantity: "
+let qty = int(raw_qty)              # "5" -> 5
+
+let raw_price = ask "Enter price: "
+let price = float(raw_price)        # "19.95" -> 19.95
+
+let subtotal = price * float(qty)
+say "Total: ${subtotal}"
+```
+
 ---
 
 ## 5. String Interpolation & Built-ins
