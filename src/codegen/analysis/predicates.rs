@@ -112,13 +112,22 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             if let Expr::Identifier(obj_name) = &**object {
                 let key = format!("{}.{}", obj_name, field);
                 if let Some(var_type) = vars.get(&key) {
-                    matches!(var_type, VarType::StringLabel(_) | VarType::StringOffset(_))
-                } else {
-                    false
+                    if matches!(var_type, VarType::StringLabel(_) | VarType::StringOffset(_)) {
+                        return true;
+                    }
                 }
-            } else {
-                false
+                if let Some(VarType::Struct { struct_name, .. }) = vars.get(obj_name) {
+                    let field_key = format!("struct_field_str:{}.{}", struct_name, field);
+                    if vars.contains_key(&field_key) {
+                        return true;
+                    }
+                }
             }
+            let global_field_key = format!("struct_field_str:{}", field);
+            if vars.contains_key(&global_field_key) {
+                return true;
+            }
+            false
         }
         Expr::Binary {
             left,
@@ -242,10 +251,21 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
         Expr::FieldAccess { object, field } => {
             if let Expr::Identifier(obj_name) = &**object {
                 let key = format!("{}.{}", obj_name, field);
-                matches!(vars.get(&key), Some(VarType::Float(_)))
-            } else {
-                false
+                if matches!(vars.get(&key), Some(VarType::Float(_))) {
+                    return true;
+                }
+                if let Some(VarType::Struct { struct_name, .. }) = vars.get(obj_name) {
+                    let field_key = format!("struct_field_flt:{}.{}", struct_name, field);
+                    if vars.contains_key(&field_key) {
+                        return true;
+                    }
+                }
             }
+            let global_field_key = format!("struct_field_flt:{}", field);
+            if vars.contains_key(&global_field_key) {
+                return true;
+            }
+            false
         }
         Expr::Binary {
             left,

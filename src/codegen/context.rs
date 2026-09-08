@@ -21,7 +21,7 @@ pub enum VarType {
 pub struct ScopeState {
     pub variables: HashMap<String, VarType>,
     pub stack_offset: i32,
-    pub loop_stack: Vec<(String, String)>,
+    pub loop_stack: Vec<(String, String, i32)>,
 }
 
 #[derive(Debug, Default)]
@@ -31,7 +31,7 @@ pub struct CodeGenContext {
     pub variables: HashMap<String, VarType>,
     pub structs: HashMap<String, StructDefInfo>,
     pub stack_offset: i32,
-    pub loop_stack: Vec<(String, String)>,
+    pub loop_stack: Vec<(String, String, i32)>,
 }
 
 impl CodeGenContext {
@@ -58,15 +58,16 @@ impl CodeGenContext {
         label
     }
 
-    pub fn push_loop(&mut self, continue_lbl: String, break_lbl: String) {
-        self.loop_stack.push((continue_lbl, break_lbl));
+    pub fn push_loop(&mut self, continue_lbl: String, break_lbl: String, base_stack_offset: i32) {
+        self.loop_stack
+            .push((continue_lbl, break_lbl, base_stack_offset));
     }
 
-    pub fn pop_loop(&mut self) -> Option<(String, String)> {
+    pub fn pop_loop(&mut self) -> Option<(String, String, i32)> {
         self.loop_stack.pop()
     }
 
-    pub fn current_loop(&self) -> Option<&(String, String)> {
+    pub fn current_loop(&self) -> Option<&(String, String, i32)> {
         self.loop_stack.last()
     }
 

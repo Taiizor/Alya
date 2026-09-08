@@ -31,6 +31,17 @@ impl CodeGen {
                 let is_flt_arr = elements
                     .first()
                     .is_some_and(|e| is_float_expr(e, &self.ctx.variables));
+                let struct_elem_type = elements.first().and_then(|e| match e {
+                    Expr::StructInit { name, .. } => Some(name.clone()),
+                    Expr::Call { name, .. } if self.ctx.structs.contains_key(name) => {
+                        Some(name.clone())
+                    }
+                    Expr::Identifier(id) => match self.ctx.variables.get(id) {
+                        Some(VarType::Struct { struct_name, .. }) => Some(struct_name.clone()),
+                        _ => None,
+                    },
+                    _ => None,
+                });
                 self.generate_expression(value);
 
                 arch::emit_allocate_var(&mut self.output, self.arch, &mut self.ctx.stack_offset);
@@ -38,6 +49,15 @@ impl CodeGen {
                 self.ctx
                     .variables
                     .insert(name.clone(), VarType::Array(self.ctx.stack_offset));
+                if let Some(sname) = struct_elem_type {
+                    self.ctx.variables.insert(
+                        format!("arr_struct_type:{}", name),
+                        VarType::Struct {
+                            struct_name: sname,
+                            offset: 0,
+                        },
+                    );
+                }
                 if is_str_arr {
                     self.ctx
                         .variables
@@ -73,8 +93,23 @@ impl CodeGen {
                         self.ctx
                             .variables
                             .insert(field_key, VarType::StringOffset(0));
+                        self.ctx.variables.insert(
+                            format!("struct_field_str:{}.{}", sname, fname),
+                            VarType::StringOffset(0),
+                        );
+                        self.ctx.variables.insert(
+                            format!("struct_field_str:{}", fname),
+                            VarType::StringOffset(0),
+                        );
                     } else if is_flt {
                         self.ctx.variables.insert(field_key, VarType::Float(0));
+                        self.ctx.variables.insert(
+                            format!("struct_field_flt:{}.{}", sname, fname),
+                            VarType::Float(0),
+                        );
+                        self.ctx
+                            .variables
+                            .insert(format!("struct_field_flt:{}", fname), VarType::Float(0));
                     } else {
                         self.ctx.variables.insert(field_key, VarType::Number(0));
                     }
@@ -99,7 +134,7 @@ impl CodeGen {
                 self.ctx.variables.insert(
                     name.clone(),
                     VarType::Struct {
-                        struct_name: sname,
+                        struct_name: sname.clone(),
                         offset: self.ctx.stack_offset,
                     },
                 );
@@ -113,8 +148,23 @@ impl CodeGen {
                             self.ctx
                                 .variables
                                 .insert(field_key, VarType::StringOffset(0));
+                            self.ctx.variables.insert(
+                                format!("struct_field_str:{}.{}", sname, fname),
+                                VarType::StringOffset(0),
+                            );
+                            self.ctx.variables.insert(
+                                format!("struct_field_str:{}", fname),
+                                VarType::StringOffset(0),
+                            );
                         } else if is_flt {
                             self.ctx.variables.insert(field_key, VarType::Float(0));
+                            self.ctx.variables.insert(
+                                format!("struct_field_flt:{}.{}", sname, fname),
+                                VarType::Float(0),
+                            );
+                            self.ctx
+                                .variables
+                                .insert(format!("struct_field_flt:{}", fname), VarType::Float(0));
                         } else {
                             self.ctx.variables.insert(field_key, VarType::Number(0));
                         }

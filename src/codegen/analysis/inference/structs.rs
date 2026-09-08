@@ -31,14 +31,21 @@ fn infer_expr_struct_type(expr: &Expr, program: &Program) -> Option<String> {
         }
         Expr::Identifier(var_name) => {
             for s in &program.statements {
-                if let Stmt::Let { name, value } = s {
-                    if name == var_name {
+                match s {
+                    Stmt::Let { name, value } if name == var_name => {
                         return infer_expr_struct_type(value, program);
                     }
+                    Stmt::ForEach { var, iterable, .. } if var == var_name => {
+                        return infer_expr_struct_type(iterable, program);
+                    }
+                    _ => {}
                 }
             }
             None
         }
+        Expr::Array(elements) => elements
+            .first()
+            .and_then(|e| infer_expr_struct_type(e, program)),
         _ => None,
     }
 }

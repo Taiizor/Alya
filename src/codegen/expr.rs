@@ -547,6 +547,28 @@ impl CodeGen {
                     self.ctx.stack_offset,
                     self.os,
                 );
+                for (fname, fval) in fields {
+                    let is_str = is_string_expr(fval, &self.ctx.variables);
+                    let is_flt = is_float_expr(fval, &self.ctx.variables);
+                    if is_str {
+                        self.ctx.variables.insert(
+                            format!("struct_field_str:{}.{}", name, fname),
+                            VarType::StringOffset(0),
+                        );
+                        self.ctx.variables.insert(
+                            format!("struct_field_str:{}", fname),
+                            VarType::StringOffset(0),
+                        );
+                    } else if is_flt {
+                        self.ctx.variables.insert(
+                            format!("struct_field_flt:{}.{}", name, fname),
+                            VarType::Float(0),
+                        );
+                        self.ctx
+                            .variables
+                            .insert(format!("struct_field_flt:{}", fname), VarType::Float(0));
+                    }
+                }
                 arch::emit_push_temp(&mut self.output, self.arch);
 
                 if let Some(sdef) = self.ctx.structs.get(name).cloned() {

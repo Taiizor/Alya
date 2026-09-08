@@ -181,8 +181,14 @@ impl CodeGen {
     pub(super) fn generate_while(&mut self, condition: &Expr, body: &[Stmt]) {
         let start_label = self.ctx.next_label();
         let end_label = self.ctx.next_label();
+        let loop_body_stack_offset = self.ctx.stack_offset;
+        let loop_body_variables = self.ctx.variables.clone();
 
-        self.ctx.push_loop(start_label.clone(), end_label.clone());
+        self.ctx.push_loop(
+            start_label.clone(),
+            end_label.clone(),
+            loop_body_stack_offset,
+        );
 
         self.output.push_str(&format!("{}:\n", start_label));
         self.generate_condition_jump_if_false(condition, &end_label);
@@ -190,6 +196,13 @@ impl CodeGen {
         for s in body {
             self.generate_statement(s);
         }
+
+        let body_delta = self.ctx.stack_offset - loop_body_stack_offset;
+        if body_delta > 0 {
+            arch::emit_stack_restore(&mut self.output, self.arch, body_delta);
+        }
+        self.ctx.stack_offset = loop_body_stack_offset;
+        self.ctx.variables = loop_body_variables;
 
         arch::emit_jump(&mut self.output, self.arch, &start_label);
         self.output.push_str(&format!("{}:\n", end_label));
@@ -200,14 +213,27 @@ impl CodeGen {
     pub(super) fn generate_repeat(&mut self, body: &[Stmt]) {
         let start_label = self.ctx.next_label();
         let end_label = self.ctx.next_label();
+        let loop_body_stack_offset = self.ctx.stack_offset;
+        let loop_body_variables = self.ctx.variables.clone();
 
-        self.ctx.push_loop(start_label.clone(), end_label.clone());
+        self.ctx.push_loop(
+            start_label.clone(),
+            end_label.clone(),
+            loop_body_stack_offset,
+        );
 
         self.output.push_str(&format!("{}:\n", start_label));
 
         for s in body {
             self.generate_statement(s);
         }
+
+        let body_delta = self.ctx.stack_offset - loop_body_stack_offset;
+        if body_delta > 0 {
+            arch::emit_stack_restore(&mut self.output, self.arch, body_delta);
+        }
+        self.ctx.stack_offset = loop_body_stack_offset;
+        self.ctx.variables = loop_body_variables;
 
         arch::emit_jump(&mut self.output, self.arch, &start_label);
         self.output.push_str(&format!("{}:\n", end_label));
@@ -237,8 +263,14 @@ impl CodeGen {
         let start_label = self.ctx.next_label();
         let step_label = self.ctx.next_label();
         let end_label = self.ctx.next_label();
+        let loop_body_stack_offset = self.ctx.stack_offset;
+        let loop_body_variables = self.ctx.variables.clone();
 
-        self.ctx.push_loop(step_label.clone(), end_label.clone());
+        self.ctx.push_loop(
+            step_label.clone(),
+            end_label.clone(),
+            loop_body_stack_offset,
+        );
 
         self.output.push_str(&format!("{}:\n", start_label));
         arch::emit_load_var(
@@ -255,6 +287,13 @@ impl CodeGen {
         for s in body {
             self.generate_statement(s);
         }
+
+        let body_delta = self.ctx.stack_offset - loop_body_stack_offset;
+        if body_delta > 0 {
+            arch::emit_stack_restore(&mut self.output, self.arch, body_delta);
+        }
+        self.ctx.stack_offset = loop_body_stack_offset;
+        self.ctx.variables = loop_body_variables;
 
         self.output.push_str(&format!("{}:\n", step_label));
         arch::emit_increment_var(
@@ -282,12 +321,45 @@ impl CodeGen {
         let is_str = is_string_array(iterable, &self.ctx.variables);
         let is_flt = is_float_array(iterable, &self.ctx.variables);
 
+        let inferred_struct_type = match iterable {
+            Expr::Identifier(arr_name) => {
+                match self
+                    .ctx
+                    .variables
+                    .get(&format!("arr_struct_type:{}", arr_name))
+                {
+                    Some(VarType::Struct { struct_name, .. }) => Some(struct_name.clone()),
+                    _ => None,
+                }
+            }
+            Expr::Array(elems) => elems.first().and_then(|e| match e {
+                Expr::StructInit { name, .. } => Some(name.clone()),
+                Expr::Call { name, .. } if self.ctx.structs.contains_key(name) => {
+                    Some(name.clone())
+                }
+                Expr::Identifier(id) => match self.ctx.variables.get(id) {
+                    Some(VarType::Struct { struct_name, .. }) => Some(struct_name.clone()),
+                    _ => None,
+                },
+                _ => None,
+            }),
+            _ => None,
+        };
+
         let var_offset = match self.ctx.variables.get(&var) {
             Some(
-                VarType::Number(offset) | VarType::Float(offset) | VarType::StringOffset(offset),
+                VarType::Number(offset)
+                | VarType::Float(offset)
+                | VarType::StringOffset(offset)
+                | VarType::Struct { offset, .. },
             ) => {
                 let off = *offset;
-                let var_type = if is_str {
+                let var_type = if let Some(sname) = &inferred_struct_type {
+                    VarType::Struct {
+                        struct_name: sname.clone(),
+                        offset: off,
+                    }
+                } else if is_str {
                     VarType::StringOffset(off)
                 } else if is_flt {
                     VarType::Float(off)
@@ -300,7 +372,12 @@ impl CodeGen {
             _ => {
                 arch::emit_allocate_var(&mut self.output, self.arch, &mut self.ctx.stack_offset);
                 let off = self.ctx.stack_offset;
-                let var_type = if is_str {
+                let var_type = if let Some(sname) = &inferred_struct_type {
+                    VarType::Struct {
+                        struct_name: sname.clone(),
+                        offset: off,
+                    }
+                } else if is_str {
                     VarType::StringOffset(off)
                 } else if is_flt {
                     VarType::Float(off)
@@ -312,11 +389,50 @@ impl CodeGen {
             }
         };
 
+        if let Some(sname) = &inferred_struct_type {
+            if let Some(sdef) = self.ctx.structs.get(sname).cloned() {
+                for fname in &sdef.fields {
+                    let field_key = format!("{}.{}", var, fname);
+                    if self
+                        .ctx
+                        .variables
+                        .contains_key(&format!("struct_field_str:{}.{}", sname, fname))
+                        || self
+                            .ctx
+                            .variables
+                            .contains_key(&format!("struct_field_str:{}", fname))
+                    {
+                        self.ctx
+                            .variables
+                            .insert(field_key, VarType::StringOffset(0));
+                    } else if self
+                        .ctx
+                        .variables
+                        .contains_key(&format!("struct_field_flt:{}.{}", sname, fname))
+                        || self
+                            .ctx
+                            .variables
+                            .contains_key(&format!("struct_field_flt:{}", fname))
+                    {
+                        self.ctx.variables.insert(field_key, VarType::Float(0));
+                    } else {
+                        self.ctx.variables.insert(field_key, VarType::Number(0));
+                    }
+                }
+            }
+        }
+
         let start_label = self.ctx.next_label();
         let step_label = self.ctx.next_label();
         let end_label = self.ctx.next_label();
+        let loop_body_stack_offset = self.ctx.stack_offset;
+        let loop_body_variables = self.ctx.variables.clone();
 
-        self.ctx.push_loop(step_label.clone(), end_label.clone());
+        self.ctx.push_loop(
+            step_label.clone(),
+            end_label.clone(),
+            loop_body_stack_offset,
+        );
 
         self.output.push_str(&format!("{}:\n", start_label));
         arch::emit_for_each_load_element(
@@ -331,6 +447,13 @@ impl CodeGen {
         for s in body {
             self.generate_statement(s);
         }
+
+        let body_delta = self.ctx.stack_offset - loop_body_stack_offset;
+        if body_delta > 0 {
+            arch::emit_stack_restore(&mut self.output, self.arch, body_delta);
+        }
+        self.ctx.stack_offset = loop_body_stack_offset;
+        self.ctx.variables = loop_body_variables;
 
         self.output.push_str(&format!("{}:\n", step_label));
         arch::emit_increment_var(

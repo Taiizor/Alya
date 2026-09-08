@@ -51,6 +51,7 @@ impl CodeGen {
             if s.starts_with("map_field_str:")
                 || s.starts_with("map_str:")
                 || s.starts_with("fn_ret_str:")
+                || s.starts_with("struct_field_str:")
             {
                 self.ctx
                     .variables
@@ -59,7 +60,7 @@ impl CodeGen {
         }
 
         for s in &inference.known_floats {
-            if s.starts_with("fn_ret_flt:") {
+            if s.starts_with("fn_ret_flt:") || s.starts_with("struct_field_flt:") {
                 self.ctx.variables.insert(s.clone(), VarType::Float(0));
             }
         }

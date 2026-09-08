@@ -48,12 +48,20 @@ impl CodeGen {
                 body,
             } => self.generate_for_each(var, iterable, body),
             Stmt::Break => {
-                if let Some((_, break_label)) = self.ctx.current_loop().cloned() {
+                if let Some((_, break_label, base_offset)) = self.ctx.current_loop().cloned() {
+                    let delta = self.ctx.stack_offset - base_offset;
+                    if delta > 0 {
+                        arch::emit_stack_restore(&mut self.output, self.arch, delta);
+                    }
                     arch::emit_jump(&mut self.output, self.arch, &break_label);
                 }
             }
             Stmt::Continue => {
-                if let Some((continue_label, _)) = self.ctx.current_loop().cloned() {
+                if let Some((continue_label, _, base_offset)) = self.ctx.current_loop().cloned() {
+                    let delta = self.ctx.stack_offset - base_offset;
+                    if delta > 0 {
+                        arch::emit_stack_restore(&mut self.output, self.arch, delta);
+                    }
                     arch::emit_jump(&mut self.output, self.arch, &continue_label);
                 }
             }
