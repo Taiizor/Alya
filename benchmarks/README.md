@@ -22,10 +22,10 @@ All implementations solve the exact same algorithmic problem on identical inputs
 
 | Benchmark | Target Workload | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs C | Alya vs Python | Alya vs Bun |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Recursive Fibonacci** | `fib(30)` (~2.69M calls) | `2.4 ms` | **`9.0 ms`** | `13.7 ms` | `120.8 ms` | **3.7x** | **13.5x faster** | **1.5x faster** |
-| **Mandelbrot Fractal** | 200×100 grid, 200 iters | `3.3 ms` | **`8.1 ms`** | `9.5 ms` | `123.4 ms` | **2.5x** | **15.1x faster** | **1.2x faster** |
-| **Sieve of Eratosthenes** | Primes under 50,000 | `1.0 ms` | **`1.5 ms`** | `7.2 ms` | `18.3 ms` | **1.4x** | **12.4x faster** | **4.9x faster** |
-| **FNV-1a String Hash** | 50,000 hash calculations | `4.8 ms` | **`8.6 ms`** | `13.2 ms` | `426.6 ms` | **1.8x** | **49.5x faster** | **1.5x faster** |
+| **Recursive Fibonacci** | `fib(30)` (~2.69M calls) | `2.3 ms` | **`8.7 ms`** | `12.3 ms` | `120.0 ms` | **3.8x** | **13.7x faster** | **1.4x faster** |
+| **Mandelbrot Fractal** | 200×100 grid, 200 iters | `3.1 ms` | **`8.0 ms`** | `8.8 ms` | `121.1 ms` | **2.5x** | **15.2x faster** | **1.1x faster** |
+| **Sieve of Eratosthenes** | Primes under 50,000 | `1.0 ms` | **`1.5 ms`** | `6.3 ms` | `16.5 ms` | **1.5x** | **11.4x faster** | **4.3x faster** |
+| **FNV-1a String Hash** | 50,000 hash calculations | `4.7 ms` | **`8.5 ms`** | `12.4 ms` | `425.5 ms` | **1.8x** | **49.8x faster** | **1.5x faster** |
 
 ---
 
@@ -61,11 +61,11 @@ Alya features a lightweight single-pass frontend with immediate native x64 assem
 
 | Benchmark Stage | Iterations | Average Time | Min Time | Max Time | Measured Throughput |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **`Lexer::tokenize`** | 1321 | `302.92µs` | `293.95µs` | `393.58µs` | **71.7 MB/s** |
-| **`Parser::parse`** | 713 | `560.82µs` | `500.16µs` | `635.06µs` | **2098694 lines/s** |
-| **`ProgramInference::analyze`** | 53 | `7.69ms` | `7.64ms` | `7.87ms` | **130 ops/s** |
-| **`CodeGen::generate (x64)`** | 13 | `33.16ms` | `33.03ms` | `33.27ms` | **265253 asm lines/s** |
-| **`Full Frontend Pipeline`** | 15 | `33.56ms` | `33.27ms` | `33.95ms` | **29.8 files/s** |
+| **`Lexer::tokenize`** | 1173 | `341.16µs` | `331.24µs` | `421.14µs` | **63.7 MB/s** |
+| **`Parser::parse`** | 714 | `560.14µs` | `500.37µs` | `658.23µs` | **2101244 lines/s** |
+| **`ProgramInference::analyze`** | 48 | `8.37ms` | `8.25ms` | `9.66ms` | **119 ops/s** |
+| **`CodeGen::generate (x64)`** | 12 | `35.29ms` | `35.10ms` | `35.50ms` | **249226 asm lines/s** |
+| **`Full Frontend Pipeline`** | 15 | `34.62ms` | `34.23ms` | `35.21ms` | **28.9 files/s** |
 
 ---
 
