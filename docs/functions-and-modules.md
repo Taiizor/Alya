@@ -17,6 +17,19 @@ let sum = add(10, 25)
 say sum    # 35
 ```
 
+### Default Parameter Values
+Parameters can specify default fallback values, evaluated when caller omits them:
+
+```alya
+function greet(name, greeting = "Hello", punctuation = "!")
+    say "{greeting}, {name}{punctuation}"
+end
+
+greet("World")                  # "Hello, World!"
+greet("Alice", "Welcome")       # "Welcome, Alice!"
+greet("Bob", "Good day", "?")   # "Good day, Bob?"
+```
+
 ### Call Conventions & Native Stack Frames
 Alya generates native ABI-compliant function calls (`call` on x86/x64, `bl` on ARM64) with stack frame alignment and standard register calling conventions, avoiding any interpreter dispatch overhead.
 
@@ -50,6 +63,10 @@ import "utils/math.alya"
 # Import built-in standard library packages
 import "std/math"
 import "std/str"
+import "std/net"
+import "std/console"
+import "std/glob"
+import "std/rand"
 ```
 
 ### Key Module Properties:

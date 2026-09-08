@@ -26,6 +26,7 @@ A comprehensive single-page reference for the syntax, features, and standard lib
 16. [Character & String Utilities](#16-character--string-utilities)
 17. [Self-Hosting Prototype](#17-self-hosting-prototype-compiler-in-alya)
 18. [Benchmarking & Profiling](#18-benchmarking--performance-profiling)
+19. [Developer CLI & Tooling (`fmt`, `test`)](#19-developer-cli--tooling-fmt-test)
 
 ---
 
@@ -44,15 +45,17 @@ say "Hello, World!"
 
 ---
 
-### 2. Variables & Arithmetic
+### 2. Variables, Types & Operators
 
-Variables are declared with `let`. Variable types (integers, floats, strings, arrays, maps, structs) are inferred automatically.
+Variables are declared with `let`. Variable types (integers, floats, strings, arrays, maps, structs, null) are inferred automatically.
 
 ```alya
 let name = "Alya"
 let age = 1
 let pi = 3.14159
+let empty = null      # Null literal
 
+# Arithmetic
 let a = 20
 let b = 10
 say a + b    # 30
@@ -63,6 +66,22 @@ say a / b    # 2
 # Compound assignments
 a += 5
 say a        # 25
+
+# Bitwise Operators & Compound Assignments
+let flags = 0b00001100
+let mask  = 0b00001010
+say flags & mask      # 8 (AND)
+say flags | mask      # 14 (OR)
+say flags ^ mask      # 6 (XOR)
+say 1 << 4            # 16 (Shift left)
+say 32 >> 2           # 8 (Shift right)
+
+flags &= mask         # In-place bitwise compound assignment
+
+# Null Coalescing Operator (??)
+let custom_port = null
+let port = custom_port ?? 8080
+say port              # 8080
 ```
 
 ---
@@ -108,6 +127,13 @@ say int("123")                      # Converts string to integer: 123
 say float("3.14159")                # Converts string to float: 3.14159
 say to_int("456")                   # Alias: 456
 say to_float("99.9")                # Alias: 99.9
+
+# Multiline and Raw strings
+let multiline = """
+Line 1
+Line 2
+"""
+let raw = `C:\path\without\escapes`
 ```
 
 ---
@@ -138,6 +164,10 @@ elif grade >= 75
 else
     say "Grade: C"
 end
+
+# Ternary operator & Inline if-expression
+let status = grade >= 50 ? "Pass" : "Fail"
+let tag = if grade >= 80 then "Distinction" else "Standard"
 
 # While Loop
 let counter = 0
@@ -182,12 +212,21 @@ end
 
 ### 6. Functions
 
-Functions are first-class, take positional arguments, and return values using `return`:
+Functions are first-class, support default parameters, and return values using `return`:
 
 ```alya
 function add(x, y)
     return x + y
 end
+
+# Default parameter values
+function greet(name, greeting = "Hello", punctuation = "!")
+    say "{greeting}, {name}{punctuation}"
+end
+
+greet("World")                     # "Hello, World!"
+greet("Alice", "Welcome")          # "Welcome, Alice!"
+greet("Bob", "Good morning", ".")  # "Good morning, Bob."
 
 let result = add(15, 30)
 say result    # 45
@@ -302,12 +341,20 @@ say product    # 60
 | `std/path` | Cross-platform path handling | `path_join`, `file_name`, `file_ext`, `file_stem`, `parent_dir`, `is_absolute`, `path_separator` |
 | `std/fs` | File system operations | `fs_exists`, `fs_read`, `fs_write`, `fs_append`, `fs_size`, `fs_mkdir`, `fs_remove`, `copy_file`, `move_file` |
 | `std/math` | Trigonometry, stats & PRNG | `sin`, `cos`, `tan`, `hypot`, `round`, `floor`, `ceil`, `trunc`, `rand_range`, `rand_seed`, `sum`, `mean`, `median`, `clamp`, `sign`, `is_even`, `is_odd` |
+| `std/net` | TCP socket networking & HTTP client | `tcp_connect`, `tcp_send`, `tcp_recv`, `tcp_close`, `tcp_listen`, `tcp_accept`, `http_get`, `http_post`, `http_request` |
+| `std/console` | Terminal control & code pages | `console_utf8`, `console_clear`, `console_title`, `console_beep`, `console_cursor_to`, `console_cursor_hide`, `console_cursor_show` |
+| `std/glob` | Wildcard matching & globbing | `glob_match`, `glob_match_simple`, `glob_filter`, `glob`, `glob_dir`, `glob_escape` |
+| `std/rand` | PRNG, UUID v4/v7 & ULID | `rand_auto_seed`, `rand_int`, `rand_float`, `rand_alphanumeric`, `shuffle`, `uuid_v4`, `uuid_v7`, `ulid` |
+| `std/csv` | CSV & TSV parsing & file I/O | `csv_parse`, `csv_stringify`, `csv_read_file`, `csv_write_file`, `csv_read_records`, `csv_write_records` |
+| `std/color` | ANSI colors & TrueColor RGB | `color_red`, `color_green`, `color_rgb`, `bg_rgb`, `style_bold`, `strip_ansi` |
+| `std/log` | Leveled logging & formatting | `log_debug`, `log_info`, `log_warn`, `log_error`, `log_fatal`, `logger_new` |
 | `std/hash` | Hashing & binary encoding | `djb2`, `fnv1a`, `hex_encode`, `hex_decode`, `base64_encode`, `base64_decode` |
 | `std/collections` | High-level data structures | `Stack` (`stack_new`, `stack_push`, `stack_pop`), `Queue` (`queue_new`, `queue_push`), `Set` (`set_new`, `set_add`, `set_has`, `set_remove`) |
 | `std/test` | Micro-testing framework | `test_suite`, `assert`, `assert_eq`, `assert_str_eq`, `test_summary` |
 | `std/json` | JSON serialization | `json_number`, `json_string`, `json_bool`, `json_array`, `json_object`, `json_map` |
-| `std/time` | System clock & timers | `now`, `delay` |
-| `std/os` | Operating system interop | `env`, `get_env_var`, `exec` |
+| `std/time` | System clock & timers | `time`, `clock_ms`, `sleep_ms` |
+| `std/os` | Operating system interop | `os_name`, `arch_name`, `env`, `env_or`, `os_exit`, `exec` |
+| `std/url` | URL parsing & query params | `url_parse`, `url_encode`, `url_decode` |
 | `std/mem` | Low-level & arena allocator | `arena_new`, `arena_alloc_mem`, `arena_clear`, `alloc_mem`, `free_mem`, `peek_byte`, `poke_byte` |
 
 ---
@@ -489,3 +536,24 @@ bench_stop(runner, "sin(0.5) calculation")
 
 bench_summary(runner)
 ```
+
+---
+
+### 19. Developer CLI & Tooling (`fmt`, `test`)
+
+The `alyac` compiler includes developer utilities directly out of the box:
+
+```bash
+# In-place code formatting
+alyac fmt main.alya
+
+# Format entire codebase
+alyac fmt .
+
+# CI dry-run verification
+alyac fmt . --check
+
+# Test suite discovery and execution
+alyac test
+```
+

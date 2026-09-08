@@ -77,6 +77,21 @@ Binary operations, bitwise masks, and float operations with immediate constants 
 
 ---
 
+### E. Multi-Pass Fixed-Point Struct Type Inference
+The compiler runs an interprocedural fixed-point analysis over the AST (up to 6 iterative passes). It propagates struct types through function returns, parameter positions, and local variables. This enables the code generator to statically calculate struct field byte offsets at compile time, eliminating dictionary hashing or dynamic runtime lookups.
+
+---
+
+### F. ARM64 Immediate Range Splitting (`movz` / `movk`)
+Standard ARM64 instructions limit immediate operands to 16-bit values with shifts. When emitting immediate values that exceed standard ranges (e.g. large integer constants or buffer capacities), `alyac` automatically decomposes the constant into a `movz` (move with zero) instruction followed by `movk` (move with keep) instructions.
+
+---
+
+### G. SplitMix64 High-Entropy PRNG
+The runtime PRNG uses the SplitMix64 algorithm, auto-seeded via high-resolution hardware cycle counters (`rdtsc` on x86/x64, `cntvct_el0` on ARM64) and system epoch timestamps. This completely resolves the low-bit periodicity defects common to simple linear congruential generators (LCG).
+
+---
+
 ## 4. Progressive Examples
 
 ### Level 1: Pure & Minimal (Inspect Tokens & AST)

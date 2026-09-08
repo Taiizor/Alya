@@ -107,6 +107,136 @@ High-performance linear allocation arena with instant bulk deallocation:
 
 ---
 
+### 🌐 `std/net` — Networking & HTTP Client
+```alya
+import "std/net"
+```
+Zero-dependency TCP networking (client & server) and lightweight HTTP/1.1 client:
+* **TCP Client**:
+  * `tcp_connect(host, port)`: Connect to remote host; returns socket handle or -1.
+  * `tcp_send(sock, data)`: Send string data through socket.
+  * `tcp_recv(sock, max_bytes)`: Receive up to `max_bytes` from socket.
+  * `tcp_close(sock)`: Close open socket.
+* **TCP Server**:
+  * `tcp_listen(port, backlog)`: Create listening server socket.
+  * `tcp_accept(server_sock)`: Accept incoming client connection.
+* **HTTP Client**:
+  * `http_get(url)`: Perform HTTP GET request; returns `HttpResponse` struct.
+  * `http_post(url, body, content_type)`: Perform HTTP POST request.
+  * `http_request(method, host, port, path, headers, body)`: Configurable HTTP request.
+  * `http_parse_response(raw)`: Parse raw HTTP string into `HttpResponse(status_code, status_text, headers, body)`.
+
+---
+
+### 🖥️ `std/console` — Terminal Control & Code Pages
+```alya
+import "std/console"
+```
+Cross-platform terminal control, ANSI sequences, and Windows code page management:
+* `console_utf8()`: Switch console to UTF-8 (CP 65001) and enable ANSI virtual terminal processing.
+* `console_clear()`: Clear terminal screen buffer.
+* `console_title(title)`: Set terminal window title.
+* `console_beep()`: Trigger audible console bell alert.
+* `console_cursor_to(row, col)`: Position cursor at specified row and column.
+* `console_cursor_hide()`, `console_cursor_show()`: Toggle cursor visibility.
+* `console_output_cp()`, `console_input_cp()`: Inspect active code page.
+
+---
+
+### 🔍 `std/glob` — Wildcard Matching & Filesystem Globbing
+```alya
+import "std/glob"
+```
+Wildcard pattern matching supporting `*`, `**`, `?`, character classes `[a-z]`, and negation `[!0-9]`:
+* `glob_match(pattern, path)`: Match pattern against paths (respects directory separators).
+* `glob_match_simple(pattern, text)` / `fnmatch(pattern, text)`: Standard string pattern match.
+* `glob_filter(pattern, list)`: Filter an array of strings by glob pattern.
+* `glob(pattern)`: Glob files in current working directory.
+* `glob_dir(pattern, dir_path)`: Glob files within a specific target directory.
+* `glob_escape(str)`: Escape pattern special characters.
+
+---
+
+### 🎲 `std/rand` — SplitMix64 PRNG, UUID & ULID
+```alya
+import "std/rand"
+```
+High-entropy pseudo-random number generator, range distributions, and unique IDs:
+* `rand_auto_seed()`: Seed PRNG using high-precision CPU cycle counter and system time.
+* `rand_int(min, max)`: Random integer in inclusive range `[min, max]`.
+* `rand_float()`: Random float in range `[0.0, 1.0)`.
+* `rand_float_range(min, max)`: Random float in range `[min, max)`.
+* `rand_alphanumeric(len)`, `rand_digits(len)`, `rand_hex(len)`: Random formatted strings.
+* `shuffle(arr)`: In-place array Fisher-Yates shuffle.
+* `uuid_v4()`: Generate RFC 4122 compliant UUID Version 4 string.
+* `uuid_v7()`, `uuid_v7_at(ms)`: Generate RFC 9562 time-ordered UUID Version 7 string.
+* `ulid()`, `ulid_at(ms)`: Generate 26-character sortable ULID string.
+
+---
+
+### 📊 `std/csv` — CSV & TSV Processing
+```alya
+import "std/csv"
+```
+RFC 4180 compliant CSV and TSV parsing, stringification, and file helpers:
+* `csv_parse(text)`: Parse CSV string into 2D array of strings.
+* `csv_parse_tsv(text)`: Parse tab-separated values.
+* `csv_stringify(rows)`: Convert 2D array back to RFC 4180 CSV string.
+* `csv_read_file(path)`, `csv_write_file(path, rows)`: Read/write CSV files directly.
+* `csv_read_records(path)`, `csv_write_records(path, headers, records)`: Map-based record I/O.
+
+---
+
+### 🎨 `std/color` — Terminal Styling & TrueColor
+```alya
+import "std/color"
+```
+ANSI escape codes, foreground/background colors, styles, and 24-bit TrueColor:
+* **Foreground**: `color_red(s)`, `color_green(s)`, `color_blue(s)`, `color_yellow(s)`, `color_cyan(s)`, `color_magenta(s)`, `color_white(s)`, `color_gray(s)`.
+* **Background**: `bg_red(s)`, `bg_green(s)`, `bg_blue(s)`, `bg_yellow(s)`.
+* **Styles**: `style_bold(s)`, `style_dim(s)`, `style_italic(s)`, `style_underline(s)`.
+* **TrueColor (RGB)**: `color_rgb(s, r, g, b)`, `bg_rgb(s, r, g, b)`.
+* `strip_ansi(s)`: Strip ANSI escape sequences from styled text.
+
+---
+
+### 📝 `std/log` — Leveled Logging
+```alya
+import "std/log"
+```
+Structured leveled logging with colorized badges and timestamps:
+* `log_debug(msg)`, `log_info(msg)`, `log_warn(msg)`, `log_error(msg)`, `log_fatal(msg)`
+* `logger_new(name, level)`: Create isolated logger instance with configurable output.
+
+---
+
+### 💻 `std/os` & `std/time` — System & Timers
+```alya
+import "std/os"
+import "std/time"
+```
+* **`std/os`**:
+  * `os_name()`: Target OS (`"windows"`, `"linux"`, `"macos"`).
+  * `arch_name()`: Target architecture (`"x64"`, `"arm64"`, `"x86"`).
+  * `env(key)`: Retrieve environment variable value.
+  * `env_or(key, default)`: Retrieve environment variable with fallback.
+  * `os_exit(code)`: Terminate process with exit code.
+* **`std/time`**:
+  * `time()`: Current Unix timestamp in seconds.
+  * `clock_ms()`: High-resolution millisecond timer.
+  * `sleep_ms(ms)`: Suspend thread execution.
+
+---
+
+### 🔗 `std/url` — URL Parsing & Query Parameters
+```alya
+import "std/url"
+```
+* `url_parse(url_str)`: Parse URL into `Url(scheme, host, port, path, query, fragment)`.
+* `url_encode(s)`, `url_decode(s)`: Percent-encoding utilities.
+
+---
+
 ## 3. Progressive Examples
 
 ### Level 1: Pure & Minimal (String Formatting & Math)
@@ -205,3 +335,32 @@ if fs_exists("player_state.json")
     say "[CLEANUP] Scratch snapshot removed."
 end
 ```
+
+---
+
+### Level 4: Real-World Systems & Observability with UUID v7 & Terminal Styling
+
+A real-world example demonstrating `std/rand` (RFC 9562 UUID v7), `std/color` (ANSI terminal badges), and structured event streaming:
+
+```alya
+import "std/rand"
+import "std/color"
+import "std/time"
+
+function emit_audit_log(service_name, action, details)
+    # Generate time-ordered RFC 9562 UUID v7
+    let event_id = uuid_v7()
+
+    let badge = color_green("[AUDIT]")
+    let service_tag = color_cyan("[" + service_name + "]")
+    let id_str = color_yellow(event_id)
+
+    say "{badge} {service_tag} ID:{id_str} Action:{action} -> {details}"
+    return event_id
+end
+
+emit_audit_log("AUTH", "USER_LOGIN", "user=alice ip=192.168.1.100")
+emit_audit_log("BILLING", "INVOICE_GENERATED", "amount=$250.00 currency=USD")
+emit_audit_log("STORAGE", "SNAPSHOT_STORED", "target=s3://alya-backups/daily.tar.gz")
+```
+

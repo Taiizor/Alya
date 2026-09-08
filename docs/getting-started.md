@@ -54,21 +54,26 @@ Usage: alyac [command] [options] <file.alya>
 
 Commands:
   run <file>               Compile and immediately execute the program
-  build <file>             Compile directly to a native executable
+  build <file>             Compile directly to a native executable (-b, -c)
   check <file>             Validate source code syntax without generating code
   ast <file>               Display the parsed Abstract Syntax Tree
   tokens <file>            Display the lexer token stream
+  fmt [path]               Format Alya source code in-place (--check to verify)
+  test [path]              Discover and run Alya test suites
 
 Options:
   -o, --output <file>      Specify output assembly (.s) or executable filename
-  -b, --binary             Produce a linked binary executable
+  -b, -c, --binary         Produce a linked binary executable
   -S, --asm                Produce assembly source code (.s) (default)
   -r, --run                Run the compiled program immediately
+      --check              Check formatting without modifying (with fmt)
       --time               Display detailed microsecond stage timings
       --stats, --bench     Display compilation throughput statistics
   -q, --quiet              Suppress banner and informational compiler output
       --arch <arch>        Target architecture: x86, x64, arm64 (default: host)
       --os <os>            Target OS: windows, linux, macos (default: host)
+  -v, --version            Show compiler version
+  -h, --help               Show help message
 ```
 
 ---
@@ -141,3 +146,24 @@ Inspect the compiler's Abstract Syntax Tree (AST):
 ```bash
 alyac ast hello.alya
 ```
+
+---
+
+### Level 4: Developer Tooling (Formatter & Test Runner)
+
+`alyac` comes with built-in code formatting and automated test discovery tools:
+
+```bash
+# 1. Format a single file in-place
+alyac fmt main.alya
+
+# 2. Format an entire directory / project
+alyac fmt .
+
+# 3. Check formatting without modifying files (useful in CI)
+alyac fmt . --check
+
+# 4. Discover and execute test suites across the project
+alyac test
+```
+

@@ -14,14 +14,14 @@ Architecture ◄── Standard Library ◄── Error Handling ◄── Data 
 
 | Chapter | Topic | Highlights | Complexity |
 |:---|:---|:---|:---:|
-| **[1. Getting Started](getting-started.md)** | Toolchain & Workflow | Installing `alyac`, compiling binaries, running scripts, CLI flags (`--time`, `--arch`) | 🟢 Beginner |
-| **[2. Language Basics](basics.md)** | Syntax & Fundamentals | Variables (`let`), numbers, strings, comments, operators, `say`, `ask`, interpolation | 🟢 Beginner |
-| **[3. Control Flow](control-flow.md)** | Decision & Iteration | `if`/`elif`/`else`, `while`, `for .. in`, `repeat`, `break`/`continue`, `when` pattern matching | 🟢 Beginner |
-| **[4. Functions & Modules](functions-and-modules.md)** | Code Organization | Defining functions, recursion, file imports (`import`), circular dependency prevention | 🟡 Intermediate |
-| **[5. Data Structures](data-structures.md)** | Collections & Structs | Dynamic arrays, Hash Maps (`map()`), custom composite types (`struct Point`), field mutation | 🟡 Intermediate |
+| **[1. Getting Started](getting-started.md)** | Toolchain & Workflow | Installing `alyac`, compiling binaries, running scripts, CLI tools (`fmt`, `test`, `--time`, `--arch`) | 🟢 Beginner |
+| **[2. Language Basics](basics.md)** | Syntax & Fundamentals | Variables (`let`), `null`, bitwise operators, ternary `? :`, null coalescing `??`, strings (`"""..."""`, \`...\`), `say`, `ask` | 🟢 Beginner |
+| **[3. Control Flow](control-flow.md)** | Decision & Iteration | `if`/`elif`/`else`, inline `if` & ternary, `while`, `for .. in`, `repeat`, `break`/`continue`, `when` | 🟢 Beginner |
+| **[4. Functions & Modules](functions-and-modules.md)** | Code Organization | Defining functions, default parameters, recursion, file imports (`import`), cycle prevention | 🟡 Intermediate |
+| **[5. Data Structures](data-structures.md)** | Collections & Structs | Dynamic arrays, Hash Maps (`map()`), structs (`struct Point`), multi-pass type inference | 🟡 Intermediate |
 | **[6. Error Handling](error-handling.md)** | Safety & Exceptions | Structured `try ... catch ... finally`, runtime guards (div-by-zero, bounds), custom `throw` | 🟡 Intermediate |
-| **[7. Standard Library Reference](standard-library.md)** | Batteries Included | Comprehensive reference for `std/str`, `std/math`, `std/fs`, `std/path`, `std/hash`, `std/json`, `std/test`, `std/mem` | 🔴 Advanced |
-| **[8. Architecture & Internals](architecture-and-internals.md)** | Compiler & Codegen | Pipeline overview, ARM64 / x64 / x86 codegen, Branch Fusion, Unsigned Bounds Checks | 🔴 Advanced |
+| **[7. Standard Library Reference](standard-library.md)** | Batteries Included | Complete catalog: `std/net`, `std/console`, `std/glob`, `std/rand` (UUID v4/v7), `std/csv`, `std/str`, `std/math`, `std/fs`... | 🔴 Advanced |
+| **[8. Architecture & Internals](architecture-and-internals.md)** | Compiler & Codegen | Pipeline, ARM64/x64/x86 codegen, Branch Fusion, Struct Inference, ARM64 Immediate Range Splitting | 🔴 Advanced |
 
 ---
 

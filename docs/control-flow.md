@@ -22,6 +22,17 @@ else
 end
 ```
 
+### Inline Conditionals & Ternary Operator
+For concise value selection without multi-line blocks:
+
+```alya
+# Ternary operator
+let status = score >= 50 ? "Pass" : "Fail"
+
+# Inline if-then-else expression
+let category = if score >= 80 then "Honors" else "Standard"
+```
+
 ---
 
 ## 2. Loops & Iteration

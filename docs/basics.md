@@ -29,11 +29,12 @@ let integer_val = 42          # 64-bit signed integer (i64)
 let float_val   = 3.14159     # 64-bit IEEE 754 double precision float (f64)
 let string_val  = "Alya"      # Heap-allocated UTF-8 string
 let boolean_val = 1           # 1 (true) or 0 (false)
+let empty_val   = null        # Null literal representing absence of value
 ```
 
 ---
 
-## 3. Operators
+## 3. Operators & Expressions
 
 ### Arithmetic & Assignment
 | Operator | Description | Example |
@@ -45,8 +46,37 @@ let boolean_val = 1           # 1 (true) or 0 (false)
 | `%` | Modulo | `a % b` |
 | `+=`, `-=`, `*=`, `/=` | In-place compound assignments | `count += 1` |
 
+### Bitwise Operators
+Alya provides full 64-bit bitwise manipulation with matching compound assignment operators:
+
+| Operator | Description | Compound | Example |
+|---|---|---|---|
+| `&` | Bitwise AND | `&=` | `flags & 0xFF` |
+| `\|` | Bitwise OR | `\|=` | `mode \| 0x02` |
+| `^` | Bitwise XOR | `^=` | `mask ^ 0x0F` |
+| `~` | Bitwise NOT | — | `~flags` |
+| `<<` | Shift left | `<<=` | `1 << 8` |
+| `>>` | Shift right | `>>=` | `1024 >> 2` |
+
+### Null Coalescing (`??`)
+Returns the right-hand operand when the left-hand operand is `null`:
+```alya
+let custom_port = null
+let port = custom_port ?? 8080   # Evaluates to 8080
+```
+
+### Ternary & Inline Conditional
+Concise inline branching:
+```alya
+let score = 85
+let status = score >= 50 ? "Passed" : "Failed"
+
+# Equivalent inline if-expression
+let label = if score >= 50 then "Passed" else "Failed"
+```
+
 ### Comparison & Logic
-* **Relational**: `==`, `!=`, `<`, `<=`, `>`, `>=`
+* **Relational**: `==`, `!=`, `<`, `<=`, `>`, `>=` (also supports `val == null` and `val != null`)
 * **Logical**: `and` (or `&&`), `or` (or `||`), `not` (or `!`)
 
 ---
@@ -95,6 +125,32 @@ let user = "Alice"
 let score = 95
 say "Player {user} scored {score} points!"
 ```
+
+### Multiline & Raw Strings
+Alya supports standard quoted strings, triple-quoted multiline strings, and backtick raw strings:
+
+```alya
+# Multiline string (preserves formatting and newlines)
+let banner = """
+*-------------------*
+| Welcome to Alya!  |
+*-------------------*
+"""
+say banner
+
+# Raw string (disables backslash escape interpretation)
+let raw_path = `C:\Program Files\Alya\bin`
+say raw_path
+```
+
+### Escape Sequences
+Standard string literals support:
+* `\n`: Newline
+* `\t`: Tab
+* `\r`: Carriage return
+* `\"`: Double quote
+* `\\`: Backslash
+* `\e` or `\x1b`: ANSI escape code (for terminal styling)
 
 ### Built-in String Helpers
 ```alya

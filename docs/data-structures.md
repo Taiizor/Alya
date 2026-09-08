@@ -80,6 +80,20 @@ v1.x += 10.0
 say "v1 coordinates: ({v1.x}, {v1.y})"
 ```
 
+### Compile-Time Struct Type Inference
+Alya runs an interprocedural multi-pass analysis (fixed-point traversal) that statically resolves struct types across function calls, return expressions, and local variables:
+
+```alya
+function create_vector(x, y)
+    return Vector2D(x, y)
+end
+
+let v = create_vector(10.0, 20.0)
+v.x += 5.0     # The compiler infers 'v' is Vector2D and computes field 'x' offset statically!
+```
+
+This guarantees zero dynamic dictionary lookups and zero boxing overhead for field access.
+
 ---
 
 ## 4. Progressive Examples
