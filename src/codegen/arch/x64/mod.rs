@@ -52,6 +52,13 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern getenv\n");
         out.push_str(".extern system\n");
         if matches!(os, OperatingSystem::Windows) {
+            out.push_str(".extern SetConsoleOutputCP\n");
+            out.push_str(".extern SetConsoleCP\n");
+            out.push_str(".extern GetConsoleOutputCP\n");
+            out.push_str(".extern GetConsoleCP\n");
+            out.push_str(".extern GetStdHandle\n");
+            out.push_str(".extern GetConsoleMode\n");
+            out.push_str(".extern SetConsoleMode\n");
             out.push_str(".extern Sleep\n");
             out.push_str(".extern _mkdir\n\n");
         } else {
@@ -65,6 +72,23 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         if matches!(os, OperatingSystem::Windows) {
             out.push_str("    movq %rcx, alya_argc(%rip)\n");
             out.push_str("    movq %rdx, alya_argv(%rip)\n\n");
+            out.push_str("    sub $48, %rsp\n");
+            out.push_str("    mov $65001, %ecx\n");
+            out.push_str("    call SetConsoleOutputCP\n");
+            out.push_str("    mov $65001, %ecx\n");
+            out.push_str("    call SetConsoleCP\n");
+            out.push_str("    mov $-11, %ecx\n");
+            out.push_str("    call GetStdHandle\n");
+            out.push_str("    mov %rax, %rcx\n");
+            out.push_str("    lea 32(%rsp), %rdx\n");
+            out.push_str("    call GetConsoleMode\n");
+            out.push_str("    mov $-11, %ecx\n");
+            out.push_str("    call GetStdHandle\n");
+            out.push_str("    mov %rax, %rcx\n");
+            out.push_str("    mov 32(%rsp), %edx\n");
+            out.push_str("    or $4, %edx\n");
+            out.push_str("    call SetConsoleMode\n");
+            out.push_str("    add $48, %rsp\n\n");
         } else {
             out.push_str("    movq %rdi, alya_argc(%rip)\n");
             out.push_str("    movq %rsi, alya_argv(%rip)\n\n");

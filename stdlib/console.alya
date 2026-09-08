@@ -1,0 +1,73 @@
+# Alya Standard Library - Console Module
+# Provides cross-platform console encoding, code page management, and terminal control.
+
+# --- Encoding & Code Pages ---
+
+function console_set_output_cp(cp)
+    return set_console_output_cp(cp)
+end
+
+function console_set_input_cp(cp)
+    return set_console_input_cp(cp)
+end
+
+function console_output_cp()
+    return get_console_output_cp()
+end
+
+function console_input_cp()
+    return get_console_input_cp()
+end
+
+function console_utf8()
+    set_console_output_cp(65001)
+    set_console_input_cp(65001)
+    enable_virtual_terminal()
+    return 1
+end
+
+function set_output_encoding(encoding_name)
+    return console_utf8()
+end
+
+function get_output_encoding()
+    let cp = console_output_cp()
+    if cp == 65001
+        return "UTF-8"
+    elif cp == 1254 or cp == 857
+        return "Turkish (Windows)"
+    elif cp == 1252 or cp == 437
+        return "Western (Windows)"
+    end
+    return "CP" + str(cp)
+end
+
+# --- Terminal Display & Cursor Control ---
+
+function console_enable_ansi()
+    return enable_virtual_terminal()
+end
+
+function console_clear()
+    say "\e[2J\e[H"
+end
+
+function console_title(title)
+    say "\e]0;" + title + "\a"
+end
+
+function console_beep()
+    say "\a"
+end
+
+function console_cursor_to(row, col)
+    say "\e[" + str(row) + ";" + str(col) + "H"
+end
+
+function console_cursor_hide()
+    say "\e[?25l"
+end
+
+function console_cursor_show()
+    say "\e[?25h"
+end

@@ -1289,3 +1289,32 @@ say "f1: " + str_from_ptr(filtered[1])
         assert!(output.contains("f1: cherry.txt"));
     }
 }
+
+#[test]
+fn test_e2e_console_stdlib() {
+    let code = r#"
+import "std/console"
+
+let utf8_ok = console_utf8()
+say "utf8_ok: {utf8_ok}"
+
+let cp = console_output_cp()
+say "cp: {cp}"
+
+let enc = get_output_encoding()
+say "enc: {enc}"
+
+say "╔═════════════════╗"
+say "║ UTF-8 Box Test  ║"
+say "╚═════════════════╝"
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("utf8_ok: 1"));
+        assert!(output.contains("cp: 65001"));
+        assert!(output.contains("enc: UTF-8"));
+        assert!(output.contains("╔═════════════════╗"));
+        assert!(output.contains("║ UTF-8 Box Test  ║"));
+        assert!(output.contains("╚═════════════════╝"));
+    }
+}

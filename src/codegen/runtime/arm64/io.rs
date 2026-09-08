@@ -113,5 +113,40 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_target_arch:\n");
     emit_adrp_add(out, "x0", "alya_str_target_arch", os);
     out.push_str("    ret\n\n");
+
+    // fn_set_console_output_cp
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_set_console_output_cp\n");
+    out.push_str("fn_set_console_output_cp:\n");
+    out.push_str("    mov x0, #1\n");
+    out.push_str("    ret\n\n");
+
+    // fn_set_console_input_cp
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_set_console_input_cp\n");
+    out.push_str("fn_set_console_input_cp:\n");
+    out.push_str("    mov x0, #1\n");
+    out.push_str("    ret\n\n");
+
+    // fn_get_console_output_cp
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_get_console_output_cp\n");
+    out.push_str("fn_get_console_output_cp:\n");
+    out.push_str("    mov x0, #65001\n");
+    out.push_str("    ret\n\n");
+
+    // fn_get_console_input_cp
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_get_console_input_cp\n");
+    out.push_str("fn_get_console_input_cp:\n");
+    out.push_str("    mov x0, #65001\n");
+    out.push_str("    ret\n\n");
+
+    // fn_enable_virtual_terminal
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_enable_virtual_terminal\n");
+    out.push_str("fn_enable_virtual_terminal:\n");
+    out.push_str("    mov x0, #1\n");
+    out.push_str("    ret\n\n");
 }
 

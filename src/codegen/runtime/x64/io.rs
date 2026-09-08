@@ -147,5 +147,100 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_target_arch:\n");
     out.push_str("    lea alya_str_target_arch(%rip), %rax\n");
     out.push_str("    ret\n\n");
+
+    // fn_set_console_output_cp
+    out.push_str(".global fn_set_console_output_cp\n");
+    out.push_str("fn_set_console_output_cp:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    push %rbp\n");
+        out.push_str("    mov %rsp, %rbp\n");
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    call SetConsoleOutputCP\n");
+        out.push_str("    add $32, %rsp\n");
+        out.push_str("    mov %rbp, %rsp\n");
+        out.push_str("    pop %rbp\n");
+        out.push_str("    ret\n\n");
+    } else {
+        out.push_str("    mov $1, %rax\n");
+        out.push_str("    ret\n\n");
+    }
+
+    // fn_set_console_input_cp
+    out.push_str(".global fn_set_console_input_cp\n");
+    out.push_str("fn_set_console_input_cp:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    push %rbp\n");
+        out.push_str("    mov %rsp, %rbp\n");
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    call SetConsoleCP\n");
+        out.push_str("    add $32, %rsp\n");
+        out.push_str("    mov %rbp, %rsp\n");
+        out.push_str("    pop %rbp\n");
+        out.push_str("    ret\n\n");
+    } else {
+        out.push_str("    mov $1, %rax\n");
+        out.push_str("    ret\n\n");
+    }
+
+    // fn_get_console_output_cp
+    out.push_str(".global fn_get_console_output_cp\n");
+    out.push_str("fn_get_console_output_cp:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    push %rbp\n");
+        out.push_str("    mov %rsp, %rbp\n");
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    call GetConsoleOutputCP\n");
+        out.push_str("    add $32, %rsp\n");
+        out.push_str("    mov %rbp, %rsp\n");
+        out.push_str("    pop %rbp\n");
+        out.push_str("    ret\n\n");
+    } else {
+        out.push_str("    mov $65001, %rax\n");
+        out.push_str("    ret\n\n");
+    }
+
+    // fn_get_console_input_cp
+    out.push_str(".global fn_get_console_input_cp\n");
+    out.push_str("fn_get_console_input_cp:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    push %rbp\n");
+        out.push_str("    mov %rsp, %rbp\n");
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    call GetConsoleCP\n");
+        out.push_str("    add $32, %rsp\n");
+        out.push_str("    mov %rbp, %rsp\n");
+        out.push_str("    pop %rbp\n");
+        out.push_str("    ret\n\n");
+    } else {
+        out.push_str("    mov $65001, %rax\n");
+        out.push_str("    ret\n\n");
+    }
+
+    // fn_enable_virtual_terminal
+    out.push_str(".global fn_enable_virtual_terminal\n");
+    out.push_str("fn_enable_virtual_terminal:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    push %rbp\n");
+        out.push_str("    mov %rsp, %rbp\n");
+        out.push_str("    sub $48, %rsp\n");
+        out.push_str("    mov $-11, %ecx\n");
+        out.push_str("    call GetStdHandle\n");
+        out.push_str("    mov %rax, %rcx\n");
+        out.push_str("    lea 32(%rsp), %rdx\n");
+        out.push_str("    call GetConsoleMode\n");
+        out.push_str("    mov $-11, %ecx\n");
+        out.push_str("    call GetStdHandle\n");
+        out.push_str("    mov %rax, %rcx\n");
+        out.push_str("    mov 32(%rsp), %edx\n");
+        out.push_str("    or $4, %edx\n");
+        out.push_str("    call SetConsoleMode\n");
+        out.push_str("    add $48, %rsp\n");
+        out.push_str("    mov %rbp, %rsp\n");
+        out.push_str("    pop %rbp\n");
+        out.push_str("    ret\n\n");
+    } else {
+        out.push_str("    mov $1, %rax\n");
+        out.push_str("    ret\n\n");
+    }
 }
 
