@@ -241,7 +241,11 @@ fn main() {
     println!("// * Summary *\n");
     println!("Alya Compiler Benchmark v{alya_ver}, {os_name} ({arch})");
     if let Ok(proc_id) = std::env::var("PROCESSOR_IDENTIFIER") {
-        println!("Processor: {}, {} logical cores", proc_id.trim(), logical_cores);
+        println!(
+            "Processor: {}, {} logical cores",
+            proc_id.trim(),
+            logical_cores
+        );
     } else {
         println!("Processor: {} logical cores", logical_cores);
     }
