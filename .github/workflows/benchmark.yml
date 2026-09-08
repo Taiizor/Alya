@@ -3,6 +3,15 @@ name: Benchmark
 on:
   workflow_dispatch:
     inputs:
+      os:
+        description: 'Operating System for Benchmark'
+        type: choice
+        required: true
+        default: 'ubuntu-latest'
+        options:
+          - 'ubuntu-latest'
+          - 'windows-latest'
+          - 'macos-latest'
       update_readme:
         description: 'Update benchmarks/README.md with results'
         type: boolean
@@ -12,6 +21,7 @@ on:
     branches:
       - main
       - master
+      - develop
     paths:
       - 'src/**'
       - 'stdlib/**'
@@ -28,8 +38,8 @@ permissions:
 
 jobs:
   benchmark:
-    name: Performance Benchmarks
-    runs-on: ubuntu-latest
+    name: Benchmark (${{ inputs.os || 'ubuntu-latest' }})
+    runs-on: ${{ inputs.os || 'ubuntu-latest' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -54,6 +64,7 @@ jobs:
         run: cargo build --release
 
       - name: Run cross-language benchmarks & update README
+        shell: bash
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.update_readme }}" = "false" ]; then
             bun run benchmarks/cross_lang/runner.ts
@@ -62,7 +73,8 @@ jobs:
           fi
 
       - name: Commit and push benchmark results
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || inputs.update_readme == true
+        if: github.ref_name == 'main' || github.ref_name == 'master' || github.ref_name == 'develop' || inputs.update_readme == true
+        shell: bash
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
