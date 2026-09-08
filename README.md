@@ -134,7 +134,8 @@ Alya is engineered for rapid compilation and high-performance native execution a
 
 ## Documentation
 
-- 📖 **[Language Guide & Tour](docs/language-guide.md)**: Full 18-part tutorial covering syntax, control flow, modules, structs, file I/O, and the standard library.
+- 📚 **[Alya Documentation Wiki](docs/README.md)**: Structured 8-chapter guide progressing from beginner concepts to advanced compiler architectures.
+- 📖 **[Single-Page Language Guide](docs/language-guide.md)**: Quick full-language reference and syntax cheat-sheet.
 - 🧪 **[Code Examples](examples/)**: 30+ practical programs, algorithms, and self-hosting compiler prototypes.
 - ⚡ **[Benchmark Suite](benchmarks/)**: Cross-language performance benchmark sources and runner.
 

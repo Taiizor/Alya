@@ -1,6 +1,8 @@
 # Alya Language Guide & Tour
 
-A comprehensive guide to the syntax, features, and standard library of the **Alya** programming language.
+> 💡 **Looking for the modular, progressive guide?** Check out the **[Alya Documentation Wiki](README.md)** featuring 8 chapters from basic to advanced.
+
+A comprehensive single-page reference for the syntax, features, and standard library of the **Alya** programming language.
 
 ---
 
