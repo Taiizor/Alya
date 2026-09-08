@@ -451,4 +451,424 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
+
+    // fn_net_set_timeout: net_set_timeout(sock, ms) -> 0 or -1
+    out.push_str(".global fn_net_set_timeout\n");
+    out.push_str("fn_net_set_timeout:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rbx\n");
+    out.push_str("    push %r12\n");
+    out.push_str("    sub $48, %rsp\n");
+    if is_win {
+        out.push_str("    mov %rcx, %rbx\n");
+        out.push_str("    movl %edx, 48(%rsp)\n");
+        out.push_str("    mov %rbx, %rcx\n");
+        out.push_str("    mov $0xffff, %edx\n");
+        out.push_str("    mov $0x1006, %r8d\n");
+        out.push_str("    lea 48(%rsp), %r9\n");
+        out.push_str("    movq $4, 32(%rsp)\n");
+        out.push_str("    call setsockopt\n");
+        out.push_str("    cmp $0, %eax\n");
+        out.push_str("    jl .L_x64_timeout_fail\n");
+        out.push_str("    mov %rbx, %rcx\n");
+        out.push_str("    mov $0xffff, %edx\n");
+        out.push_str("    mov $0x1005, %r8d\n");
+        out.push_str("    lea 48(%rsp), %r9\n");
+        out.push_str("    movq $4, 32(%rsp)\n");
+        out.push_str("    call setsockopt\n");
+        out.push_str("    cmp $0, %eax\n");
+        out.push_str("    jl .L_x64_timeout_fail\n");
+    } else {
+        out.push_str("    mov %rdi, %rbx\n");
+        out.push_str("    mov %rsi, %rax\n");
+        out.push_str("    xor %edx, %edx\n");
+        out.push_str("    mov $1000, %ecx\n");
+        out.push_str("    div %rcx\n");
+        out.push_str("    imul $1000, %rdx, %rdx\n");
+        out.push_str("    movq %rax, 32(%rsp)\n");
+        out.push_str("    movq %rdx, 40(%rsp)\n");
+        let (sol, rcv_opt, snd_opt) = if is_mac {
+            (0xffff, 0x1006, 0x1005)
+        } else {
+            (1, 20, 21)
+        };
+        out.push_str("    mov %rbx, %rdi\n");
+        out.push_str(&format!("    mov ${}, %esi\n", sol));
+        out.push_str(&format!("    mov ${}, %edx\n", rcv_opt));
+        out.push_str("    lea 32(%rsp), %rcx\n");
+        out.push_str("    mov $16, %r8d\n");
+        out.push_str(&format!("    call {}setsockopt\n", p));
+        out.push_str("    cmp $0, %eax\n");
+        out.push_str("    jl .L_x64_timeout_fail\n");
+        out.push_str("    mov %rbx, %rdi\n");
+        out.push_str(&format!("    mov ${}, %esi\n", sol));
+        out.push_str(&format!("    mov ${}, %edx\n", snd_opt));
+        out.push_str("    lea 32(%rsp), %rcx\n");
+        out.push_str("    mov $16, %r8d\n");
+        out.push_str(&format!("    call {}setsockopt\n", p));
+        out.push_str("    cmp $0, %eax\n");
+        out.push_str("    jl .L_x64_timeout_fail\n");
+    }
+    out.push_str("    xor %rax, %rax\n");
+    out.push_str("    jmp .L_x64_timeout_ret\n");
+    out.push_str(".L_x64_timeout_fail:\n");
+    out.push_str("    mov $-1, %rax\n");
+    out.push_str(".L_x64_timeout_ret:\n");
+    out.push_str("    add $48, %rsp\n");
+    out.push_str("    pop %r12\n");
+    out.push_str("    pop %rbx\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_net_peer_ip: net_peer_ip(sock) -> ip_string or ""
+    out.push_str(".global fn_net_peer_ip\n");
+    out.push_str("fn_net_peer_ip:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rbx\n");
+    out.push_str("    push %r12\n");
+    out.push_str("    sub $64, %rsp\n");
+    out.push_str("    movl $16, 56(%rsp)\n");
+    if is_win {
+        out.push_str("    lea 40(%rsp), %rdx\n");
+        out.push_str("    lea 56(%rsp), %r8\n");
+        out.push_str("    call getpeername\n");
+    } else {
+        out.push_str("    lea 40(%rsp), %rsi\n");
+        out.push_str("    lea 56(%rsp), %rdx\n");
+        out.push_str(&format!("    call {}getpeername\n", p));
+    }
+    out.push_str("    cmp $0, %eax\n");
+    out.push_str("    jne .L_x64_peer_ip_empty\n");
+    if is_win {
+        out.push_str("    movl 44(%rsp), %ecx\n");
+        out.push_str("    call inet_ntoa\n");
+    } else {
+        out.push_str("    movl 44(%rsp), %edi\n");
+        out.push_str(&format!("    call {}inet_ntoa\n", p));
+    }
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jz .L_x64_peer_ip_empty\n");
+    out.push_str("    mov %rax, %rsi\n");
+    out.push_str("    lea alya_str_buf(%rip), %r8\n");
+    out.push_str("    mov alya_str_idx(%rip), %rbx\n");
+    out.push_str("    cmp $950000, %rbx\n");
+    out.push_str("    jl .L_x64_peer_ip_buf_ok\n");
+    out.push_str("    xor %rbx, %rbx\n");
+    out.push_str(".L_x64_peer_ip_buf_ok:\n");
+    out.push_str("    lea (%r8, %rbx), %rdi\n");
+    out.push_str("    mov %rdi, %r12\n");
+    out.push_str(".L_x64_peer_ip_copy:\n");
+    out.push_str("    movb (%rsi), %al\n");
+    out.push_str("    movb %al, (%rdi)\n");
+    out.push_str("    test %al, %al\n");
+    out.push_str("    jz .L_x64_peer_ip_copy_done\n");
+    out.push_str("    inc %rsi\n");
+    out.push_str("    inc %rdi\n");
+    out.push_str("    jmp .L_x64_peer_ip_copy\n");
+    out.push_str(".L_x64_peer_ip_copy_done:\n");
+    out.push_str("    inc %rdi\n");
+    out.push_str("    sub %r8, %rdi\n");
+    out.push_str("    add $7, %rdi\n");
+    out.push_str("    and $-8, %rdi\n");
+    out.push_str("    mov %rdi, alya_str_idx(%rip)\n");
+    out.push_str("    mov %r12, %rax\n");
+    out.push_str("    jmp .L_x64_peer_ip_ret\n");
+    out.push_str(".L_x64_peer_ip_empty:\n");
+    out.push_str("    lea alya_str_empty(%rip), %rax\n");
+    out.push_str(".L_x64_peer_ip_ret:\n");
+    out.push_str("    add $64, %rsp\n");
+    out.push_str("    pop %r12\n");
+    out.push_str("    pop %rbx\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_net_peer_port: net_peer_port(sock) -> port_int or -1
+    out.push_str(".global fn_net_peer_port\n");
+    out.push_str("fn_net_peer_port:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    sub $64, %rsp\n");
+    out.push_str("    movl $16, 48(%rsp)\n");
+    if is_win {
+        out.push_str("    lea 32(%rsp), %rdx\n");
+        out.push_str("    lea 48(%rsp), %r8\n");
+        out.push_str("    call getpeername\n");
+    } else {
+        out.push_str("    lea 32(%rsp), %rsi\n");
+        out.push_str("    lea 48(%rsp), %rdx\n");
+        out.push_str(&format!("    call {}getpeername\n", p));
+    }
+    out.push_str("    cmp $0, %eax\n");
+    out.push_str("    jne .L_x64_peer_port_fail\n");
+    out.push_str("    movzwl 34(%rsp), %eax\n");
+    out.push_str("    xchg %al, %ah\n");
+    out.push_str("    jmp .L_x64_peer_port_ret\n");
+    out.push_str(".L_x64_peer_port_fail:\n");
+    out.push_str("    mov $-1, %rax\n");
+    out.push_str(".L_x64_peer_port_ret:\n");
+    out.push_str("    add $64, %rsp\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_net_udp_socket: creates a UDP socket (AF_INET = 2, SOCK_DGRAM = 2, 0)
+    out.push_str(".global fn_net_udp_socket\n");
+    out.push_str("fn_net_udp_socket:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    sub $32, %rsp\n");
+    if is_win {
+        out.push_str("    mov $2, %ecx\n");
+        out.push_str("    mov $2, %edx\n");
+        out.push_str("    xor %r8d, %r8d\n");
+        out.push_str("    call socket\n");
+    } else {
+        out.push_str("    mov $2, %edi\n");
+        out.push_str("    mov $2, %esi\n");
+        out.push_str("    xor %edx, %edx\n");
+        out.push_str(&format!("    call {}socket\n", p));
+    }
+    out.push_str("    cmp $0, %rax\n");
+    out.push_str("    jge .L_x64_udp_socket_ok\n");
+    out.push_str("    mov $-1, %rax\n");
+    out.push_str(".L_x64_udp_socket_ok:\n");
+    out.push_str("    add $32, %rsp\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_net_udp_bind: binds UDP socket to port -> 0 or -1
+    out.push_str(".global fn_net_udp_bind\n");
+    out.push_str("fn_net_udp_bind:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rbx\n");
+    out.push_str("    push %r12\n");
+    out.push_str("    sub $48, %rsp\n");
+    if is_win {
+        out.push_str("    mov %rcx, %rbx\n");
+        out.push_str("    mov %rdx, %r12\n");
+    } else {
+        out.push_str("    mov %rdi, %rbx\n");
+        out.push_str("    mov %rsi, %r12\n");
+    }
+    out.push_str("    movq $0, 32(%rsp)\n");
+    out.push_str("    movq $0, 40(%rsp)\n");
+    if is_mac {
+        out.push_str("    movb $16, 32(%rsp)\n");
+        out.push_str("    movb $2, 33(%rsp)\n");
+    } else {
+        out.push_str("    movw $2, 32(%rsp)\n");
+    }
+    out.push_str("    mov %r12w, %ax\n");
+    out.push_str("    xchg %al, %ah\n");
+    out.push_str("    mov %ax, 34(%rsp)\n");
+    out.push_str("    movl $0, 36(%rsp)\n");
+    if is_win {
+        out.push_str("    mov %rbx, %rcx\n");
+        out.push_str("    lea 32(%rsp), %rdx\n");
+        out.push_str("    mov $16, %r8d\n");
+        out.push_str("    call bind\n");
+    } else {
+        out.push_str("    mov %rbx, %rdi\n");
+        out.push_str("    lea 32(%rsp), %rsi\n");
+        out.push_str("    mov $16, %edx\n");
+        out.push_str(&format!("    call {}bind\n", p));
+    }
+    out.push_str("    cmp $0, %eax\n");
+    out.push_str("    jl .L_x64_udp_bind_fail\n");
+    out.push_str("    xor %rax, %rax\n");
+    out.push_str("    jmp .L_x64_udp_bind_ret\n");
+    out.push_str(".L_x64_udp_bind_fail:\n");
+    out.push_str("    mov $-1, %rax\n");
+    out.push_str(".L_x64_udp_bind_ret:\n");
+    out.push_str("    add $48, %rsp\n");
+    out.push_str("    pop %r12\n");
+    out.push_str("    pop %rbx\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_net_udp_send: net_udp_send(sock, host, port, data_str) -> bytes_sent or -1
+    out.push_str(".global fn_net_udp_send\n");
+    out.push_str("fn_net_udp_send:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rbx\n");
+    out.push_str("    push %r12\n");
+    out.push_str("    push %r13\n");
+    out.push_str("    push %r14\n");
+    out.push_str("    push %r15\n");
+    out.push_str("    sub $72, %rsp\n");
+    if is_win {
+        out.push_str("    mov %rcx, %rbx\n");
+        out.push_str("    mov %rdx, %r12\n");
+        out.push_str("    mov %r8, %r13\n");
+        out.push_str("    mov %r9, %r14\n");
+    } else {
+        out.push_str("    mov %rdi, %rbx\n");
+        out.push_str("    mov %rsi, %r12\n");
+        out.push_str("    mov %rdx, %r13\n");
+        out.push_str("    mov %rcx, %r14\n");
+    }
+    out.push_str("    test %r12, %r12\n");
+    out.push_str("    jz .L_x64_usend_fail\n");
+    out.push_str("    movq $0, 48(%rsp)\n");
+    out.push_str("    movq $0, 56(%rsp)\n");
+    if is_mac {
+        out.push_str("    movb $16, 48(%rsp)\n");
+        out.push_str("    movb $2, 49(%rsp)\n");
+    } else {
+        out.push_str("    movw $2, 48(%rsp)\n");
+    }
+    out.push_str("    mov %r13w, %ax\n");
+    out.push_str("    xchg %al, %ah\n");
+    out.push_str("    mov %ax, 50(%rsp)\n");
+    if is_win {
+        out.push_str("    mov %r12, %rcx\n");
+        out.push_str("    call inet_addr\n");
+    } else {
+        out.push_str("    mov %r12, %rdi\n");
+        out.push_str(&format!("    call {}inet_addr\n", p));
+    }
+    out.push_str("    cmp $0xffffffff, %eax\n");
+    out.push_str("    jne .L_x64_usend_have_ip\n");
+    if is_win {
+        out.push_str("    mov %r12, %rcx\n");
+        out.push_str("    call gethostbyname\n");
+    } else {
+        out.push_str("    mov %r12, %rdi\n");
+        out.push_str(&format!("    call {}gethostbyname\n", p));
+    }
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jz .L_x64_usend_fail\n");
+    out.push_str("    mov 24(%rax), %rax\n");
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jz .L_x64_usend_fail\n");
+    out.push_str("    mov (%rax), %rax\n");
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jz .L_x64_usend_fail\n");
+    out.push_str("    movl (%rax), %eax\n");
+    out.push_str(".L_x64_usend_have_ip:\n");
+    out.push_str("    movl %eax, 52(%rsp)\n");
+    out.push_str("    xor %r15, %r15\n");
+    out.push_str("    test %r14, %r14\n");
+    out.push_str("    jz .L_x64_usend_call\n");
+    out.push_str("    mov %r14, %rax\n");
+    out.push_str(".L_x64_usend_len_loop:\n");
+    out.push_str("    cmpb $0, (%rax)\n");
+    out.push_str("    je .L_x64_usend_call\n");
+    out.push_str("    inc %rax\n");
+    out.push_str("    inc %r15\n");
+    out.push_str("    jmp .L_x64_usend_len_loop\n");
+    out.push_str(".L_x64_usend_call:\n");
+    if is_win {
+        out.push_str("    mov %rbx, %rcx\n");
+        out.push_str("    mov %r14, %rdx\n");
+        out.push_str("    mov %r15, %r8\n");
+        out.push_str("    xor %r9, %r9\n");
+        out.push_str("    lea 48(%rsp), %rax\n");
+        out.push_str("    movq %rax, 32(%rsp)\n");
+        out.push_str("    movq $16, 40(%rsp)\n");
+        out.push_str("    call sendto\n");
+    } else {
+        out.push_str("    mov %rbx, %rdi\n");
+        out.push_str("    mov %r14, %rsi\n");
+        out.push_str("    mov %r15, %rdx\n");
+        out.push_str("    xor %rcx, %rcx\n");
+        out.push_str("    lea 48(%rsp), %r8\n");
+        out.push_str("    mov $16, %r9d\n");
+        out.push_str(&format!("    call {}sendto\n", p));
+    }
+    out.push_str("    jmp .L_x64_usend_ret\n");
+    out.push_str(".L_x64_usend_fail:\n");
+    out.push_str("    mov $-1, %rax\n");
+    out.push_str(".L_x64_usend_ret:\n");
+    out.push_str("    add $72, %rsp\n");
+    out.push_str("    pop %r15\n");
+    out.push_str("    pop %r14\n");
+    out.push_str("    pop %r13\n");
+    out.push_str("    pop %r12\n");
+    out.push_str("    pop %rbx\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_net_udp_recv: net_udp_recv(sock, max_bytes) -> string
+    out.push_str(".global fn_net_udp_recv\n");
+    out.push_str("fn_net_udp_recv:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rbx\n");
+    out.push_str("    push %r12\n");
+    out.push_str("    push %r13\n");
+    out.push_str("    push %r14\n");
+    out.push_str("    sub $48, %rsp\n");
+    if is_win {
+        out.push_str("    mov %rcx, %rbx\n");
+        out.push_str("    mov %rdx, %r13\n");
+    } else {
+        out.push_str("    mov %rdi, %rbx\n");
+        out.push_str("    mov %rsi, %r13\n");
+    }
+    out.push_str("    cmp $0, %r13\n");
+    out.push_str("    jg .L_x64_urecv_chk\n");
+    out.push_str("    mov $4096, %r13\n");
+    out.push_str(".L_x64_urecv_chk:\n");
+    out.push_str("    cmp $524288, %r13\n");
+    out.push_str("    jle .L_x64_urecv_alloc\n");
+    out.push_str("    mov $524288, %r13\n");
+    out.push_str(".L_x64_urecv_alloc:\n");
+    out.push_str("    lea alya_str_buf(%rip), %r8\n");
+    out.push_str("    mov alya_str_idx(%rip), %r14\n");
+    out.push_str("    mov $1000000, %r11\n");
+    out.push_str("    sub %r13, %r11\n");
+    out.push_str("    cmp %r11, %r14\n");
+    out.push_str("    jl .L_x64_urecv_buf_ok\n");
+    out.push_str("    xor %r14, %r14\n");
+    out.push_str(".L_x64_urecv_buf_ok:\n");
+    out.push_str("    lea (%r8, %r14), %r12\n");
+    if is_win {
+        out.push_str("    mov %rbx, %rcx\n");
+        out.push_str("    mov %r12, %rdx\n");
+        out.push_str("    mov %r13, %r8\n");
+        out.push_str("    xor %r9, %r9\n");
+        out.push_str("    movq $0, 32(%rsp)\n");
+        out.push_str("    movq $0, 40(%rsp)\n");
+        out.push_str("    call recvfrom\n");
+    } else {
+        out.push_str("    mov %rbx, %rdi\n");
+        out.push_str("    mov %r12, %rsi\n");
+        out.push_str("    mov %r13, %rdx\n");
+        out.push_str("    xor %rcx, %rcx\n");
+        out.push_str("    xor %r8, %r8\n");
+        out.push_str("    xor %r9, %r9\n");
+        out.push_str(&format!("    call {}recvfrom\n", p));
+    }
+    out.push_str("    cmp $0, %rax\n");
+    out.push_str("    jle .L_x64_urecv_empty\n");
+    out.push_str("    movb $0, (%r12, %rax)\n");
+    out.push_str("    lea alya_str_buf(%rip), %r8\n");
+    out.push_str("    lea 1(%rax, %r12), %rdi\n");
+    out.push_str("    sub %r8, %rdi\n");
+    out.push_str("    add $7, %rdi\n");
+    out.push_str("    and $-8, %rdi\n");
+    out.push_str("    mov %rdi, alya_str_idx(%rip)\n");
+    out.push_str("    mov %r12, %rax\n");
+    out.push_str("    jmp .L_x64_urecv_done\n");
+    out.push_str(".L_x64_urecv_empty:\n");
+    out.push_str("    lea alya_str_empty(%rip), %rax\n");
+    out.push_str(".L_x64_urecv_done:\n");
+    out.push_str("    add $48, %rsp\n");
+    out.push_str("    pop %r14\n");
+    out.push_str("    pop %r13\n");
+    out.push_str("    pop %r12\n");
+    out.push_str("    pop %rbx\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
 }

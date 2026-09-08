@@ -6,23 +6,38 @@ import "std/mem"
 
 say "=== Alya Network & Memory Management Demo ==="
 
-# 1. Socket Creation & Lifecycle
-let sock = net_socket()
+# 1. Socket Creation, Timeout & UDP Lifecycle
+let sock = tcp_socket()
 if sock >= 0
-    say "Socket created successfully with descriptor: " + str(sock)
-    net_close(sock)
-    say "Socket closed cleanly."
+    say "TCP socket created: " + str(sock)
+    let t_ok = tcp_set_timeout(sock, 5000)
+    say "TCP timeout set (5000ms): " + str(t_ok == 0)
+    tcp_close(sock)
+    say "TCP socket closed cleanly."
 else
-    say "Failed to create socket."
+    say "Failed to create TCP socket."
 end
 
-# 2. HTTP Protocol Parsing
+let u_sock = udp_socket()
+if u_sock >= 0
+    say "UDP socket created: " + str(u_sock)
+    let ut_ok = udp_set_timeout(u_sock, 3000)
+    say "UDP timeout set (3000ms): " + str(ut_ok == 0)
+    udp_close(u_sock)
+    say "UDP socket closed cleanly."
+else
+    say "Failed to create UDP socket."
+end
+
+# 2. HTTP Protocol Parsing & Status Helpers
 let raw_http = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nServer: AlyaServer/1.0\r\n\r\n{\"message\":\"Hello from Alya!\",\"status\":\"success\"}"
 let resp = http_parse_response(raw_http)
 say "HTTP Status Code: " + str(resp.status_code)
 say "HTTP Status Text: " + resp.status_text
 say "Content-Type: " + resp.headers["content-type"]
 say "Response Body: " + resp.body
+say "Is Success: " + str(http_is_success(resp))
+say "Is Error: " + str(http_is_error(resp))
 
 # 3. Permanent Heap Strings
 let original = "Alya permanent heap string test"

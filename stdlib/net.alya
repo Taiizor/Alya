@@ -1,11 +1,17 @@
 # Alya Standard Library - Network & HTTP Module (std/net)
-# Provides TCP socket networking (client & server) and lightweight HTTP/1.1 client.
+# Provides TCP/UDP socket networking (client & server) and production-ready HTTP/HTTPS client.
 
 import "std/url"
 
 # --- Low-Level TCP Socket Functions ---
 
-# Connects to a remote TCP server. Returns a socket handle (>= 0) or -1 on error.
+# Creates a new TCP streaming socket (AF_INET, SOCK_STREAM).
+# Returns a socket descriptor (>= 0) or -1 on error.
+function tcp_socket()
+    return net_socket()
+end
+
+# Connects to a remote TCP server. Returns a socket descriptor (>= 0) or -1 on error.
 function tcp_connect(host, port)
     return net_connect(host, port)
 end
@@ -24,7 +30,7 @@ function tcp_recv(sock, max_bytes)
     return net_recv(sock, max_bytes)
 end
 
-# Closes a socket connection.
+# Closes a TCP or UDP socket connection.
 function tcp_close(sock)
     return net_close(sock)
 end
@@ -44,6 +50,77 @@ function tcp_accept(server_sock)
     return net_accept(server_sock)
 end
 
+# Sets read and write timeouts on a socket in milliseconds.
+# Returns 0 on success or -1 on error.
+function tcp_set_timeout(sock, ms)
+    if ms == null or ms <= 0
+        ms = 10000
+    end
+    return net_set_timeout(sock, ms)
+end
+
+# Returns the remote peer's IP address as a string (e.g. "127.0.0.1"), or "" on failure.
+function tcp_peer_ip(sock)
+    return net_peer_ip(sock)
+end
+
+# Returns the remote peer's port number as an integer, or -1 on failure.
+function tcp_peer_port(sock)
+    return net_peer_port(sock)
+end
+
+# Returns remote peer address in "ip:port" format, or "" on failure.
+function tcp_peer_addr(sock)
+    let ip = net_peer_ip(sock)
+    let port = net_peer_port(sock)
+    if port < 0 or ip == ""
+        return ""
+    end
+    return ip + ":" + str(port)
+end
+
+# --- UDP Socket Functions ---
+
+# Creates a new UDP datagram socket (AF_INET, SOCK_DGRAM).
+# Returns a socket descriptor (>= 0) or -1 on error.
+function udp_socket()
+    return net_udp_socket()
+end
+
+# Binds a UDP socket to the specified port on INADDR_ANY.
+# Returns 0 on success or -1 on error.
+function udp_bind(sock, port)
+    return net_udp_bind(sock, port)
+end
+
+# Sends a datagram to host:port over a UDP socket.
+# Returns number of bytes sent or -1 on error.
+function udp_send(sock, host, port, data)
+    return net_udp_send(sock, host, port, data)
+end
+
+# Receives up to max_bytes from a UDP socket.
+# Returns received string, or "" on error / empty datagram.
+function udp_recv(sock, max_bytes)
+    if max_bytes == null or max_bytes <= 0
+        max_bytes = 4096
+    end
+    return net_udp_recv(sock, max_bytes)
+end
+
+# Closes a UDP socket.
+function udp_close(sock)
+    return net_close(sock)
+end
+
+# Sets read and write timeouts on a UDP socket in milliseconds.
+function udp_set_timeout(sock, ms)
+    if ms == null or ms <= 0
+        ms = 10000
+    end
+    return net_set_timeout(sock, ms)
+end
+
 # --- HTTP Client ---
 
 struct HttpResponse
@@ -51,6 +128,48 @@ struct HttpResponse
     status_text
     headers
     body
+end
+
+# Helper to check if HTTP status code is in 2xx range
+function http_is_success(res)
+    return res.status_code >= 200 and res.status_code < 300
+end
+
+# Helper to check if HTTP status code is in 3xx range
+function http_is_redirect(res)
+    return res.status_code >= 300 and res.status_code < 400
+end
+
+# Helper to check if HTTP status code is client error (4xx)
+function http_is_client_error(res)
+    return res.status_code >= 400 and res.status_code < 500
+end
+
+# Helper to check if HTTP status code is server error (5xx)
+function http_is_server_error(res)
+    return res.status_code >= 500 and res.status_code < 600
+end
+
+# Helper to check if HTTP response is any error (4xx, 5xx, or negative status)
+function http_is_error(res)
+    return res.status_code >= 400 or res.status_code < 0
+end
+
+# Internal map schema registering standard HTTP headers with the compiler's string inference
+function _net_header_types()
+    let _h = {
+        "content-type": "",
+        "content-length": "",
+        "connection": "",
+        "server": "",
+        "location": "",
+        "date": "",
+        "accept": "",
+        "authorization": "",
+        "user-agent": "",
+        "cache-control": ""
+    }
+    return _h
 end
 
 # Internal helper: find needle in haystack starting from start_idx
@@ -131,6 +250,48 @@ function http_parse_response(raw)
     return HttpResponse(status_code, status_text, headers, body_part)
 end
 
+# Internal HTTPS bridge via system curl
+function _http_curl_bridge(method, url_str, extra_headers, body)
+    let tmp_out = "temp_alya_net_out_" + str(clock_ms()) + ".tmp"
+    let tmp_body = "temp_alya_net_body_" + str(clock_ms()) + ".tmp"
+    let cmd = "curl -s -i -X " + method + " "
+
+    if extra_headers != null
+        let hkeys = extra_headers.keys()
+        let ki = 0
+        while ki < len(hkeys)
+            let hk = hkeys[ki]
+            let hv = extra_headers[hk]
+            cmd = cmd + "-H \"" + hk + ": " + hv + "\" "
+            ki += 1
+        end
+    end
+
+    if len(body) > 0
+        write_file(tmp_body, body)
+        cmd = cmd + "--data-binary \"@" + tmp_body + "\" "
+    end
+
+    if target_os() == "windows"
+        cmd = cmd + "\"" + url_str + "\" > " + tmp_out + " 2>NUL"
+    else
+        cmd = cmd + "\"" + url_str + "\" > " + tmp_out + " 2>/dev/null"
+    end
+
+    system_exec(cmd)
+
+    let raw_resp = ""
+    if file_exists(tmp_out) == 1
+        raw_resp = read_file(tmp_out)
+        remove_file(tmp_out)
+    end
+    if file_exists(tmp_body) == 1
+        remove_file(tmp_body)
+    end
+
+    return http_parse_response(raw_resp)
+end
+
 # Performs an HTTP request with method, host, port, path, extra_headers, and body.
 function http_request(method, host, port, path, extra_headers, body)
     if port == null or port <= 0
@@ -146,10 +307,18 @@ function http_request(method, host, port, path, extra_headers, body)
         body = ""
     end
 
+    # Handle HTTPS directly
+    if port == 443
+        return _http_curl_bridge(method, "https://" + host + path, extra_headers, body)
+    end
+
     let sock = tcp_connect(host, port)
     if sock < 0
         return HttpResponse(-1, "Connection failed to " + host + ":" + str(port), {}, "")
     end
+
+    # Set 10-second default timeout to prevent indefinite hangs
+    tcp_set_timeout(sock, 10000)
 
     # Construct HTTP request string
     let req = method + " " + path + " HTTP/1.1\r\n"
@@ -160,6 +329,18 @@ function http_request(method, host, port, path, extra_headers, body)
         req = req + "Content-Length: " + str(len(body)) + "\r\n"
     end
 
+    # Append user-specified extra headers
+    if extra_headers != null
+        let hkeys = extra_headers.keys()
+        let ki = 0
+        while ki < len(hkeys)
+            let hk = hkeys[ki]
+            let hv = extra_headers[hk]
+            req = req + hk + ": " + hv + "\r\n"
+            ki += 1
+        end
+    end
+
     # Send request
     tcp_send(sock, req)
     if len(body) > 0
@@ -168,34 +349,67 @@ function http_request(method, host, port, path, extra_headers, body)
         tcp_send(sock, "\r\n")
     end
 
-    # Read response until connection is closed
+    # Read response with Content-Length awareness
     let raw_resp = ""
+    let content_length = -1
+    let header_end_idx = -1
+
     while 1
         let chunk = tcp_recv(sock, 4096)
         if chunk == "" or len(chunk) == 0
             break
         end
         raw_resp = raw_resp + chunk
+
+        # Detect end of HTTP headers
+        if header_end_idx < 0
+            let sep = _net_find(raw_resp, "\r\n\r\n", 0)
+            if sep >= 0
+                header_end_idx = sep + 4
+                let hpart = lower(substring(raw_resp, 0, sep))
+                let cl_idx = _net_find(hpart, "content-length:", 0)
+                if cl_idx >= 0
+                    let val_start = cl_idx + 15
+                    let val_end = _net_find(hpart, "\r\n", val_start)
+                    if val_end < 0
+                        val_end = _net_find(hpart, "\n", val_start)
+                    end
+                    if val_end >= 0
+                        let cl_str = trim(substring(raw_resp, val_start, val_end - val_start))
+                        content_length = to_int(cl_str)
+                    end
+                end
+            end
+        end
+
+        # If Content-Length is known, break early once all body bytes have arrived
+        if header_end_idx >= 0 and content_length >= 0
+            let cur_body_len = len(raw_resp) - header_end_idx
+            if cur_body_len >= content_length
+                break
+            end
+        end
     end
 
     tcp_close(sock)
     return http_parse_response(raw_resp)
 end
 
-# Convenience GET request
+# Convenience GET request supporting HTTP & HTTPS
 function http_get(url_str)
     let parsed = url_parse(url_str)
     let host = parsed.url_host
     if host == ""
         return HttpResponse(-1, "Invalid URL host", {}, "")
     end
+
+    if parsed.url_scheme == "https"
+        return _http_curl_bridge("GET", url_str, {}, "")
+    end
+
     let port = parsed.url_port
     if port <= 0
-        if parsed.url_scheme == "https"
-            port = 443
-        else
-            port = 80
-        end
+        port = 80
     end
     let path = parsed.url_path
     if path == ""
@@ -208,13 +422,23 @@ function http_get(url_str)
     return http_request("GET", host, port, path, {}, "")
 end
 
-# Convenience POST request
+# Convenience POST request supporting HTTP & HTTPS
 function http_post(url_str, body, content_type)
     let parsed = url_parse(url_str)
     let host = parsed.url_host
     if host == ""
         return HttpResponse(-1, "Invalid URL host", {}, "")
     end
+
+    if content_type == null or content_type == ""
+        content_type = "application/json"
+    end
+    let headers = {"content-type": content_type}
+
+    if parsed.url_scheme == "https"
+        return _http_curl_bridge("POST", url_str, headers, body)
+    end
+
     let port = parsed.url_port
     if port <= 0
         port = 80
@@ -226,10 +450,6 @@ function http_post(url_str, body, content_type)
     if parsed.url_query != ""
         path = path + "?" + parsed.url_query
     end
-    if content_type == null or content_type == ""
-        content_type = "application/json"
-    end
 
-    let headers = {"content-type": content_type}
     return http_request("POST", host, port, path, headers, body)
 end

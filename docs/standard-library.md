@@ -107,24 +107,42 @@ High-performance linear allocation arena with instant bulk deallocation:
 
 ---
 
-### 🌐 `std/net` — Networking & HTTP Client
+### 🌐 `std/net` — Networking, UDP & HTTP/HTTPS Client
 ```alya
 import "std/net"
 ```
-Zero-dependency TCP networking (client & server) and lightweight HTTP/1.1 client:
-* **TCP Client**:
-  * `tcp_connect(host, port)`: Connect to remote host; returns socket handle or -1.
+Production-grade networking supporting TCP & UDP sockets, socket timeouts, remote peer inspection, and an HTTP/HTTPS client:
+* **TCP Socket Networking**:
+  * `tcp_socket()`: Create a new TCP stream socket (`AF_INET`, `SOCK_STREAM`).
+  * `tcp_connect(host, port)`: Connect to remote host; returns socket handle or `-1`.
   * `tcp_send(sock, data)`: Send string data through socket.
-  * `tcp_recv(sock, max_bytes)`: Receive up to `max_bytes` from socket.
+  * `tcp_recv(sock, max_bytes)`: Receive up to `max_bytes` from socket (default 4096).
   * `tcp_close(sock)`: Close open socket.
-* **TCP Server**:
-  * `tcp_listen(port, backlog)`: Create listening server socket.
+  * `tcp_listen(port, backlog)`: Create listening server socket bound to port.
   * `tcp_accept(server_sock)`: Accept incoming client connection.
-* **HTTP Client**:
-  * `http_get(url)`: Perform HTTP GET request; returns `HttpResponse` struct.
-  * `http_post(url, body, content_type)`: Perform HTTP POST request.
-  * `http_request(method, host, port, path, headers, body)`: Configurable HTTP request.
-  * `http_parse_response(raw)`: Parse raw HTTP string into `HttpResponse(status_code, status_text, headers, body)`.
+  * `tcp_set_timeout(sock, ms)`: Set read/write timeouts (`SO_RCVTIMEO` / `SO_SNDTIMEO`) in milliseconds.
+  * `tcp_peer_ip(sock)`: Get remote peer's IP address (e.g. `"127.0.0.1"`).
+  * `tcp_peer_port(sock)`: Get remote peer's port number.
+  * `tcp_peer_addr(sock)`: Get remote peer address formatted as `"ip:port"`.
+* **UDP Datagram Networking**:
+  * `udp_socket()`: Create a UDP datagram socket (`AF_INET`, `SOCK_DGRAM`).
+  * `udp_bind(sock, port)`: Bind UDP socket to specified local port on `INADDR_ANY`.
+  * `udp_send(sock, host, port, data)`: Send datagram to destination host and port.
+  * `udp_recv(sock, max_bytes)`: Receive datagram packet up to `max_bytes`.
+  * `udp_close(sock)`: Close UDP socket.
+  * `udp_set_timeout(sock, ms)`: Set read/write timeouts on UDP socket in milliseconds.
+* **HTTP & HTTPS Client**:
+  * `http_get(url)`: Perform HTTP/HTTPS GET request; returns `HttpResponse` struct.
+  * `http_post(url, body, content_type)`: Perform HTTP/HTTPS POST request with content-type (defaults to `application/json`).
+  * `http_request(method, host, port, path, headers, body)`: Configurable HTTP/HTTPS request with header map and body.
+  * `http_parse_response(raw)`: Parse raw HTTP response string into `HttpResponse(status_code, status_text, headers, body)`.
+  * **Response Status Helpers**:
+    * `http_is_success(res)`: Returns `1` if status code is `2xx`, else `0`.
+    * `http_is_redirect(res)`: Returns `1` if status code is `3xx`, else `0`.
+    * `http_is_client_error(res)`: Returns `1` if status code is `4xx`, else `0`.
+    * `http_is_server_error(res)`: Returns `1` if status code is `5xx`, else `0`.
+    * `http_is_error(res)`: Returns `1` if response code is an error (`>= 400` or `< 0`).
+  * **Production Hardening**: Includes automatic 10-second socket timeout, `Content-Length`-aware response parsing to avoid socket-close delays, and transparent HTTPS bridge.
 
 ---
 

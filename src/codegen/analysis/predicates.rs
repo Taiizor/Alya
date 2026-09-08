@@ -95,6 +95,11 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "tcp_recv"
                     | "net_recv"
                     | "http_recv"
+                    | "net_udp_recv"
+                    | "udp_recv"
+                    | "net_peer_ip"
+                    | "tcp_peer_ip"
+                    | "tcp_peer_addr"
             ) {
                 return true;
             }

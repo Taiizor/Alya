@@ -41,7 +41,11 @@ pub fn emit_header(out: &mut String) {
     out.push_str(".extern htons\n");
     out.push_str(".extern inet_addr\n");
     out.push_str(".extern gethostbyname\n");
-    out.push_str(".extern setsockopt\n\n");
+    out.push_str(".extern setsockopt\n");
+    out.push_str(".extern getpeername\n");
+    out.push_str(".extern inet_ntoa\n");
+    out.push_str(".extern sendto\n");
+    out.push_str(".extern recvfrom\n\n");
     out.push_str(".text\n");
     out.push_str("main:\n");
     out.push_str("    push %ebp\n");

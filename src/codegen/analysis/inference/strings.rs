@@ -95,6 +95,11 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
                     | "tcp_recv"
                     | "net_recv"
                     | "http_recv"
+                    | "net_udp_recv"
+                    | "udp_recv"
+                    | "net_peer_ip"
+                    | "tcp_peer_ip"
+                    | "tcp_peer_addr"
             ) {
                 return true;
             }

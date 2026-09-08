@@ -1349,33 +1349,71 @@ fn test_e2e_net_and_http_stdlib() {
     let code = r#"
 import "std/net"
 
-# 1. Socket Creation & Close
-let sock = net_socket()
+# 1. TCP Socket Lifecycle & Timeout
+let sock = tcp_socket()
 if sock >= 0
-    say "socket: valid"
-    net_close(sock)
-    say "socket: closed"
-else
-    say "socket: failed"
+    say "tcp_socket: ok"
+    let t_res = tcp_set_timeout(sock, 2000)
+    say "tcp_timeout: " + str(t_res == 0)
+    tcp_close(sock)
+    say "tcp_closed: ok"
 end
 
-# 2. HTTP Protocol Parsing
-let raw = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nServer: Alya/1.0\r\n\r\n{\"greeting\":\"hello world\"}"
-let resp = http_parse_response(raw)
-say "code: " + str(resp.status_code)
-say "text: " + resp.status_text
-say "type: " + resp.headers["content-type"]
-say "body: " + resp.body
+# 2. UDP Socket Lifecycle, Timeout, Send & Recv
+let u_recv = udp_socket()
+let u_send = udp_socket()
+if u_recv >= 0 and u_send >= 0
+    say "udp_sockets: ok"
+    let b_res = udp_bind(u_recv, 29876)
+    say "udp_bind: " + str(b_res == 0)
+    udp_set_timeout(u_recv, 2000)
+    let s_bytes = udp_send(u_send, "127.0.0.1", 29876, "hello_alya_udp")
+    say "udp_sent: " + str(s_bytes > 0)
+    let msg = udp_recv(u_recv, 128)
+    say "udp_recv_msg: " + msg
+    udp_close(u_recv)
+    udp_close(u_send)
+    say "udp_closed: ok"
+end
+
+# 3. HTTP Protocol Parsing & Helpers
+let raw200 = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: 26\r\n\r\n{\"greeting\":\"hello world\"}"
+let resp200 = http_parse_response(raw200)
+say "code_200: " + str(resp200.status_code)
+say "text_200: " + resp200.status_text
+say "type_200: " + resp200.headers["content-type"]
+say "len_200: " + resp200.headers["content-length"]
+say "body_200: " + resp200.body
+say "is_success_200: " + str(http_is_success(resp200))
+say "is_error_200: " + str(http_is_error(resp200))
+
+let raw404 = "HTTP/1.1 404 Not Found\r\nContent-Type: text/plain\r\n\r\nPage Not Found"
+let resp404 = http_parse_response(raw404)
+say "code_404: " + str(resp404.status_code)
+say "is_client_err_404: " + str(http_is_client_error(resp404))
+say "is_error_404: " + str(http_is_error(resp404))
 "#;
     if let Some((code, output)) = run_alya_code_full(code) {
         println!("OUTPUT WAS:\n{}", output);
         assert_eq!(code, 0, "Execution failed: {}", output);
-        assert!(output.contains("socket: valid"));
-        assert!(output.contains("socket: closed"));
-        assert!(output.contains("code: 200"));
-        assert!(output.contains("text: OK"));
-        assert!(output.contains("type: application/json"));
-        assert!(output.contains("body: {\"greeting\":\"hello world\"}"));
+        assert!(output.contains("tcp_socket: ok"));
+        assert!(output.contains("tcp_timeout: 1"));
+        assert!(output.contains("tcp_closed: ok"));
+        assert!(output.contains("udp_sockets: ok"));
+        assert!(output.contains("udp_bind: 1"));
+        assert!(output.contains("udp_sent: 1"));
+        assert!(output.contains("udp_recv_msg: hello_alya_udp"));
+        assert!(output.contains("udp_closed: ok"));
+        assert!(output.contains("code_200: 200"));
+        assert!(output.contains("text_200: OK"));
+        assert!(output.contains("type_200: application/json"));
+        assert!(output.contains("len_200: 26"));
+        assert!(output.contains("body_200: {\"greeting\":\"hello world\"}"));
+        assert!(output.contains("is_success_200: 1"));
+        assert!(output.contains("is_error_200: 0"));
+        assert!(output.contains("code_404: 404"));
+        assert!(output.contains("is_client_err_404: 1"));
+        assert!(output.contains("is_error_404: 1"));
     }
 }
 

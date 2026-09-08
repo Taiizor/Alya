@@ -51,7 +51,11 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern _htons\n");
         out.push_str(".extern _inet_addr\n");
         out.push_str(".extern _gethostbyname\n");
-        out.push_str(".extern _setsockopt\n\n");
+        out.push_str(".extern _setsockopt\n");
+        out.push_str(".extern _getpeername\n");
+        out.push_str(".extern _inet_ntoa\n");
+        out.push_str(".extern _sendto\n");
+        out.push_str(".extern _recvfrom\n\n");
         out.push_str(".text\n");
         out.push_str(".align 2\n");
         out.push_str("_main:\n");
@@ -89,7 +93,11 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern htons\n");
         out.push_str(".extern inet_addr\n");
         out.push_str(".extern gethostbyname\n");
-        out.push_str(".extern setsockopt\n\n");
+        out.push_str(".extern setsockopt\n");
+        out.push_str(".extern getpeername\n");
+        out.push_str(".extern inet_ntoa\n");
+        out.push_str(".extern sendto\n");
+        out.push_str(".extern recvfrom\n\n");
         out.push_str(".text\n");
         out.push_str(".align 2\n");
         out.push_str("main:\n");
