@@ -4,8 +4,10 @@ import * as fs from "fs";
 import * as path from "path";
 
 interface BenchConfig {
+    id: string;
     name: string;
     displayName: string;
+    rootDisplayName: string;
     workload: string;
     expected: string;
     alyaSrc: string;
@@ -16,8 +18,10 @@ interface BenchConfig {
 
 const BENCHMARKS: BenchConfig[] = [
     {
+        id: "fib",
         name: "Recursive Fibonacci (n=30)",
         displayName: "**Recursive Fibonacci**",
+        rootDisplayName: "**Recursive Fibonacci (n=30)**",
         workload: "`fib(30)` (~2.69M calls)",
         expected: "832040",
         alyaSrc: "benchmarks/cross_lang/fibonacci.alya",
@@ -26,8 +30,10 @@ const BENCHMARKS: BenchConfig[] = [
         jsSrc: "benchmarks/cross_lang/fibonacci.js"
     },
     {
+        id: "mandelbrot",
         name: "Mandelbrot Fractal (200x100x200)",
         displayName: "**Mandelbrot Fractal**",
+        rootDisplayName: "**Mandelbrot Fractal (200×100)**",
         workload: "200×100 grid, 200 iters",
         expected: "767273",
         alyaSrc: "benchmarks/cross_lang/mandelbrot.alya",
@@ -36,8 +42,10 @@ const BENCHMARKS: BenchConfig[] = [
         jsSrc: "benchmarks/cross_lang/mandelbrot.js"
     },
     {
+        id: "sieve",
         name: "Sieve of Eratosthenes (50,000)",
         displayName: "**Sieve of Eratosthenes**",
+        rootDisplayName: "**Sieve of Eratosthenes (50k)**",
         workload: "Primes under 50,000",
         expected: "5133",
         alyaSrc: "benchmarks/cross_lang/sieve.alya",
@@ -46,8 +54,10 @@ const BENCHMARKS: BenchConfig[] = [
         jsSrc: "benchmarks/cross_lang/sieve.js"
     },
     {
+        id: "str_hash",
         name: "FNV-1a String Hash (50,000 iters)",
         displayName: "**FNV-1a String Hash**",
+        rootDisplayName: "**FNV-1a String Hash (50k)**",
         workload: "50,000 hash calculations",
         expected: "1736110778",
         alyaSrc: "benchmarks/cross_lang/str_hash.alya",
@@ -177,7 +187,28 @@ function runCompilerBenchmarks(): string[] {
     return rows;
 }
 
-function updateReadme(scoreboardRows: string[], compilerRows?: string[], pyCmd: string = "python") {
+interface DetailedBenchResult {
+    id: string;
+    name: string;
+    displayName: string;
+    rootDisplayName: string;
+    workload: string;
+    cMedian: number;
+    alyaMedian: number;
+    bunMedian: number;
+    pyMedian: number;
+    cMs: string;
+    alyaMs: string;
+    bunMs: string;
+    pyMs: string;
+    vsC: string;
+    vsPy: string;
+    vsBunMarkdown: string;
+    bunText: string;
+    pyText: string;
+}
+
+function updateBenchReadme(results: DetailedBenchResult[], compilerRows?: string[], pyCmd: string = "python") {
     const readmePath = path.resolve("benchmarks/README.md");
     if (!fs.existsSync(readmePath)) {
         console.error(`Cannot find ${readmePath}`);
@@ -192,10 +223,40 @@ function updateReadme(scoreboardRows: string[], compilerRows?: string[], pyCmd: 
 
     // 2. Update Scoreboard Table
     const tableHeader = "| Benchmark | Target Workload | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs C | Alya vs Python | Alya vs Bun |\n| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |";
+    const scoreboardRows = results.map(r =>
+        `| ${r.displayName} | ${r.workload} | \`${r.cMs} ms\` | **\`${r.alyaMs} ms\`** | \`${r.bunMs} ms\` | \`${r.pyMs} ms\` | **${r.vsC}** | **${r.vsPy}** | ${r.vsBunMarkdown} |`
+    );
     const newTable = `### Benchmark Scoreboard\n\n${tableHeader}\n${scoreboardRows.join("\n")}`;
     content = content.replace(/### Benchmark Scoreboard[\s\S]*?(?=\r?\n\r?\n---)/, newTable);
 
-    // 3. Update Compiler Throughput Table (if available)
+    // 3. Update Benchmark Details & Insights Result lines
+    const detailReplacements: { id: string; regex: RegExp }[] = [
+        {
+            id: "fib",
+            regex: /(### 1\. Recursive Fibonacci[\s\S]*?\*\s*\*\*Result:\*\*)[^\r\n]*/
+        },
+        {
+            id: "mandelbrot",
+            regex: /(### 2\. Mandelbrot Fractal[\s\S]*?\*\s*\*\*Result:\*\*)[^\r\n]*/
+        },
+        {
+            id: "sieve",
+            regex: /(### 3\. Sieve of Eratosthenes[\s\S]*?\*\s*\*\*Result:\*\*)[^\r\n]*/
+        },
+        {
+            id: "str_hash",
+            regex: /(### 4\. FNV-1a String Hashing[\s\S]*?\*\s*\*\*Result:\*\*)[^\r\n]*/
+        }
+    ];
+
+    for (const rep of detailReplacements) {
+        const item = results.find(d => d.id === rep.id);
+        if (item) {
+            content = content.replace(rep.regex, `$1 **${item.vsC} of C (-O2)**, **${item.bunText}**, and **${item.pyText}**.`);
+        }
+    }
+
+    // 4. Update Compiler Throughput Table (if available)
     if (compilerRows && compilerRows.length > 0) {
         const compilerHeader = "| Benchmark Stage | Iterations | Average Time | Min Time | Max Time | Measured Throughput |\n| :--- | :---: | :---: | :---: | :---: | :---: |";
         const newCompilerTable = `${compilerHeader}\n${compilerRows.join("\n")}`;
@@ -204,6 +265,26 @@ function updateReadme(scoreboardRows: string[], compilerRows?: string[], pyCmd: 
 
     fs.writeFileSync(readmePath, content, "utf-8");
     console.log(`[INFO] Successfully updated ${readmePath} with latest benchmark results.`);
+}
+
+function updateRootReadme(results: DetailedBenchResult[]) {
+    const rootReadmePath = path.resolve("README.md");
+    if (!fs.existsSync(rootReadmePath)) {
+        console.error(`Cannot find ${rootReadmePath}`);
+        return;
+    }
+    let content = fs.readFileSync(rootReadmePath, "utf-8");
+
+    const header = "| Benchmark | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs Bun | Alya vs Python |\n| :--- | :---: | :---: | :---: | :---: | :---: | :---: |";
+    const rows = results.map(r =>
+        `| ${r.rootDisplayName} | \`${r.cMs} ms\` | **\`${r.alyaMs} ms\`** | \`${r.bunMs} ms\` | \`${r.pyMs} ms\` | ${r.vsBunMarkdown} | **${r.vsPy}** |`
+    );
+    const newSection = `### Cross-Language Execution Benchmark (Median of 5 runs)\n\n${header}\n${rows.join("\n")}`;
+
+    content = content.replace(/### Cross-Language Execution Benchmark[\s\S]*?(?=\r?\n\r?\n>)/, newSection);
+
+    fs.writeFileSync(rootReadmePath, content, "utf-8");
+    console.log(`[INFO] Successfully updated ${rootReadmePath} with latest benchmark results.`);
 }
 
 async function main() {
@@ -227,8 +308,7 @@ async function main() {
     }
 
     const pyCmd = getPythonCmd();
-    const rows: any[] = [];
-    const markdownRows: string[] = [];
+    const benchResults: DetailedBenchResult[] = [];
 
     for (const b of BENCHMARKS) {
         process.stdout.write(`Benchmarking ${b.name}... `);
@@ -275,19 +355,32 @@ async function main() {
             ? `**${(bunRes.median / alyaRes.median).toFixed(1)}x faster**`
             : `\`${(alyaRes.median / bunRes.median).toFixed(1)}x slower\``;
 
-        rows.push({
-            name: b.name,
-            c: `${cRes.median.toFixed(1)} ms`,
-            alya: `${alyaRes.median.toFixed(1)} ms`,
-            bun: `${bunRes.median.toFixed(1)} ms`,
-            py: `${pyRes.median.toFixed(1)} ms`,
-            vsC: alyaVsC,
-            vsPy: alyaVsPy
-        });
+        const bunText = alyaRes.median <= bunRes.median
+            ? `${(bunRes.median / alyaRes.median).toFixed(1)}x faster than Bun`
+            : `${(alyaRes.median / bunRes.median).toFixed(1)}x slower than Bun`;
 
-        markdownRows.push(
-            `| ${b.displayName} | ${b.workload} | \`${cRes.median.toFixed(1)} ms\` | **\`${alyaRes.median.toFixed(1)} ms\`** | \`${bunRes.median.toFixed(1)} ms\` | \`${pyRes.median.toFixed(1)} ms\` | **${alyaVsC}** | **${alyaVsPy}** | ${alyaVsBun} |`
-        );
+        const pyText = `${(pyRes.median / alyaRes.median).toFixed(1)}x faster than Python`;
+
+        benchResults.push({
+            id: b.id,
+            name: b.name,
+            displayName: b.displayName,
+            rootDisplayName: b.rootDisplayName,
+            workload: b.workload,
+            cMedian: cRes.median,
+            alyaMedian: alyaRes.median,
+            bunMedian: bunRes.median,
+            pyMedian: pyRes.median,
+            cMs: cRes.median.toFixed(1),
+            alyaMs: alyaRes.median.toFixed(1),
+            bunMs: bunRes.median.toFixed(1),
+            pyMs: pyRes.median.toFixed(1),
+            vsC: alyaVsC,
+            vsPy: alyaVsPy,
+            vsBunMarkdown: alyaVsBun,
+            bunText,
+            pyText
+        });
 
         console.log("Done.");
     }
@@ -302,9 +395,9 @@ async function main() {
         "|:----------------------------------|------------:|--------------:|-------------:|------------:|-------------:|--------------------:|"
     );
 
-    for (const r of rows) {
+    for (const r of benchResults) {
         console.log(
-            `| ${r.name.padEnd(33)} | ${r.c.padStart(11)} | ${r.alya.padStart(13)} | ${r.bun.padStart(12)} | ${r.py.padStart(11)} | ${r.vsC.padStart(12)} | ${r.vsPy.padStart(19)} |`
+            `| ${r.name.padEnd(33)} | ${(`${r.cMs} ms`).padStart(11)} | ${(`${r.alyaMs} ms`).padStart(13)} | ${(`${r.bunMs} ms`).padStart(12)} | ${(`${r.pyMs} ms`).padStart(11)} | ${r.vsC.padStart(12)} | ${r.vsPy.padStart(19)} |`
         );
     }
     console.log("=========================================================================================\n");
@@ -316,7 +409,8 @@ async function main() {
         } catch (e) {
             console.warn("Could not run compiler benchmarks:", e);
         }
-        updateReadme(markdownRows, compilerRows, pyCmd);
+        updateBenchReadme(benchResults, compilerRows, pyCmd);
+        updateRootReadme(benchResults);
     }
 }
 
