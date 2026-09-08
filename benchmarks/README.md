@@ -33,23 +33,23 @@ All implementations solve the exact same algorithmic problem on identical inputs
 
 ### 1. Recursive Fibonacci (`fib(30)`)
 * **Measures:** Function call overhead, standard ABI calling conventions, stack frame push/pop.
-* **Why Alya is Fast:** Alya emits native x64 assembly obeying the platform ABI with direct `call` and `ret` instructions. There are no virtual machine dispatch loops, garbage collection stops, or interpreter frames.
-* **Result:** **1.3x of C (-O2)**, outperforming Bun by **2.2x** and Python by **9.0x**.
+* **Why Alya is Fast:** Alya emits native assembly (ARM64, x64, x86) adhering strictly to platform ABIs with direct branch and link (`bl` / `call`) and return instructions. There are no virtual machine dispatch loops, garbage collection pauses, or interpreter frames.
+* **Result:** **1.5x of C (-O2)**, outperforming Bun by **2.0x** and Python by **14.1x**.
 
 ### 2. Mandelbrot Fractal (`200x100x200`)
 * **Measures:** Double-precision floating-point arithmetic (`f64`), tight nested loops, register persistence.
-* **Why Alya is Fast:** Alya binds 64-bit float math directly to SSE2/AVX hardware registers (`xmm0`, `xmm1`) and emits hardware instructions (`mulsd`, `addsd`, `subsd`, `comisd`).
-* **Result:** **1.5x of C (-O2)**, **7.0x faster than Python**, and **1.5x faster than Bun**.
+* **Why Alya is Fast:** Alya binds 64-bit float operations directly to hardware floating-point registers (`d0-d2` on ARM64, `xmm0-xmm1` on x64/x86) and fuses loop comparisons directly into single conditional branches.
+* **Result:** **2.0x of C (-O2)**, **7.8x faster than Python**, and **1.5x faster than Bun**.
 
 ### 3. Sieve of Eratosthenes (50,000 elements)
 * **Measures:** Memory allocation, dynamic array indexing, bounds safety overhead.
-* **Why Alya is Fast:** Alya calculates array element addresses directly via base + index pointer arithmetic (`[rax + rbx*8]`), performing closely to C heap-allocated buffers.
-* **Result:** **1.2x of C (-O2)**, **5.3x faster than Python**, and **2.5x faster than Bun**.
+* **Why Alya is Fast:** Alya performs single-comparison unsigned bounds checks (`b.hs` / `jae`) and calculates element addresses with native scaled base + index pointer arithmetic (`[x0, x1, lsl #3]` / `[rax + rbx*8]`).
+* **Result:** **1.3x of C (-O2)**, **8.5x faster than Python**, and **3.9x faster than Bun**.
 
 ### 4. FNV-1a String Hashing (50,000 iterations)
 * **Measures:** String iteration, character lookup (`char_at`, `ord`), bitwise XOR and integer multiplication.
-* **Observation:** Alya is **4.2x faster than Python 3.12**. Bun and C are faster here because C uses raw byte pointers (`*s++`) and V8 inlines `charCodeAt` as an intrinsic.
-* **Roadmap Note:** Adding built-in inlining for `char_at` and `ord` in the Alya compiler will close this gap to C-level speeds (~15 ms).
+* **Why Alya is Fast:** Direct string index intrinsics bypass runtime function call overhead; bitwise masking is optimized natively (`ubfx` on ARM64, direct immediate bitwise ops on x64/x86); and loop conditions use zero-overhead branch fusion.
+* **Result:** **1.4x faster than Bun** and **51.3x faster than Python 3.12**.
 
 ---
 

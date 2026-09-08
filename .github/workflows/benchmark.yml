@@ -30,7 +30,7 @@ on:
       - 'Cargo.toml'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.os || 'ubuntu-latest' }}
   cancel-in-progress: true
 
 permissions:
