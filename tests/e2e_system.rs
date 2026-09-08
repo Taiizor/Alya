@@ -1037,3 +1037,55 @@ say "rng ok: {rng_val >= 100 and rng_val <= 200}"
         assert!(output.contains("rng ok: 1"));
     }
 }
+
+#[test]
+fn test_e2e_cli_stdlib() {
+    let code = r#"
+import "std/cli"
+
+let p = cli_parser("test-app", "A test CLI application")
+cli_set_version(p, "2.0.0")
+
+cli_add_flag(p, "-v, --verbose", "Verbose mode")
+cli_add_option(p, "-o, --output", "default/out", "Output directory")
+cli_add_command(p, "run", "Execute runner")
+cli_add_argument(p, "file", "Input source file")
+
+let fake_args = ["run", "-v", "--output=custom/target", "main.alya"]
+let res = cli_parse(p, fake_args)
+
+let cmd = cli_get_command(res)
+let v_flag = cli_get_flag(res, "verbose")
+let s_flag = cli_get_flag(res, "v")
+let out_opt = cli_get_option(res, "output", "")
+let s_opt = cli_get_option(res, "o", "")
+let a0 = cli_get_arg(res, 0, "")
+
+say "cmd: " + cmd
+say "verbose: " + str(v_flag)
+say "v: " + str(s_flag)
+say "out: " + out_opt
+say "o: " + s_opt
+say "arg0: " + a0
+
+let help_txt = cli_help(p)
+let has_u = contains(help_txt, "Usage: test-app")
+let has_c = contains(help_txt, "run")
+let has_o = contains(help_txt, "--output")
+say "has_usage: " + str(has_u)
+say "has_cmd: " + str(has_c)
+say "has_opt: " + str(has_o)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("cmd: run"));
+        assert!(output.contains("verbose: 1"));
+        assert!(output.contains("v: 1"));
+        assert!(output.contains("out: custom/target"));
+        assert!(output.contains("o: custom/target"));
+        assert!(output.contains("arg0: main.alya"));
+        assert!(output.contains("has_usage: 1"));
+        assert!(output.contains("has_cmd: 1"));
+        assert!(output.contains("has_opt: 1"));
+    }
+}

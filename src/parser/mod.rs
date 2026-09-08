@@ -271,6 +271,7 @@ fn get_embedded_stdlib(module: &str) -> Option<&'static str> {
         "test" => Some(include_str!("../../stdlib/test.alya")),
         "bench" => Some(include_str!("../../stdlib/bench.alya")),
         "rand" => Some(include_str!("../../stdlib/rand.alya")),
+        "cli" | "argparse" => Some(include_str!("../../stdlib/cli.alya")),
         _ => None,
     }
 }

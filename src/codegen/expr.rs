@@ -222,6 +222,48 @@ impl CodeGen {
                     arch::emit_push_temp(&mut self.output, self.arch);
 
                     for (i, arg) in args.iter().enumerate() {
+                        let is_flt = is_float_expr(arg, &self.ctx.variables);
+                        let is_str = is_string_expr(arg, &self.ctx.variables);
+                        let is_arr = is_array_expr(arg, &self.ctx.variables);
+                        let is_map = is_map_expr(arg, &self.ctx.variables);
+                        if let Some(fname) = sdef.fields.get(i) {
+                            if is_str {
+                                self.ctx.variables.insert(
+                                    format!("struct_field_str:{}.{}", name, fname),
+                                    VarType::StringOffset(0),
+                                );
+                                self.ctx.variables.insert(
+                                    format!("struct_field_str:{}", fname),
+                                    VarType::StringOffset(0),
+                                );
+                            } else if is_flt {
+                                self.ctx.variables.insert(
+                                    format!("struct_field_flt:{}.{}", name, fname),
+                                    VarType::Float(0),
+                                );
+                                self.ctx.variables.insert(
+                                    format!("struct_field_flt:{}", fname),
+                                    VarType::Float(0),
+                                );
+                            } else if is_arr {
+                                self.ctx.variables.insert(
+                                    format!("struct_field_arr:{}.{}", name, fname),
+                                    VarType::Array(0),
+                                );
+                                self.ctx.variables.insert(
+                                    format!("struct_field_arr:{}", fname),
+                                    VarType::Array(0),
+                                );
+                            } else if is_map {
+                                self.ctx.variables.insert(
+                                    format!("struct_field_map:{}.{}", name, fname),
+                                    VarType::Map(0),
+                                );
+                                self.ctx
+                                    .variables
+                                    .insert(format!("struct_field_map:{}", fname), VarType::Map(0));
+                            }
+                        }
                         self.generate_expression(arg);
                         arch::emit_struct_field_set_imm(&mut self.output, self.arch, i);
                     }
@@ -235,6 +277,12 @@ impl CodeGen {
                     && (is_array_expr(&args[0], &self.ctx.variables)
                         || is_map_expr(&args[0], &self.ctx.variables))
                 {
+                    self.generate_expression(&args[0]);
+                    arch::emit_array_len(&mut self.output, self.arch);
+                    return;
+                }
+
+                if (name == "array_len" || name == "arr_len") && args.len() == 1 {
                     self.generate_expression(&args[0]);
                     arch::emit_array_len(&mut self.output, self.arch);
                     return;
@@ -570,6 +618,8 @@ impl CodeGen {
                 for (fname, fval) in fields {
                     let is_str = is_string_expr(fval, &self.ctx.variables);
                     let is_flt = is_float_expr(fval, &self.ctx.variables);
+                    let is_arr = is_array_expr(fval, &self.ctx.variables);
+                    let is_map = is_map_expr(fval, &self.ctx.variables);
                     if is_str {
                         self.ctx.variables.insert(
                             format!("struct_field_str:{}.{}", name, fname),
@@ -587,6 +637,22 @@ impl CodeGen {
                         self.ctx
                             .variables
                             .insert(format!("struct_field_flt:{}", fname), VarType::Float(0));
+                    } else if is_arr {
+                        self.ctx.variables.insert(
+                            format!("struct_field_arr:{}.{}", name, fname),
+                            VarType::Array(0),
+                        );
+                        self.ctx
+                            .variables
+                            .insert(format!("struct_field_arr:{}", fname), VarType::Array(0));
+                    } else if is_map {
+                        self.ctx.variables.insert(
+                            format!("struct_field_map:{}.{}", name, fname),
+                            VarType::Map(0),
+                        );
+                        self.ctx
+                            .variables
+                            .insert(format!("struct_field_map:{}", fname), VarType::Map(0));
                     }
                 }
                 arch::emit_push_temp(&mut self.output, self.arch);

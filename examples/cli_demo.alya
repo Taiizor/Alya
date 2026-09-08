@@ -1,0 +1,40 @@
+# CLI Module Demonstration (std/cli)
+# Demonstrates flags, options, subcommands, arguments, and automated help text.
+
+import "std/cli"
+
+say "=== 1. CLI Parser Setup ==="
+let p = cli_parser("alya-build", "A modern, fast build tool for Alya projects")
+cli_set_version(p, "1.2.0")
+
+cli_add_flag(p, "-v, --verbose", "Enable detailed debug logging")
+cli_add_flag(p, "-r, --release", "Build in release mode with full optimizations")
+cli_add_option(p, "-o, --output", "dist/out", "Specify output artifact directory")
+cli_add_option(p, "-t, --target", "x64", "Target architecture (x86, x64, arm64)")
+cli_add_command(p, "build", "Compile project source files into binary")
+cli_add_command(p, "test", "Run test suite and benchmarks")
+cli_add_command(p, "clean", "Remove build artifacts and temporary files")
+cli_add_argument(p, "entry_file", "Main entry point file (e.g., src/main.alya)")
+
+say "=== 2. Generated Help Screen ==="
+cli_print_help(p)
+
+say "=== 3. Simulating Command Line Arguments ==="
+# Test case A: build command with flags and options
+let sim_args = ["build", "-v", "--release", "--output=bin/release", "-t", "arm64", "src/main.alya", "lib/extra.alya"]
+let res = cli_parse(p, sim_args)
+
+say "Subcommand detected: " + cli_get_command(res)
+say "Verbose flag: " + str(cli_get_flag(res, "verbose"))
+say "Release flag: " + str(cli_get_flag(res, "release"))
+say "Output path: " + cli_get_option(res, "output", "default")
+say "Target arch: " + cli_get_option(res, "target", "default")
+say "Positional args count: " + str(len(cli_get_args(res)))
+say "Arg 0: " + cli_get_arg(res, 0, "")
+say "Arg 1: " + cli_get_arg(res, 1, "")
+
+say "=== 4. Direct Convenience Helpers ==="
+say "Raw args count from runtime: " + str(len(cli_raw_args()))
+say "Has --help in runtime args: " + str(cli_has_flag("help"))
+
+say "CLI demo completed successfully."

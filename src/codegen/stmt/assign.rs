@@ -88,6 +88,8 @@ impl CodeGen {
                 for (fname, fval) in init_fields {
                     let is_flt = is_float_expr(fval, &self.ctx.variables);
                     let is_str = is_string_expr(fval, &self.ctx.variables);
+                    let is_arr = is_array_expr(fval, &self.ctx.variables);
+                    let is_map = is_map_expr(fval, &self.ctx.variables);
                     let field_key = format!("{}.{}", name, fname);
                     if is_str {
                         self.ctx
@@ -110,6 +112,24 @@ impl CodeGen {
                         self.ctx
                             .variables
                             .insert(format!("struct_field_flt:{}", fname), VarType::Float(0));
+                    } else if is_arr {
+                        self.ctx.variables.insert(field_key, VarType::Array(0));
+                        self.ctx.variables.insert(
+                            format!("struct_field_arr:{}.{}", sname, fname),
+                            VarType::Array(0),
+                        );
+                        self.ctx
+                            .variables
+                            .insert(format!("struct_field_arr:{}", fname), VarType::Array(0));
+                    } else if is_map {
+                        self.ctx.variables.insert(field_key, VarType::Map(0));
+                        self.ctx.variables.insert(
+                            format!("struct_field_map:{}.{}", sname, fname),
+                            VarType::Map(0),
+                        );
+                        self.ctx
+                            .variables
+                            .insert(format!("struct_field_map:{}", fname), VarType::Map(0));
                     } else {
                         self.ctx.variables.insert(field_key, VarType::Number(0));
                     }
@@ -143,6 +163,8 @@ impl CodeGen {
                     if let Some(fname) = sfields.get(i) {
                         let is_flt = is_float_expr(arg, &self.ctx.variables);
                         let is_str = is_string_expr(arg, &self.ctx.variables);
+                        let is_arr = is_array_expr(arg, &self.ctx.variables);
+                        let is_map = is_map_expr(arg, &self.ctx.variables);
                         let field_key = format!("{}.{}", name, fname);
                         if is_str {
                             self.ctx
@@ -165,6 +187,24 @@ impl CodeGen {
                             self.ctx
                                 .variables
                                 .insert(format!("struct_field_flt:{}", fname), VarType::Float(0));
+                        } else if is_arr {
+                            self.ctx.variables.insert(field_key, VarType::Array(0));
+                            self.ctx.variables.insert(
+                                format!("struct_field_arr:{}.{}", sname, fname),
+                                VarType::Array(0),
+                            );
+                            self.ctx
+                                .variables
+                                .insert(format!("struct_field_arr:{}", fname), VarType::Array(0));
+                        } else if is_map {
+                            self.ctx.variables.insert(field_key, VarType::Map(0));
+                            self.ctx.variables.insert(
+                                format!("struct_field_map:{}.{}", sname, fname),
+                                VarType::Map(0),
+                            );
+                            self.ctx
+                                .variables
+                                .insert(format!("struct_field_map:{}", fname), VarType::Map(0));
                         } else {
                             self.ctx.variables.insert(field_key, VarType::Number(0));
                         }

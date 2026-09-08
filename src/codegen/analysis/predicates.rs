@@ -237,6 +237,27 @@ pub fn is_map_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             }
             false
         }
+        Expr::FieldAccess { object, field } => {
+            if let Expr::Identifier(obj_name) = &**object {
+                let key = format!("{}.{}", obj_name, field);
+                if let Some(var_type) = vars.get(&key) {
+                    if matches!(var_type, VarType::Map(_)) {
+                        return true;
+                    }
+                }
+                if let Some(VarType::Struct { struct_name, .. }) = vars.get(obj_name) {
+                    let field_key = format!("struct_field_map:{}.{}", struct_name, field);
+                    if vars.contains_key(&field_key) {
+                        return true;
+                    }
+                }
+            }
+            let global_field_key = format!("struct_field_map:{}", field);
+            if vars.contains_key(&global_field_key) {
+                return true;
+            }
+            false
+        }
         _ => false,
     }
 }

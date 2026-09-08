@@ -108,6 +108,7 @@ import "std/hash"
 import "std/collections"
 import "std/test"
 import "std/rand"
+import "std/cli"
 say PI
 "#;
     let mut lexer = Lexer::new(code);
@@ -170,6 +171,11 @@ say PI
         _ => false,
     });
 
+    let has_cli_parser = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "cli_parser",
+        _ => false,
+    });
+
     assert!(has_hypot, "Missing hypot from std/math");
     assert!(has_now, "Missing now from std/time");
     assert!(has_env, "Missing env from std/os");
@@ -182,6 +188,7 @@ say PI
     assert!(has_stack_new, "Missing stack_new from std/collections");
     assert!(has_assert_eq, "Missing assert_eq from std/test");
     assert!(has_uuid_v4, "Missing uuid_v4 from std/rand");
+    assert!(has_cli_parser, "Missing cli_parser from std/cli");
 }
 
 #[test]

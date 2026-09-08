@@ -78,6 +78,10 @@ impl CodeGenContext {
                 || k.starts_with("map_str:")
                 || k.starts_with("fn_ret_str:")
                 || k.starts_with("fn_ret_flt:")
+                || k.starts_with("struct_field_str:")
+                || k.starts_with("struct_field_flt:")
+                || k.starts_with("struct_field_arr:")
+                || k.starts_with("struct_field_map:")
             {
                 fn_vars.insert(k.clone(), v.clone());
             }
