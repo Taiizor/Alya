@@ -41,4 +41,3 @@ say "Minimum of 10 and 20: {mn}"
 
 let mx = max(10, 20)
 say "Maximum of 10 and 20: {mx}"
-

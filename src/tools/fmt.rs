@@ -145,7 +145,71 @@ fn is_when_else_inline(code: &str) -> bool {
     }
 }
 
+fn ends_with_word_outside_quotes(s: &str, word: &str) -> bool {
+    let bytes = s.as_bytes();
+    let word_bytes = word.as_bytes();
+    let mut i = bytes.len();
+
+    // Skip trailing whitespace from the end
+    while i > 0 && bytes[i - 1].is_ascii_whitespace() {
+        i -= 1;
+    }
+
+    if i < word_bytes.len() {
+        return false;
+    }
+
+    let start = i - word_bytes.len();
+    if &bytes[start..i] != word_bytes {
+        return false;
+    }
+
+    // Check boundary before the word (it must be whitespace, ')', ';', etc.)
+    if start > 0 {
+        let b_before = bytes[start - 1];
+        if !b_before.is_ascii_whitespace() && b_before != b')' && b_before != b';' {
+            return false;
+        }
+    }
+
+    // Now verify that `start..i` is outside quotes
+    let mut in_str_scan = false;
+    let mut q_scan = '"';
+    let mut esc_scan = false;
+    let mut j = 0;
+    while j < start {
+        let b = bytes[j];
+        if in_str_scan {
+            if esc_scan {
+                esc_scan = false;
+            } else if b == b'\\' {
+                esc_scan = true;
+            } else if b == q_scan as u8 {
+                in_str_scan = false;
+            }
+            j += 1;
+            continue;
+        }
+
+        if b == b'"' || b == b'`' {
+            in_str_scan = true;
+            q_scan = b as char;
+            j += 1;
+            continue;
+        }
+
+        j += 1;
+    }
+
+    !in_str_scan
+}
+
 fn get_block_starter(code: &str) -> Option<BlockKind> {
+    // If the line ends with 'end' outside quotes, whatever block it opened is immediately closed on the same line
+    if ends_with_word_outside_quotes(code, "end") {
+        return None;
+    }
+
     let first_word = code.split_whitespace().next().unwrap_or("");
     if first_word == "function"
         || first_word == "fn"
@@ -155,45 +219,27 @@ fn get_block_starter(code: &str) -> Option<BlockKind> {
         return Some(BlockKind::Function);
     }
     if first_word == "if" || code.starts_with("if(") {
-        if has_inline_if(code) || code.ends_with(" end") {
+        if has_inline_if(code) {
             return None;
         }
         return Some(BlockKind::If);
     }
     if first_word == "while" || code.starts_with("while(") {
-        if code.ends_with(" end") {
-            return None;
-        }
         return Some(BlockKind::While);
     }
     if first_word == "for" {
-        if code.ends_with(" end") {
-            return None;
-        }
         return Some(BlockKind::For);
     }
     if first_word == "repeat" {
-        if code.ends_with(" end") {
-            return None;
-        }
         return Some(BlockKind::Repeat);
     }
     if first_word == "try" {
-        if code.ends_with(" end") {
-            return None;
-        }
         return Some(BlockKind::Try);
     }
     if first_word == "when" || code.starts_with("when(") {
-        if code.ends_with(" end") {
-            return None;
-        }
         return Some(BlockKind::When);
     }
     if first_word == "struct" {
-        if code.ends_with(" end") {
-            return None;
-        }
         return Some(BlockKind::Struct);
     }
     None
@@ -333,6 +379,11 @@ pub fn format_source(source: &str) -> Result<String, String> {
                 block_stack.push(new_block);
             }
         }
+    }
+
+    // Trim trailing empty lines so that the file ends cleanly with no trailing blank lines
+    while formatted_lines.last().is_some_and(|s| s.is_empty()) {
+        formatted_lines.pop();
     }
 
     let eol = if source.contains("\r\n") {
@@ -590,6 +641,22 @@ end
     end
 end
 "#;
+        assert_eq!(format_source(input).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_format_trailing_blank_lines_trimmed() {
+        let input = "let x = 1\n\n\n\n";
+        let expected = "let x = 1\n";
+        assert_eq!(format_source(input).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_format_single_line_functions() {
+        let input =
+            "function foo() return 1 end\nfunction bar() return 2 end\nlet x = foo() + bar()\n";
+        let expected =
+            "function foo() return 1 end\nfunction bar() return 2 end\nlet x = foo() + bar()\n";
         assert_eq!(format_source(input).unwrap(), expected);
     }
 }

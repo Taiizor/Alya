@@ -26,4 +26,3 @@ when priority
     is 4 then say "Priority 4: Critical"
     else say "Priority: Custom"
 end
-
