@@ -274,6 +274,8 @@ fn get_embedded_stdlib(module: &str) -> Option<&'static str> {
         "cli" | "argparse" => Some(include_str!("../../stdlib/cli.alya")),
         "csv" | "tsv" => Some(include_str!("../../stdlib/csv.alya")),
         "url" => Some(include_str!("../../stdlib/url.alya")),
+        "color" | "term" | "ansi" => Some(include_str!("../../stdlib/color.alya")),
+        "log" | "logger" => Some(include_str!("../../stdlib/log.alya")),
         _ => None,
     }
 }

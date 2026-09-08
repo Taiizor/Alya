@@ -1196,3 +1196,38 @@ say "matches: " + str(raw == formatted)
         assert!(output.contains("matches: 1"));
     }
 }
+
+#[test]
+fn test_e2e_log_and_color_stdlib() {
+    let code = r#"
+import "std/color"
+import "std/log"
+
+let c_msg = color_green("SUCCESS") + " / " + color_red("FAILED")
+let stripped = ansi_strip(c_msg)
+say "stripped: " + stripped
+say "is_plain: " + str(stripped == "SUCCESS / FAILED")
+
+log_info("Top-level info")
+log_warn("Top-level warn")
+
+let l = logger_new("App", 2)
+logger_debug(l, "hidden debug")
+logger_info(l, "visible info")
+logger_warn(l, "visible warn")
+logger_error(l, "visible error")
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("stripped: SUCCESS / FAILED"));
+        assert!(output.contains("[INFO]"));
+        assert!(output.contains("Top-level info"));
+        assert!(output.contains("[WARN]"));
+        assert!(output.contains("Top-level warn"));
+        assert!(output.contains("[App]"));
+        assert!(output.contains("visible info"));
+        assert!(output.contains("visible warn"));
+        assert!(output.contains("visible error"));
+        assert!(!output.contains("hidden debug"));
+    }
+}

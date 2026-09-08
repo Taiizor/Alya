@@ -50,6 +50,7 @@ impl Lexer {
                     Some('n') => result.push('\n'),
                     Some('t') => result.push('\t'),
                     Some('r') => result.push('\r'),
+                    Some('e') => result.push('\x1b'),
                     Some('\\') => result.push('\\'),
                     Some('"') => result.push('"'),
                     Some('{') => result.push('{'),

@@ -1,0 +1,48 @@
+import "std/color"
+import "std/log"
+
+say "=== Alya std/color & std/log Demo ==="
+
+# 1. Terminal Colors & Styling
+say "\n--- 1. Colors & Text Styles ---"
+say color_green("Success: Operation finished in 12ms")
+say color_yellow("Warning: High memory utilization")
+say color_red("Error: Connection refused by host")
+say color_cyan("Info: Server listening at 0.0.0.0:8080")
+say style_bold(color_bright_magenta("Bold Magenta Announcement"))
+say style_underline("Underlined important notice")
+
+# 2. 24-bit TrueColor RGB
+say "\n--- 2. TrueColor RGB & 256 Palette ---"
+say color_rgb("Custom Orange (255, 140, 0)", 255, 140, 0)
+say color_rgb("Custom Coral (240, 128, 128)", 240, 128, 128)
+say color_256("256-Color palette index 208", 208)
+
+# 3. ANSI Strip Utility
+say "\n--- 3. ANSI Strip ---"
+let fancy_text = color_green("Pass") + " / " + color_red("Fail")
+say "Rendered : " + fancy_text
+let clean_text = ansi_strip(fancy_text)
+say "Stripped : " + clean_text
+say "Stripped length matches 'Pass / Fail': " + str(clean_text == "Pass / Fail")
+
+# 4. Quick Top-Level Logging
+say "\n--- 4. Quick Logging ---"
+log_info("System boot sequence complete.")
+log_warn("Disk quota above 80%.")
+log_error("Failed to sync cache cluster.")
+log_fatal("Fatal: System halted!")
+
+# 5. Structured Logger
+say "\n--- 5. Structured Logger ---"
+let app_logger = logger_new("ApiGateway", 2) # Level INFO
+logger_debug(app_logger, "This debug trace will not appear")
+logger_info(app_logger, "Handled GET /v1/users (200 OK)")
+logger_warn(app_logger, "Rate limit reached for IP 192.168.1.50")
+logger_error(app_logger, "Database query failed: deadlock detected")
+
+# 6. Logger with Timestamps
+say "\n--- 6. Logger with Timestamps ---"
+logger_set_timestamps(app_logger, 1)
+logger_info(app_logger, "Cluster rebalancing started.")
+say "std/log demo completed successfully."

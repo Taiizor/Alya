@@ -315,6 +315,20 @@ fn test_all_examples_execute_with_gcc() {
             continue;
         }
 
+        if example_name == "log_demo.alya" {
+            assert!(
+                actual_stdout.contains("=== Alya std/color & std/log Demo ==="),
+                "log_demo missing header:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("std/log demo completed successfully."),
+                "log_demo missing completion marker:\n{}",
+                actual_stdout
+            );
+            continue;
+        }
+
         let expected = get_expected_output(example_name).unwrap_or_else(|| {
             panic!(
                 "Missing expected output definition for example '{}'!",

@@ -390,3 +390,33 @@ fn test_import_embedded_url_stdlib() {
     assert!(fn_names.contains(&"url_decode".to_string()));
     assert!(fn_names.contains(&"url_parse_query".to_string()));
 }
+
+#[test]
+fn test_import_embedded_color_and_log_stdlib() {
+    let source = "import \"std/color\"\nimport \"std/log\"\nlog_info(\"test\")";
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Tokenize failed");
+    let mut parser = Parser::new(tokens);
+    let mut ast = parser.parse().expect("Parse failed");
+
+    let current_dir = std::path::Path::new(".");
+    let res = resolve_imports(&mut ast, current_dir);
+    assert!(
+        res.is_ok(),
+        "Importing std/color and std/log should succeed"
+    );
+
+    let fn_names: Vec<String> = ast
+        .statements
+        .iter()
+        .filter_map(|s| match s {
+            Stmt::Function { name, .. } => Some(name.clone()),
+            _ => None,
+        })
+        .collect();
+
+    assert!(fn_names.contains(&"color_green".to_string()));
+    assert!(fn_names.contains(&"ansi_strip".to_string()));
+    assert!(fn_names.contains(&"logger_new".to_string()));
+    assert!(fn_names.contains(&"log_info".to_string()));
+}

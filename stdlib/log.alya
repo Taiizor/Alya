@@ -1,0 +1,138 @@
+# Alya Standard Library - Logging Module (std/log)
+# Provides leveled logging, ANSI colored badges, timestamps, structured Logger instances,
+# and optional file output.
+
+import "std/color"
+
+# Log Levels
+let LOG_DEBUG = 1
+let LOG_INFO = 2
+let LOG_WARN = 3
+let LOG_ERROR = 4
+let LOG_FATAL = 5
+let LOG_OFF = 6
+
+struct Logger
+    log_name
+    log_level
+    log_colored
+    log_timestamps
+    log_file
+end
+
+function log_level_name(lvl)
+    if lvl == 1 return "DEBUG" end
+    if lvl == 2 return "INFO" end
+    if lvl == 3 return "WARN" end
+    if lvl == 4 return "ERROR" end
+    if lvl == 5 return "FATAL" end
+    return "LOG"
+end
+
+function log_level_from_str(s)
+    let up = upper(s)
+    if up == "DEBUG" return 1 end
+    if up == "INFO" return 2 end
+    if up == "WARN" or up == "WARNING" return 3 end
+    if up == "ERROR" return 4 end
+    if up == "FATAL" return 5 end
+    if up == "OFF" return 6 end
+    return 2
+end
+
+function _log_pad2(n)
+    if n < 10
+        return "0" + str(n)
+    end
+    return str(n)
+end
+
+function _log_timestamp()
+    let now = time() % 86400
+    let hh = (now / 3600) % 24
+    let mm = (now / 60) % 60
+    let ss = now % 60
+    return _log_pad2(hh) + ":" + _log_pad2(mm) + ":" + _log_pad2(ss)
+end
+
+function logger_new(name, level)
+    return Logger(name, level, 1, 0, "")
+end
+
+function logger_set_level(l, level)
+    l.log_level = level
+end
+
+function logger_set_colored(l, colored)
+    l.log_colored = colored
+end
+
+function logger_set_timestamps(l, timestamps)
+    l.log_timestamps = timestamps
+end
+
+function logger_set_file(l, file_path)
+    l.log_file = file_path
+end
+
+function logger_log(l, level, message)
+    if level < l.log_level
+        return 0
+    end
+
+    let badge = "[" + log_level_name(level) + "]"
+    while len(badge) < 7
+        badge = badge + " "
+    end
+
+    let colored_badge = badge
+    if l.log_colored == 1
+        if level == 1
+            colored_badge = color_cyan(badge)
+        elif level == 2
+            colored_badge = color_green(badge)
+        elif level == 3
+            colored_badge = color_yellow(badge)
+        elif level == 4
+            colored_badge = color_red(badge)
+        elif level == 5
+            colored_badge = style_bold(color_bright_red(badge))
+        end
+    end
+
+    let prefix = ""
+    if l.log_timestamps == 1
+        prefix = prefix + "[" + _log_timestamp() + "] "
+    end
+    let name_str = str_from_ptr(l.log_name)
+    if len(name_str) > 0
+        if l.log_colored == 1
+            prefix = prefix + color_magenta("[" + name_str + "]") + " "
+        else
+            prefix = prefix + "[" + name_str + "] "
+        end
+    end
+
+    let full_msg = prefix + colored_badge + " " + str_from_ptr(message)
+    say full_msg
+
+    let fpath = str_from_ptr(l.log_file)
+    if len(fpath) > 0
+        let plain = ansi_strip(full_msg) + "\n"
+        append_file(fpath, plain)
+    end
+    return 1
+end
+
+function logger_debug(l, msg) return logger_log(l, 1, msg) end
+function logger_info(l, msg)  return logger_log(l, 2, msg) end
+function logger_warn(l, msg)  return logger_log(l, 3, msg) end
+function logger_error(l, msg) return logger_log(l, 4, msg) end
+function logger_fatal(l, msg) return logger_log(l, 5, msg) end
+
+# Direct top-level functions
+function log_debug(msg) say color_cyan("[DEBUG] ") + str_from_ptr(msg) end
+function log_info(msg)  say color_green("[INFO]  ") + str_from_ptr(msg) end
+function log_warn(msg)  say color_yellow("[WARN]  ") + str_from_ptr(msg) end
+function log_error(msg) say color_red("[ERROR] ") + str_from_ptr(msg) end
+function log_fatal(msg) say style_bold(color_bright_red("[FATAL] ")) + str_from_ptr(msg) end
