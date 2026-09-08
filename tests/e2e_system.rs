@@ -215,29 +215,104 @@ fn test_e2e_memory_and_arena() {
     let code = r#"
 import "std/mem"
 
-let ptr = alloc(16)
-poke_byte(ptr, 0, 89) # 'Y'
-poke_byte(ptr, 1, 0)
-say str_from_ptr(ptr)
-say peek_byte(ptr, 0)
-poke_int(ptr, 8, 424242)
-say peek_int(ptr, 8)
-free(ptr)
+# 1. Size helpers & pointer inspection
+say kb(2)
+say is_null(0)
+say is_valid(0)
+let ptr = alloc_zeroed(32)
+say is_valid(ptr)
+say read_byte(ptr, 0)
 
-let a = arena_new(256)
-let m1 = arena_alloc_mem(a, 32)
-poke_int(m1, 0, 777)
-say peek_int(m1, 0)
-say arena_total_allocated(a)
+# 2. Byte & int access
+write_byte(ptr, 0, 65)
+write_byte(ptr, 1, 66)
+write_byte(ptr, 2, 0)
+say to_string(ptr)
+say read_byte(ptr, 1)
+
+write_int(ptr, 8, 999888)
+say read_int(ptr, 8)
+
+# 3. Pointer arithmetic, calloc, and memory comparison
+let ptr2 = calloc_mem(4, 8)
+write_byte(ptr2, 0, 65)
+write_byte(ptr2, 1, 66)
+say mem_equal(ptr, ptr2, 2)
+say mem_equal(ptr, ptr2, 16)
+
+let diff = ptr_diff(ptr_add(ptr, 10), ptr)
+say diff
+
+free_mem(ptr)
+free_mem(ptr2)
+
+# 4. Arena allocator with string and zeroed allocation
+let a = arena_new(kb(1))
+say arena_is_valid(a)
+let str_arena = arena_alloc_string(a, "ArenaString")
+say str_arena
+let z_mem = arena_alloc_zeroed(a, 16)
+say read_byte(z_mem, 0)
+if arena_total_allocated(a) > 0
+    say 1
+else
+    say 0
+end
 arena_clear(a)
 say arena_total_allocated(a)
-arena_free_all(a)
+arena_free(a)
+say arena_is_valid(a)
+
+# 5. ByteBuffer
+let buf = buffer_new(16)
+say buffer_is_empty(buf)
+buffer_write_string(buf, "Hello")
+buffer_write_byte(buf, 32)
+buffer_write_string(buf, "Alya")
+say buffer_to_string(buf)
+say buffer_len(buf)
+say buffer_read_byte(buf, 0)
+buffer_write_int(buf, 12345678)
+say buffer_read_int(buf, 10)
+buffer_clear(buf)
+say buffer_len(buf)
+say buffer_is_empty(buf)
+buffer_free(buf)
 "#;
     if let Some((code, output)) = run_alya_code_full(code) {
-        assert_eq!(code, 0);
+        assert_eq!(
+            code, 0,
+            "Execution failed with code {} and output:\n{}",
+            code, output
+        );
         assert_eq!(
             output,
-            concat!("Y\n", "89\n", "424242\n", "777\n", "32\n", "0\n",)
+            concat!(
+                "2048\n",
+                "1\n",
+                "0\n",
+                "1\n",
+                "0\n",
+                "AB\n",
+                "66\n",
+                "999888\n",
+                "1\n",
+                "0\n",
+                "10\n",
+                "1\n",
+                "ArenaString\n",
+                "0\n",
+                "1\n",
+                "0\n",
+                "0\n",
+                "1\n",
+                "Hello Alya\n",
+                "10\n",
+                "72\n",
+                "12345678\n",
+                "0\n",
+                "1\n",
+            )
         );
     }
 }

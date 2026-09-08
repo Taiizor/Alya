@@ -1,5 +1,140 @@
 # Alya Standard Library - Memory & Arena Allocator Module
-# Provides high-performance Arena memory allocation and raw pointer utilities.
+# Provides high-performance Arena memory allocation, raw pointer utilities, and dynamic buffers.
+
+# --- Size Helpers ---
+
+function kb(n)
+    return n * 1024
+end
+
+function mb(n)
+    return n * 1048576
+end
+
+function gb(n)
+    return n * 1073741824
+end
+
+# --- Pointer & Memory Inspection ---
+
+function is_null(ptr)
+    if ptr == 0
+        return 1
+    end
+    return 0
+end
+
+function is_valid(ptr)
+    if ptr != 0
+        return 1
+    end
+    return 0
+end
+
+function ptr_add(ptr, offset)
+    return ptr + offset
+end
+
+function ptr_diff(ptr_a, ptr_b)
+    return ptr_a - ptr_b
+end
+
+# --- Heap Allocation & Raw Memory Operations ---
+
+# Allocates 'size' bytes from the system heap using malloc.
+function alloc_mem(size)
+    return alloc(size)
+end
+
+# Frees memory previously allocated by alloc() or realloc().
+function free_mem(ptr)
+    free(ptr)
+end
+
+# Resizes an existing heap allocation.
+function realloc_mem(ptr, size)
+    return realloc(ptr, size)
+end
+
+# Allocates 'size' bytes and initializes all bytes to 0.
+function alloc_zeroed(size)
+    let p = alloc(size)
+    if p != 0
+        zero_mem(p, size)
+    end
+    return p
+end
+
+# Allocates memory for an array of 'num' elements of 'size' bytes each and zeroes it.
+function calloc_mem(num, size)
+    return alloc_zeroed(num * size)
+end
+
+# Copies 'size' bytes from src to dest.
+function copy_memory(dest, src, size)
+    copy_mem(dest, src, size)
+end
+
+# Zeroes 'size' bytes starting at dest.
+function zero_memory(dest, size)
+    zero_mem(dest, size)
+end
+
+# Fills 'size' bytes at dest with byte value 'val'.
+function fill_mem(dest, val, size)
+    let i = 0
+    while i < size
+        poke_byte(dest, i, val)
+        i += 1
+    end
+end
+
+# Compares 'size' bytes between two memory blocks.
+# Returns 1 if identical, 0 otherwise.
+function mem_equal(ptr_a, ptr_b, size)
+    if ptr_a == ptr_b
+        return 1
+    end
+    if ptr_a == 0 or ptr_b == 0
+        return 0
+    end
+    let i = 0
+    while i < size
+        if peek_byte(ptr_a, i) != peek_byte(ptr_b, i)
+            return 0
+        end
+        i += 1
+    end
+    return 1
+end
+
+# --- Byte & Word Access ---
+
+function read_byte(ptr, offset)
+    return peek_byte(ptr, offset)
+end
+
+function write_byte(ptr, offset, val)
+    poke_byte(ptr, offset, val)
+end
+
+function read_int(ptr, offset)
+    return peek_int(ptr, offset)
+end
+
+function write_int(ptr, offset, val)
+    poke_int(ptr, offset, val)
+end
+
+function to_string(ptr)
+    return str_from_ptr(ptr)
+end
+
+function from_string(str)
+    return str_to_ptr(str)
+end
+
+# --- Arena Allocator ---
 
 struct Arena
     handle
@@ -22,6 +157,27 @@ function arena_alloc_mem(arena, size)
     return arena_alloc(arena.handle, size)
 end
 
+# Allocates 'size' bytes from the arena and zeroes the memory.
+function arena_alloc_zeroed(arena, size)
+    let p = arena_alloc(arena.handle, size)
+    if p != 0
+        zero_mem(p, size)
+    end
+    return p
+end
+
+# Allocates memory in the arena and copies 'str' into it.
+# Returns a string pointer whose lifetime is tied to the arena.
+function arena_alloc_string(arena, str)
+    let slen = len(str)
+    let p = arena_alloc(arena.handle, slen + 1)
+    if p != 0
+        let src_ptr = str_to_ptr(str)
+        copy_mem(p, src_ptr, slen + 1)
+    end
+    return str_from_ptr(p)
+end
+
 # Resets all allocations within the arena.
 # Memory chunks are retained for instant reuse without OS reallocation overhead.
 function arena_clear(arena)
@@ -29,8 +185,15 @@ function arena_clear(arena)
 end
 
 # Destroys the arena and frees all underlying chunk memory back to the system.
+function arena_free(arena)
+    if arena.handle != 0
+        arena_destroy(arena.handle)
+        arena.handle = 0
+    end
+end
+
 function arena_free_all(arena)
-    arena_destroy(arena.handle)
+    arena_free(arena)
 end
 
 # Returns the total number of bytes currently allocated through this arena.
@@ -38,17 +201,118 @@ function arena_total_allocated(arena)
     return arena_allocated(arena.handle)
 end
 
-# Allocates 'size' bytes from the system heap using malloc.
-function alloc_mem(size)
-    return alloc(size)
+# Returns 1 if the arena has an active handle, 0 otherwise.
+function arena_is_valid(arena)
+    if arena.handle != 0
+        return 1
+    end
+    return 0
 end
 
-# Frees memory previously allocated by alloc() or realloc().
-function free_mem(ptr)
-    free(ptr)
+# --- ByteBuffer (Dynamic Byte Buffer) ---
+
+struct ByteBuffer
+    ptr
+    size
+    capacity
 end
 
-# Resizes an existing heap allocation.
-function realloc_mem(ptr, size)
-    return realloc(ptr, size)
+# Creates a new dynamic byte buffer with initial capacity.
+function buffer_new(capacity)
+    if capacity <= 0
+        capacity = 64
+    end
+    let p = alloc(capacity)
+    return ByteBuffer(p, 0, capacity)
+end
+
+# Frees the buffer's memory and zeroes its state.
+function buffer_free(buf)
+    if buf.ptr != 0
+        free(buf.ptr)
+        buf.ptr = 0
+        buf.size = 0
+        buf.capacity = 0
+    end
+end
+
+# Ensures the buffer has at least 'needed' bytes of capacity.
+function buffer_ensure_capacity(buf, needed)
+    if needed > buf.capacity
+        let new_cap = buf.capacity * 2
+        if new_cap < needed
+            new_cap = needed
+        end
+        buf.ptr = realloc(buf.ptr, new_cap)
+        buf.capacity = new_cap
+    end
+end
+
+# Appends a single byte to the buffer.
+function buffer_write_byte(buf, val)
+    buffer_ensure_capacity(buf, buf.size + 1)
+    poke_byte(buf.ptr, buf.size, val)
+    buf.size = buf.size + 1
+end
+
+# Reads a byte from the buffer at the given offset.
+function buffer_read_byte(buf, offset)
+    if offset >= 0 and offset < buf.size
+        return peek_byte(buf.ptr, offset)
+    end
+    return 0
+end
+
+# Appends a string to the buffer. Returns number of bytes written.
+function buffer_write_string(buf, str)
+    let slen = len(str)
+    if slen == 0
+        return 0
+    end
+    buffer_ensure_capacity(buf, buf.size + slen)
+    let src_ptr = str_to_ptr(str)
+    copy_mem(buf.ptr + buf.size, src_ptr, slen)
+    buf.size = buf.size + slen
+    return slen
+end
+
+# Appends a null terminator (without increasing buffer size) and returns the string.
+function buffer_to_string(buf)
+    buffer_ensure_capacity(buf, buf.size + 1)
+    poke_byte(buf.ptr, buf.size, 0)
+    return str_from_ptr(buf.ptr)
+end
+
+# Clears the buffer contents without deallocating underlying memory.
+function buffer_clear(buf)
+    buf.size = 0
+end
+
+# Returns the number of bytes currently stored in the buffer.
+function buffer_len(buf)
+    return buf.size
+end
+
+# Returns 1 if the buffer is empty, 0 otherwise.
+function buffer_is_empty(buf)
+    if buf.size == 0
+        return 1
+    end
+    return 0
+end
+
+# Appends a 64-bit integer to the buffer (8 bytes).
+function buffer_write_int(buf, val)
+    buffer_ensure_capacity(buf, buf.size + 8)
+    poke_int(buf.ptr, buf.size, val)
+    buf.size = buf.size + 8
+    return 8
+end
+
+# Reads a 64-bit integer from the buffer at the given byte offset.
+function buffer_read_int(buf, offset)
+    if offset >= 0 and offset + 8 <= buf.size
+        return peek_int(buf.ptr, offset)
+    end
+    return 0
 end

@@ -158,7 +158,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov %rsp, %rbp\n");
     out.push_str("    push %r12\n");
     out.push_str("    push %r13\n");
-    out.push_str("    sub $32, %rsp\n");
+    out.push_str("    push %r14\n");
+    out.push_str("    sub $40, %rsp\n");
     if is_win {
         out.push_str("    mov %rcx, %r12\n");
     } else {
@@ -170,7 +171,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x64_ad_loop:\n");
     out.push_str("    test %r13, %r13\n");
     out.push_str("    jz .L_x64_ad_free_arena\n");
-    out.push_str("    mov (%r13), %rbx\n");
+    out.push_str("    mov (%r13), %r14\n");
     if is_win {
         out.push_str("    mov %r13, %rcx\n");
         out.push_str("    call free\n");
@@ -178,7 +179,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    mov %r13, %rdi\n");
         out.push_str(&format!("    call {}free\n", p));
     }
-    out.push_str("    mov %rbx, %r13\n");
+    out.push_str("    mov %r14, %r13\n");
     out.push_str("    jmp .L_x64_ad_loop\n");
     out.push_str(".L_x64_ad_free_arena:\n");
     if is_win {
@@ -190,7 +191,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     }
     out.push_str(".L_x64_ad_done:\n");
     out.push_str("    xor %rax, %rax\n");
-    out.push_str("    add $32, %rsp\n");
+    out.push_str("    add $40, %rsp\n");
+    out.push_str("    pop %r14\n");
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
     out.push_str("    mov %rbp, %rsp\n");
