@@ -4,11 +4,9 @@
 function djb2(s)
     let slen = len(s)
     let h = 5381
-    let i, c = 0
+    let i = 0
     while i < slen
-        c = ord(char_at(s, i))
-        h = (bit_shl(h, 5) + h) + c
-        h = bit_and(h, 2147483647)
+        h = bit_and((bit_shl(h, 5) + h) + ord(char_at(s, i)), 2147483647)
         i += 1
     end
     return h
@@ -17,12 +15,9 @@ end
 function fnv1a(s)
     let slen = len(s)
     let h = 2166136261
-    let i, c = 0
+    let i = 0
     while i < slen
-        c = ord(char_at(s, i))
-        h = bit_xor(h, c)
-        h = h * 16777619
-        h = bit_and(h, 2147483647)
+        h = bit_and(bit_xor(h, ord(char_at(s, i))) * 16777619, 2147483647)
         i += 1
     end
     return h

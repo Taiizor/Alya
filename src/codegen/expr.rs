@@ -148,6 +148,39 @@ impl CodeGen {
                                 return;
                             }
                         }
+                        let is_commutative = matches!(
+                            op,
+                            BinaryOp::Add
+                                | BinaryOp::Multiply
+                                | BinaryOp::Equal
+                                | BinaryOp::NotEqual
+                        );
+                        if is_commutative {
+                            if let Expr::Number(n) = &**left {
+                                self.generate_expression(right);
+                                arch::emit_binary_op_imm(
+                                    &mut self.output,
+                                    self.arch,
+                                    *op,
+                                    *n as i64,
+                                );
+                                return;
+                            }
+                            if let Expr::Identifier(name) = &**left {
+                                if let Some(&VarType::Number(offset)) = self.ctx.variables.get(name)
+                                {
+                                    self.generate_expression(right);
+                                    arch::emit_load_var_to_scratch(
+                                        &mut self.output,
+                                        self.arch,
+                                        offset,
+                                        false,
+                                    );
+                                    arch::emit_binary_op_reg(&mut self.output, self.arch, *op);
+                                    return;
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -285,6 +318,30 @@ impl CodeGen {
                                 );
                                 arch::emit_bit_op_reg(&mut self.output, self.arch, name);
                                 return;
+                            }
+                        }
+                        let is_bit_commutative =
+                            matches!(name.as_str(), "bit_and" | "bit_or" | "bit_xor");
+                        if is_bit_commutative {
+                            if let Expr::Number(n) = &args[0] {
+                                self.generate_expression(&args[1]);
+                                arch::emit_bit_op_imm(&mut self.output, self.arch, name, *n as i64);
+                                return;
+                            }
+                            if let Expr::Identifier(var_name) = &args[0] {
+                                if let Some(&VarType::Number(offset)) =
+                                    self.ctx.variables.get(var_name)
+                                {
+                                    self.generate_expression(&args[1]);
+                                    arch::emit_load_var_to_scratch(
+                                        &mut self.output,
+                                        self.arch,
+                                        offset,
+                                        false,
+                                    );
+                                    arch::emit_bit_op_reg(&mut self.output, self.arch, name);
+                                    return;
+                                }
                             }
                         }
                     }

@@ -368,8 +368,13 @@ pub fn emit_bit_op_imm(out: &mut String, op: &str, imm: i64) {
         "bit_shl" => out.push_str(&format!("    lsl x0, x0, #{}\n", imm & 63)),
         "bit_shr" => out.push_str(&format!("    lsr x0, x0, #{}\n", imm & 63)),
         "bit_and" => {
-            super::loads::emit_load_reg_imm64(out, "x1", imm);
-            out.push_str("    and x0, x0, x1\n");
+            if imm > 0 && (imm & (imm + 1)) == 0 {
+                let width = (64 - imm.leading_zeros()) as usize;
+                out.push_str(&format!("    ubfx x0, x0, #0, #{}\n", width));
+            } else {
+                super::loads::emit_load_reg_imm64(out, "x1", imm);
+                out.push_str("    and x0, x0, x1\n");
+            }
         }
         "bit_or" => {
             super::loads::emit_load_reg_imm64(out, "x1", imm);
