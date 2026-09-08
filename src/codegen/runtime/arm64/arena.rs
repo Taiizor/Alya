@@ -16,7 +16,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov x19, x0\n");
     out.push_str("    cmp x19, #0\n");
     out.push_str("    b.gt .L_arm64_ac_size_ok\n");
-    out.push_str("    mov x19, #65536\n");
+    out.push_str("    movz x19, #1, lsl #16\n");
     out.push_str(".L_arm64_ac_size_ok:\n");
     out.push_str("    mov x0, #1\n");
     out.push_str("    mov x1, #24\n");

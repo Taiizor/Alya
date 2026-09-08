@@ -228,13 +228,14 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    bgt .L_arm64_recv_chk\n");
     out.push_str("    mov x20, #4096\n");
     out.push_str(".L_arm64_recv_chk:\n");
-    out.push_str("    mov x2, #524288\n");
+    out.push_str("    movz x2, #8, lsl #16\n"); // 524288 (0x80000)
     out.push_str("    cmp x20, x2\n");
     out.push_str("    csel x20, x2, x20, gt\n");
 
     emit_adrp_add(out, "x2", "alya_str_idx", os);
     out.push_str("    ldr x3, [x2]\n");
-    out.push_str("    mov x4, #1000000\n");
+    out.push_str("    movz x4, #16960\n");
+    out.push_str("    movk x4, #15, lsl #16\n"); // 1000000 (0xF4240)
     out.push_str("    sub x4, x4, x20\n");
     out.push_str("    cmp x3, x4\n");
     out.push_str("    csel x3, xzr, x3, gt\n");

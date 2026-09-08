@@ -156,6 +156,16 @@ fn test_codegen_arm64_large_number_expr() {
 }
 
 #[test]
+fn test_codegen_arm64_runtime_immediates_valid() {
+    let program = simple_program(Stmt::Say(Expr::Number(1.0)));
+    let asm = generate(&program, Architecture::ARM64, OperatingSystem::MacOS);
+
+    assert!(!asm.contains("mov x4, #1000000"));
+    assert!(!asm.contains("mov x19, #65536"));
+    assert!(asm.contains("movz x4, #16960"));
+}
+
+#[test]
 fn test_codegen_os_stdlib_linux_and_macos() {
     use crate::lexer::Lexer;
     use crate::parser::Parser;
