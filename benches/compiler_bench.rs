@@ -1,4 +1,6 @@
+use std::alloc::{GlobalAlloc, Layout, System};
 use std::hint::black_box;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, Instant};
 
 use alya::codegen::analysis::ProgramInference;
@@ -6,13 +8,118 @@ use alya::codegen::{generate, Architecture, OperatingSystem};
 use alya::lexer::Lexer;
 use alya::parser::Parser;
 
-struct BenchStat {
-    name: &'static str,
-    iterations: usize,
-    avg: Duration,
-    min: Duration,
-    max: Duration,
-    throughput: String,
+// ============================================================================
+// Memory Tracking Allocator (Tracking total allocated bytes & alloc counts)
+// ============================================================================
+
+struct TrackingAllocator;
+
+static ALLOCATED_BYTES: AtomicUsize = AtomicUsize::new(0);
+static ALLOC_COUNT: AtomicUsize = AtomicUsize::new(0);
+
+unsafe impl GlobalAlloc for TrackingAllocator {
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        ALLOCATED_BYTES.fetch_add(layout.size(), Ordering::Relaxed);
+        ALLOC_COUNT.fetch_add(1, Ordering::Relaxed);
+        System.alloc(layout)
+    }
+
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        System.dealloc(ptr, layout)
+    }
+
+    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+        ALLOCATED_BYTES.fetch_add(layout.size(), Ordering::Relaxed);
+        ALLOC_COUNT.fetch_add(1, Ordering::Relaxed);
+        System.alloc_zeroed(layout)
+    }
+
+    unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
+        if new_size > layout.size() {
+            ALLOCATED_BYTES.fetch_add(new_size - layout.size(), Ordering::Relaxed);
+        }
+        ALLOC_COUNT.fetch_add(1, Ordering::Relaxed);
+        System.realloc(ptr, layout, new_size)
+    }
+}
+
+#[global_allocator]
+static GLOBAL: TrackingAllocator = TrackingAllocator;
+
+fn reset_alloc() {
+    ALLOCATED_BYTES.store(0, Ordering::SeqCst);
+    ALLOC_COUNT.store(0, Ordering::SeqCst);
+}
+
+fn get_alloc() -> (usize, usize) {
+    (
+        ALLOCATED_BYTES.load(Ordering::SeqCst),
+        ALLOC_COUNT.load(Ordering::SeqCst),
+    )
+}
+
+// ============================================================================
+// Benchmark Statistics & Formatting
+// ============================================================================
+
+pub struct BenchStat {
+    pub name: &'static str,
+    pub iterations: usize,
+    pub mean: Duration,
+    pub error: Duration,
+    pub std_dev: Duration,
+    pub min: Duration,
+    pub max: Duration,
+    pub allocated_bytes: usize,
+    pub alloc_count: usize,
+    pub throughput: String,
+}
+
+/// Two-sided Student's t-value for 99.9% confidence interval based on degrees of freedom (N - 1)
+fn student_t_999(n: usize) -> f64 {
+    match n {
+        1..=2 => 31.599,
+        3 => 12.924,
+        4 => 8.610,
+        5 => 6.869,
+        6 => 5.959,
+        7 => 5.408,
+        8 => 5.041,
+        9 => 4.781,
+        10 => 4.587,
+        11..=15 => 4.140,
+        16..=20 => 3.883,
+        21..=30 => 3.646,
+        31..=60 => 3.460,
+        _ => 3.291,
+    }
+}
+
+pub fn format_duration(dur: Duration) -> String {
+    let nanos = dur.as_nanos();
+    if nanos < 1_000 {
+        format!("{:.2} ns", nanos as f64)
+    } else if nanos < 1_000_000 {
+        format!("{:.2} µs", nanos as f64 / 1_000.0)
+    } else if nanos < 1_000_000_000 {
+        format!("{:.2} ms", nanos as f64 / 1_000_000.0)
+    } else {
+        format!("{:.2} s", dur.as_secs_f64())
+    }
+}
+
+pub fn format_bytes(bytes: usize) -> String {
+    if bytes == 0 {
+        "-".to_string()
+    } else if bytes < 1024 {
+        format!("{} B", bytes)
+    } else if bytes < 1024 * 1024 {
+        format!("{:.2} KB", bytes as f64 / 1024.0)
+    } else if bytes < 1024 * 1024 * 1024 {
+        format!("{:.2} MB", bytes as f64 / (1024.0 * 1024.0))
+    } else {
+        format!("{:.2} GB", bytes as f64 / (1024.0 * 1024.0 * 1024.0))
+    }
 }
 
 fn run_bench<F, R>(
@@ -25,36 +132,72 @@ where
     F: FnMut() -> R,
 {
     // Warmup
-    let warmup_end = Instant::now() + Duration::from_millis(50);
+    let warmup_end = Instant::now() + Duration::from_millis(60);
     while Instant::now() < warmup_end {
         black_box(f());
     }
 
-    // Measurement
+    // Timed measurements
     let mut times = Vec::new();
+    let mut total_allocated_bytes = 0usize;
+    let mut total_alloc_count = 0usize;
     let start_all = Instant::now();
     let mut total_iters = 0;
 
     while start_all.elapsed() < target_duration || total_iters < 10 {
+        reset_alloc();
         let t0 = Instant::now();
         black_box(f());
         let el = t0.elapsed();
+        let (bytes, count) = get_alloc();
         times.push(el);
+        total_allocated_bytes += bytes;
+        total_alloc_count += count;
         total_iters += 1;
     }
 
-    let total: Duration = times.iter().copied().sum();
-    let avg = total / (times.len() as u32);
+    let n = times.len();
+    let total_nanos: u128 = times.iter().map(|t| t.as_nanos()).sum();
+    let mean_nanos = total_nanos as f64 / n as f64;
+    let mean = Duration::from_nanos(mean_nanos as u64);
+
+    let variance = if n > 1 {
+        let sum_sq_diff: f64 = times
+            .iter()
+            .map(|t| {
+                let diff = t.as_nanos() as f64 - mean_nanos;
+                diff * diff
+            })
+            .sum();
+        sum_sq_diff / (n - 1) as f64
+    } else {
+        0.0
+    };
+    let std_dev_nanos = variance.sqrt();
+    let std_dev = Duration::from_nanos(std_dev_nanos as u64);
+
+    let t_val = student_t_999(n);
+    let error_nanos = t_val * (std_dev_nanos / (n as f64).sqrt());
+    let error = Duration::from_nanos(error_nanos as u64);
+
     let min = *times.iter().min().unwrap();
     let max = *times.iter().max().unwrap();
-    let throughput = throughput_calc(times.len(), total);
+    let total_duration: Duration = times.iter().copied().sum();
+    let throughput = throughput_calc(n, total_duration);
+
+    let allocated_per_op = total_allocated_bytes / n;
+    let alloc_count_per_op = total_alloc_count / n;
 
     BenchStat {
         name,
-        iterations: times.len(),
-        avg,
+        iterations: n,
+        mean,
+        error,
+        std_dev,
         min,
         max,
+        allocated_bytes: allocated_per_op,
+        alloc_count: alloc_count_per_op,
         throughput,
     }
 }
@@ -79,21 +222,37 @@ fn sample_large_source() -> String {
 }
 
 fn main() {
-    println!("==========================================================================");
-    println!("               ALYA COMPILER BENCHMARK SUITE                             ");
-    println!("==========================================================================");
-    println!();
+    let os_name = match std::env::consts::OS {
+        "windows" => "Windows",
+        "linux" => "Linux",
+        "macos" => "macOS",
+        other => other,
+    };
+    let arch = std::env::consts::ARCH;
+    let logical_cores = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(1);
+    let alya_ver = env!("CARGO_PKG_VERSION");
 
     let source = sample_large_source();
     let source_bytes = source.len();
     let source_lines = source.lines().count();
 
+    println!("// * Summary *\n");
+    println!("Alya Compiler Benchmark v{alya_ver}, {os_name} ({arch})");
+    if let Ok(proc_id) = std::env::var("PROCESSOR_IDENTIFIER") {
+        println!("Processor: {}, {} logical cores", proc_id.trim(), logical_cores);
+    } else {
+        println!("Processor: {} logical cores", logical_cores);
+    }
+    println!("Toolchain: rustc 1.75+ (stable), Profile: Release (opt-level=3, LTO=true)");
     println!(
-        "Benchmark Workload: {} lines, {:.2} KB synthetic program",
+        "Workload : {} lines, {:.2} KB synthetic program (50+ functions, structs, control flow)\n",
         source_lines,
         source_bytes as f64 / 1024.0
     );
-    println!("--------------------------------------------------------------------------");
+
+    println!("IterationCount=10+  WarmupDuration=60ms  TargetDuration=400ms\n");
 
     // 1. Lexer Benchmark
     let lex_stat = run_bench(
@@ -183,32 +342,55 @@ fn main() {
         },
     );
 
-    // Display Table
+    let baseline_mean_nanos = lex_stat.mean.as_nanos() as f64;
+    let baseline_alloc = lex_stat.allocated_bytes.max(1) as f64;
+
     let results = [lex_stat, parse_stat, infer_stat, codegen_stat, full_stat];
 
+    // BenchmarkDotNet Summary Table
     println!(
-        "{:<28} | {:>8} | {:>10} | {:>10} | {:>10} | {:>18}",
-        "Benchmark Stage", "Iters", "Avg", "Min", "Max", "Throughput"
+        "| {:<26} | {:>6} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>6} | {:>10} | {:>11} | {:>19} |",
+        "Benchmark Stage", "Iters", "Mean", "Error", "StdDev", "Min", "Max", "Ratio", "Allocated", "Alloc Ratio", "Throughput"
     );
     println!(
-        "{:-<28}-+-{:-<8}-+-{:-<10}-+-{:-<10}-+-{:-<10}-+-{:-<18}",
-        "", "", "", "", "", ""
+        "|:{:-<26}-|-{:-<6}:|-{:-<10}:|-{:-<10}:|-{:-<10}:|-{:-<10}:|-{:-<10}:|-{:-<6}:|-{:-<10}:|-{:-<11}:|-{:-<19}:|",
+        "", "", "", "", "", "", "", "", "", "", ""
     );
 
     for r in &results {
+        let ratio = (r.mean.as_nanos() as f64) / baseline_mean_nanos;
+        let alloc_ratio = (r.allocated_bytes as f64) / baseline_alloc;
+
         println!(
-            "{:<28} | {:>8} | {:>10.2?} | {:>10.2?} | {:>10.2?} | {:>18}",
-            r.name, r.iterations, r.avg, r.min, r.max, r.throughput
+            "| {:<26} | {:>6} | {:>10} | {:>10} | {:>10} | {:>10} | {:>10} | {:>6.2} | {:>10} | {:>11.2} | {:>19} |",
+            r.name,
+            r.iterations,
+            format_duration(r.mean),
+            format_duration(r.error),
+            format_duration(r.std_dev),
+            format_duration(r.min),
+            format_duration(r.max),
+            ratio,
+            format_bytes(r.allocated_bytes),
+            alloc_ratio,
+            r.throughput
         );
     }
 
-    println!("--------------------------------------------------------------------------");
+    println!("\n// * Legends *");
+    println!("  Mean        : Arithmetic mean of all measurements");
+    println!("  Error       : Half of 99.9% confidence interval");
+    println!("  StdDev      : Standard deviation of all measurements");
+    println!("  Min / Max   : Minimum and maximum recorded execution time");
+    println!("  Ratio       : Mean time ratio relative to baseline (Lexer::tokenize)");
+    println!("  Allocated   : Allocated heap memory per single operation (1 KB = 1024 B)");
+    println!("  Alloc Ratio : Allocated memory ratio relative to baseline");
+    println!("  Throughput  : Processed workload units per second\n");
+
     println!(
-        "Tokens: {}, Generated ASM: {} lines ({:.1} KB)",
+        "Synthetic Workload Metrics: {} tokens, {} lines generated ASM ({:.1} KB)",
         token_count,
         sample_out_lines,
         sample_out_len as f64 / 1024.0
     );
-    println!("All compiler benchmarks finished successfully.");
-    println!("==========================================================================");
 }

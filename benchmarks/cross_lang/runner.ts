@@ -168,20 +168,32 @@ function runCompilerBenchmarks(): string[] {
 
     const lines = output.split("\n");
     for (const line of lines) {
-        if (!line.includes("|") || line.includes("Benchmark Stage") || line.includes("---+---")) {
+        if (!line.includes("|") || line.includes("Benchmark Stage") || line.includes(":-")) {
             continue;
         }
-        const parts = line.split("|").map(p => p.trim());
-        if (parts.length >= 6) {
+        const parts = line.split("|").map(p => p.trim()).filter(p => p.length > 0);
+        if (parts.length >= 11) {
+            const stage = parts[0];
+            const iters = parts[1];
+            const mean = parts[2];
+            const error = parts[3];
+            const stdDev = parts[4];
+            const min = parts[5];
+            const max = parts[6];
+            const allocated = parts[8];
+            const allocRatio = parts[9];
+            const throughput = parts[10] || "";
+            rows.push(
+                `| **\`${stage}\`** | ${iters} | \`${mean}\` | \`${error}\` | \`${stdDev}\` | \`${min}\` | \`${max}\` | **\`${allocated}\`** | \`${allocRatio}\` | **${throughput}** |`
+            );
+        } else if (parts.length >= 6) {
             const stage = parts[0];
             const iters = parts[1];
             const avg = parts[2];
             const min = parts[3];
             const max = parts[4];
             const throughput = parts[5] || "";
-            if (stage && iters && avg && min && max) {
-                rows.push(`| **\`${stage}\`** | ${iters} | \`${avg}\` | \`${min}\` | \`${max}\` | **${throughput}** |`);
-            }
+            rows.push(`| **\`${stage}\`** | ${iters} | \`${avg}\` | \`${min}\` | \`${max}\` | **${throughput}** |`);
         }
     }
     return rows;
@@ -258,9 +270,9 @@ function updateBenchReadme(results: DetailedBenchResult[], compilerRows?: string
 
     // 4. Update Compiler Throughput Table (if available)
     if (compilerRows && compilerRows.length > 0) {
-        const compilerHeader = "| Benchmark Stage | Iterations | Average Time | Min Time | Max Time | Measured Throughput |\n| :--- | :---: | :---: | :---: | :---: | :---: |";
+        const compilerHeader = "| Benchmark Stage | Iterations | Mean | Error | StdDev | Min | Max | Allocated | Alloc Ratio | Measured Throughput |\n| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |";
         const newCompilerTable = `${compilerHeader}\n${compilerRows.join("\n")}`;
-        content = content.replace(/\| Benchmark Stage \| Iterations \| Average Time \|[\s\S]*?(?=\r?\n\r?\n---)/, newCompilerTable);
+        content = content.replace(/\| Benchmark Stage \| Iterations \|[\s\S]*?(?=\r?\n\r?\n---)/, newCompilerTable);
     }
 
     fs.writeFileSync(readmePath, content, "utf-8");
