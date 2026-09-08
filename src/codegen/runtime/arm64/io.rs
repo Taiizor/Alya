@@ -148,5 +148,55 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_enable_virtual_terminal:\n");
     out.push_str("    mov x0, #1\n");
     out.push_str("    ret\n\n");
+
+    // fn_set_console_title
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_set_console_title\n");
+    out.push_str("fn_set_console_title:\n");
+    out.push_str("    stp x29, x30, [sp, #-32]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    mov x1, x0\n");
+    emit_adrp_add(out, "x0", "alya_fmt_console_title", os);
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str("    sub sp, sp, #16\n");
+        out.push_str("    str x1, [sp]\n");
+        out.push_str(&format!("    bl {}printf\n", p));
+        out.push_str("    add sp, sp, #16\n");
+    } else {
+        out.push_str(&format!("    bl {}printf\n", p));
+    }
+    out.push_str("    mov x0, #0\n");
+    out.push_str(&format!("    bl {}fflush\n", p));
+    out.push_str("    mov x0, #1\n");
+    out.push_str("    ldp x29, x30, [sp], #32\n");
+    out.push_str("    ret\n\n");
+
+    // fn_beep_console
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_beep_console\n");
+    out.push_str("fn_beep_console:\n");
+    out.push_str("    stp x29, x30, [sp, #-16]!\n");
+    out.push_str("    mov x29, sp\n");
+    emit_adrp_add(out, "x0", "alya_str_console_bell", os);
+    out.push_str(&format!("    bl {}printf\n", p));
+    out.push_str("    mov x0, #0\n");
+    out.push_str(&format!("    bl {}fflush\n", p));
+    out.push_str("    mov x0, #1\n");
+    out.push_str("    ldp x29, x30, [sp], #16\n");
+    out.push_str("    ret\n\n");
+
+    // fn_clear_console
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_clear_console\n");
+    out.push_str("fn_clear_console:\n");
+    out.push_str("    stp x29, x30, [sp, #-16]!\n");
+    out.push_str("    mov x29, sp\n");
+    emit_adrp_add(out, "x0", "alya_str_console_clear", os);
+    out.push_str(&format!("    bl {}printf\n", p));
+    out.push_str("    mov x0, #0\n");
+    out.push_str(&format!("    bl {}fflush\n", p));
+    out.push_str("    mov x0, #1\n");
+    out.push_str("    ldp x29, x30, [sp], #16\n");
+    out.push_str("    ret\n\n");
 }
 

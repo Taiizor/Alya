@@ -48,7 +48,7 @@ end
 # ─── Display Functions ───────────────────────────────────────
 
 function clear_screen()
-    say "\e[2J\e[H"
+    console_clear()
 end
 
 function show_banner()
@@ -220,7 +220,8 @@ function get_move(board, name, mark)
     end
 
     repeat
-        let input = ask "    " + name + " (" + mark_str + ") -> Position (1-9): "
+        let prompt = "    " + name + " (" + mark_str + ") -> Position (1-9): "
+        let input = ask prompt
         let choice = trim(input)
 
         try
@@ -229,11 +230,14 @@ function get_move(board, name, mark)
                 if board[pos - 1] == 0
                     return pos - 1
                 end
+                console_beep()
                 say color_yellow("    ! Position already taken. Choose another.")
             else
+                console_beep()
                 say color_yellow("    ! Please enter a number between 1 and 9.")
             end
         catch err
+            console_beep()
             say color_yellow("    ! Invalid input. Please enter a number.")
         end
     end
@@ -243,8 +247,9 @@ end
 #                        MAIN GAME
 # ═══════════════════════════════════════════════════════════════
 
-# Initialize console with UTF-8 encoding
+# Initialize console with UTF-8 encoding and title
 console_utf8()
+console_title("TicTacToe - Alya")
 
 clear_screen()
 show_banner()
@@ -352,9 +357,11 @@ while playing == 1
 
     let result = check_winner(board)
     if result == 1
+        console_beep()
         scores.p1 += 1
         say "\e[1;92m    " + name1 + " (X) wins! Congratulations!\e[0m"
     elif result == 2
+        console_beep()
         scores.p2 += 1
         say "\e[1;92m    " + name2 + " (O) wins! Congratulations!\e[0m"
     else

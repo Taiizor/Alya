@@ -148,5 +148,35 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_enable_virtual_terminal:\n");
     out.push_str("    mov $1, %eax\n");
     out.push_str("    ret\n\n");
+
+    // fn_set_console_title
+    out.push_str(".global fn_set_console_title\n");
+    out.push_str("fn_set_console_title:\n");
+    out.push_str("    mov $1, %eax\n");
+    out.push_str("    ret\n\n");
+
+    // fn_beep_console
+    out.push_str(".global fn_beep_console\n");
+    out.push_str("fn_beep_console:\n");
+    out.push_str("    push $alya_str_console_bell\n");
+    out.push_str("    call printf\n");
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    push $0\n");
+    out.push_str("    call fflush\n");
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    mov $1, %eax\n");
+    out.push_str("    ret\n\n");
+
+    // fn_clear_console
+    out.push_str(".global fn_clear_console\n");
+    out.push_str("fn_clear_console:\n");
+    out.push_str("    push $alya_str_console_clear\n");
+    out.push_str("    call printf\n");
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    push $0\n");
+    out.push_str("    call fflush\n");
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    mov $1, %eax\n");
+    out.push_str("    ret\n\n");
 }
 

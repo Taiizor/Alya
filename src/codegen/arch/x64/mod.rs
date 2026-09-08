@@ -59,6 +59,8 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
             out.push_str(".extern GetStdHandle\n");
             out.push_str(".extern GetConsoleMode\n");
             out.push_str(".extern SetConsoleMode\n");
+            out.push_str(".extern SetConsoleTitleA\n");
+            out.push_str(".extern Beep\n");
             out.push_str(".extern Sleep\n");
             out.push_str(".extern _mkdir\n\n");
         } else {

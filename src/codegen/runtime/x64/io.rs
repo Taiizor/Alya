@@ -242,5 +242,88 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    mov $1, %rax\n");
         out.push_str("    ret\n\n");
     }
+
+    // fn_set_console_title
+    out.push_str(".global fn_set_console_title\n");
+    out.push_str("fn_set_console_title:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    push %rbp\n");
+        out.push_str("    mov %rsp, %rbp\n");
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    call SetConsoleTitleA\n");
+        out.push_str("    add $32, %rsp\n");
+        out.push_str("    mov %rbp, %rsp\n");
+        out.push_str("    pop %rbp\n");
+        out.push_str("    mov $1, %rax\n");
+        out.push_str("    ret\n\n");
+    } else {
+        out.push_str("    push %rbp\n");
+        out.push_str("    mov %rsp, %rbp\n");
+        out.push_str("    sub $16, %rsp\n");
+        out.push_str("    mov %rdi, %rsi\n");
+        out.push_str("    lea alya_fmt_console_title(%rip), %rdi\n");
+        out.push_str("    xor %rax, %rax\n");
+        out.push_str(&format!("    call {}printf\n", p));
+        out.push_str("    xor %rdi, %rdi\n");
+        out.push_str(&format!("    call {}fflush\n", p));
+        out.push_str("    mov %rbp, %rsp\n");
+        out.push_str("    pop %rbp\n");
+        out.push_str("    mov $1, %rax\n");
+        out.push_str("    ret\n\n");
+    }
+
+    // fn_beep_console
+    out.push_str(".global fn_beep_console\n");
+    out.push_str("fn_beep_console:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    push %rbp\n");
+        out.push_str("    mov %rsp, %rbp\n");
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    mov $750, %ecx\n");
+        out.push_str("    mov $150, %edx\n");
+        out.push_str("    call Beep\n");
+        out.push_str("    add $32, %rsp\n");
+        out.push_str("    mov %rbp, %rsp\n");
+        out.push_str("    pop %rbp\n");
+        out.push_str("    mov $1, %rax\n");
+        out.push_str("    ret\n\n");
+    } else {
+        out.push_str("    push %rbp\n");
+        out.push_str("    mov %rsp, %rbp\n");
+        out.push_str("    sub $16, %rsp\n");
+        out.push_str("    lea alya_str_console_bell(%rip), %rdi\n");
+        out.push_str("    xor %rax, %rax\n");
+        out.push_str(&format!("    call {}printf\n", p));
+        out.push_str("    xor %rdi, %rdi\n");
+        out.push_str(&format!("    call {}fflush\n", p));
+        out.push_str("    mov %rbp, %rsp\n");
+        out.push_str("    pop %rbp\n");
+        out.push_str("    mov $1, %rax\n");
+        out.push_str("    ret\n\n");
+    }
+
+    // fn_clear_console
+    out.push_str(".global fn_clear_console\n");
+    out.push_str("fn_clear_console:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    sub $32, %rsp\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    lea alya_str_console_clear(%rip), %rcx\n");
+        out.push_str("    call printf\n");
+        out.push_str("    xor %rcx, %rcx\n");
+        out.push_str("    call fflush\n");
+    } else {
+        out.push_str("    lea alya_str_console_clear(%rip), %rdi\n");
+        out.push_str("    xor %rax, %rax\n");
+        out.push_str(&format!("    call {}printf\n", p));
+        out.push_str("    xor %rdi, %rdi\n");
+        out.push_str(&format!("    call {}fflush\n", p));
+    }
+    out.push_str("    add $32, %rsp\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    mov $1, %rax\n");
+    out.push_str("    ret\n\n");
 }
 

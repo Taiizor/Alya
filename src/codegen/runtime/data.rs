@@ -98,6 +98,14 @@ pub fn emit_data_sections(
     out.push_str(&format!("    {} \"ab\"\n", str_directive));
     out.push_str("alya_fmt_prompt:\n");
     out.push_str(&format!("    {} \"%s\"\n", str_directive));
+    out.push_str("alya_str_console_clear:\n");
+    out.push_str(
+        "    .byte 0x1b, 0x5b, 0x32, 0x4a, 0x1b, 0x5b, 0x33, 0x4a, 0x1b, 0x5b, 0x48, 0x00\n",
+    );
+    out.push_str("alya_fmt_console_title:\n");
+    out.push_str("    .byte 0x1b, 0x5d, 0x30, 0x3b, 0x25, 0x73, 0x07, 0x00\n");
+    out.push_str("alya_str_console_bell:\n");
+    out.push_str("    .byte 0x07, 0x00\n");
     out.push_str("alya_fmt_runtime_err:\n");
     out.push_str(&format!("    {} \"Runtime error: %s\\n\"\n", str_directive));
     out.push_str("alya_str_unhandled_err:\n");

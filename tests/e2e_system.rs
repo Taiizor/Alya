@@ -1304,6 +1304,15 @@ say "cp: {cp}"
 let enc = get_output_encoding()
 say "enc: {enc}"
 
+let title_ok = console_title("Alya Test Console")
+say "title_ok: {title_ok}"
+
+let beep_ok = console_beep()
+say "beep_ok: {beep_ok}"
+
+let clear_ok = console_clear()
+say "clear_ok: {clear_ok}"
+
 say "╔═════════════════╗"
 say "║ UTF-8 Box Test  ║"
 say "╚═════════════════╝"
@@ -1313,6 +1322,9 @@ say "╚═════════════════╝"
         assert!(output.contains("utf8_ok: 1"));
         assert!(output.contains("cp: 65001"));
         assert!(output.contains("enc: UTF-8"));
+        assert!(output.contains("title_ok: 1"));
+        assert!(output.contains("beep_ok: 1"));
+        assert!(output.contains("clear_ok: 1"));
         assert!(output.contains("╔═════════════════╗"));
         assert!(output.contains("║ UTF-8 Box Test  ║"));
         assert!(output.contains("╚═════════════════╝"));

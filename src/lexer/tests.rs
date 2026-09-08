@@ -90,7 +90,7 @@ fn test_tokenize_operators() {
 
 #[test]
 fn test_tokenize_strings_and_escapes() {
-    let source = r#""Hello, World!" "Line1\nLine2\t\"quote\"""#;
+    let source = r#""Hello, World!" "Line1\nLine2\t\"quote\"" "\a\b\e\f\v\0""#;
     let mut lexer = Lexer::new(source);
     let tokens = lexer.tokenize().expect("Tokenization failed");
 
@@ -101,6 +101,10 @@ fn test_tokenize_strings_and_escapes() {
     assert_eq!(
         tokens[1].token_type,
         TokenType::String("Line1\nLine2\t\"quote\"".into())
+    );
+    assert_eq!(
+        tokens[2].token_type,
+        TokenType::String("\x07\x08\x1b\x0c\x0b\0".into())
     );
 }
 

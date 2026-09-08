@@ -49,15 +49,15 @@ function console_enable_ansi()
 end
 
 function console_clear()
-    say "\e[2J\e[H"
+    return clear_console()
 end
 
 function console_title(title)
-    say "\e]0;" + title + "\a"
+    return set_console_title(title)
 end
 
 function console_beep()
-    say "\a"
+    return beep_console()
 end
 
 function console_cursor_to(row, col)

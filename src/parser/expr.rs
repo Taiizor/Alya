@@ -346,8 +346,16 @@ impl Parser {
                         args.push(self.parse_expression()?);
                     }
                     self.expect(TokenType::RightParen)?;
-                } else if matches!(self.current_token().token_type, TokenType::String(_)) {
-                    args.push(self.parse_primary()?);
+                } else if !matches!(
+                    self.current_token().token_type,
+                    TokenType::Newline
+                        | TokenType::Eof
+                        | TokenType::RightParen
+                        | TokenType::RightBracket
+                        | TokenType::RightBrace
+                        | TokenType::Comma
+                ) {
+                    args.push(self.parse_expression()?);
                 }
                 Ok(Expr::Call {
                     name: "ask".into(),
