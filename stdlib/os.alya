@@ -179,6 +179,3 @@ function path_list_separator()
     end
     return ":"
 end
-
-
-
