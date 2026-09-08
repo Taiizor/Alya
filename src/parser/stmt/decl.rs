@@ -18,7 +18,25 @@ impl Parser {
         };
         self.advance();
 
-        Ok(Stmt::Import(path))
+        let alias = if matches!(self.current_token().token_type, TokenType::As) {
+            self.advance();
+            let alias_name = match &self.current_token().token_type {
+                TokenType::Identifier(s) => s.clone(),
+                _ => {
+                    return Err(format!(
+                        "Expected identifier after 'as' at line {}, column {}",
+                        self.current_token().line,
+                        self.current_token().column
+                    ))
+                }
+            };
+            self.advance();
+            Some(alias_name)
+        } else {
+            None
+        };
+
+        Ok(Stmt::Import { path, alias })
     }
 
     pub(super) fn parse_say(&mut self) -> Result<Stmt, String> {
@@ -100,7 +118,7 @@ impl Parser {
     pub(super) fn parse_function(&mut self) -> Result<Stmt, String> {
         self.advance(); // skip 'function'
 
-        let name = match &self.current_token().token_type {
+        let mut name = match &self.current_token().token_type {
             TokenType::Identifier(s) => s.clone(),
             _ => {
                 return Err(format!(
@@ -111,6 +129,23 @@ impl Parser {
             }
         };
         self.advance();
+
+        while matches!(self.current_token().token_type, TokenType::ColonColon) {
+            self.advance();
+            match &self.current_token().token_type {
+                TokenType::Identifier(member) => {
+                    name = format!("{}::{}", name, member);
+                    self.advance();
+                }
+                _ => {
+                    return Err(format!(
+                        "Expected identifier after '::' in function name at line {}, column {}",
+                        self.current_token().line,
+                        self.current_token().column
+                    ));
+                }
+            }
+        }
 
         self.expect(TokenType::LeftParen)?;
 

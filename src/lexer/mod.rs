@@ -193,11 +193,20 @@ impl Lexer {
                 }
                 ':' => {
                     self.advance();
-                    tokens.push(Token {
-                        token_type: TokenType::Colon,
-                        line,
-                        column,
-                    });
+                    if self.current_char() == Some(':') {
+                        self.advance();
+                        tokens.push(Token {
+                            token_type: TokenType::ColonColon,
+                            line,
+                            column,
+                        });
+                    } else {
+                        tokens.push(Token {
+                            token_type: TokenType::Colon,
+                            line,
+                            column,
+                        });
+                    }
                 }
                 '.' => {
                     if self.peek_char() == Some('.') {

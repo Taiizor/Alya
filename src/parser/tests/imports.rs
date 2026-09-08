@@ -10,8 +10,24 @@ fn test_parse_import() {
 
     assert_eq!(program.statements.len(), 2);
     match &program.statements[0] {
-        Stmt::Import(path) => assert_eq!(path, "math_utils.alya"),
+        Stmt::Import { path, alias } => {
+            assert_eq!(path, "math_utils.alya");
+            assert_eq!(alias, &None);
+        }
         other => panic!("Expected Stmt::Import, got {:?}", other),
+    }
+
+    let source_alias = "import \"math_utils.alya\" as math\nsay math::add(1, 2)";
+    let mut lexer = crate::lexer::Lexer::new(source_alias);
+    let tokens = lexer.tokenize().expect("Failed to tokenize");
+    let mut parser = Parser::new(tokens);
+    let program_alias = parser.parse().expect("Failed to parse");
+    match &program_alias.statements[0] {
+        Stmt::Import { path, alias } => {
+            assert_eq!(path, "math_utils.alya");
+            assert_eq!(alias, &Some("math".to_string()));
+        }
+        other => panic!("Expected Stmt::Import with alias, got {:?}", other),
     }
 }
 
@@ -189,4 +205,119 @@ say PI
         hypot_count, 1,
         "Duplicate import of std/math should only include hypot once"
     );
+}
+
+#[test]
+fn test_import_with_alias_resolution() {
+    use std::fs;
+    let temp_dir = std::env::temp_dir().join(format!("alya_alias_test_{}", std::process::id()));
+    let _ = fs::create_dir_all(&temp_dir);
+
+    let helper_path = temp_dir.join("calc.alya");
+    fs::write(
+        &helper_path,
+        "function mult(a, b)\n    return a * b\nend\nfunction square(x)\n    return mult(x, x)\nend\n",
+    )
+    .unwrap();
+
+    let main_code = "import \"calc.alya\" as c\nlet ans = c::square(5)\nsay ans";
+    let mut lexer = Lexer::new(main_code);
+    let tokens = lexer.tokenize().expect("Tokenize failed");
+    let mut parser = Parser::new(tokens);
+    let mut ast = parser.parse().expect("Parse failed");
+
+    resolve_imports(&mut ast, &temp_dir).expect("Resolve imports should succeed");
+
+    // Check that functions are prefixed with c::
+    let fn_names: Vec<String> = ast
+        .statements
+        .iter()
+        .filter_map(|s| match s {
+            Stmt::Function { name, .. } => Some(name.clone()),
+            _ => None,
+        })
+        .collect();
+
+    assert!(fn_names.contains(&"c::mult".to_string()));
+    assert!(fn_names.contains(&"c::square".to_string()));
+
+    let _ = fs::remove_dir_all(&temp_dir);
+}
+
+#[test]
+fn test_duplicate_function_definition_error() {
+    use std::fs;
+    let temp_dir = std::env::temp_dir().join(format!("alya_dup_err_test_{}", std::process::id()));
+    let _ = fs::create_dir_all(&temp_dir);
+
+    let m1_path = temp_dir.join("m1.alya");
+    fs::write(&m1_path, "function abc()\n    return 1\nend\n").unwrap();
+
+    let m2_path = temp_dir.join("m2.alya");
+    fs::write(&m2_path, "function abc()\n    return 2\nend\n").unwrap();
+
+    let main_code = "import \"m1.alya\"\nimport \"m2.alya\"\nsay abc()";
+    let mut lexer = Lexer::new(main_code);
+    let tokens = lexer.tokenize().expect("Tokenize failed");
+    let mut parser = Parser::new(tokens);
+    let mut ast = parser.parse().expect("Parse failed");
+
+    let res = resolve_imports(&mut ast, &temp_dir);
+    assert!(
+        res.is_err(),
+        "Duplicate function abc should fail resolution"
+    );
+    let err_msg = res.unwrap_err();
+    assert!(
+        err_msg.contains("Duplicate function definition 'abc'"),
+        "Error message should mention duplicate function definition 'abc', got: {}",
+        err_msg
+    );
+    assert!(
+        err_msg.contains("use 'import \"...\" as <alias>'"),
+        "Error message should advise using alias, got: {}",
+        err_msg
+    );
+
+    let _ = fs::remove_dir_all(&temp_dir);
+}
+
+#[test]
+fn test_aliased_import_resolves_conflict() {
+    use std::fs;
+    let temp_dir = std::env::temp_dir().join(format!("alya_alias_resolve_{}", std::process::id()));
+    let _ = fs::create_dir_all(&temp_dir);
+
+    let m1_path = temp_dir.join("m1.alya");
+    fs::write(&m1_path, "function abc()\n    return 1\nend\n").unwrap();
+
+    let m2_path = temp_dir.join("m2.alya");
+    fs::write(&m2_path, "function abc()\n    return 2\nend\n").unwrap();
+
+    let main_code =
+        "import \"m1.alya\" as one\nimport \"m2.alya\" as two\nsay one::abc()\nsay two::abc()";
+    let mut lexer = Lexer::new(main_code);
+    let tokens = lexer.tokenize().expect("Tokenize failed");
+    let mut parser = Parser::new(tokens);
+    let mut ast = parser.parse().expect("Parse failed");
+
+    let res = resolve_imports(&mut ast, &temp_dir);
+    assert!(
+        res.is_ok(),
+        "Aliased imports should resolve conflict successfully"
+    );
+
+    let fn_names: Vec<String> = ast
+        .statements
+        .iter()
+        .filter_map(|s| match s {
+            Stmt::Function { name, .. } => Some(name.clone()),
+            _ => None,
+        })
+        .collect();
+
+    assert!(fn_names.contains(&"one::abc".to_string()));
+    assert!(fn_names.contains(&"two::abc".to_string()));
+
+    let _ = fs::remove_dir_all(&temp_dir);
 }

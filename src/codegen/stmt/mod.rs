@@ -8,7 +8,7 @@ use crate::codegen::arch;
 impl CodeGen {
     pub(crate) fn generate_statement(&mut self, stmt: &Stmt) {
         match stmt {
-            Stmt::Import(_) => {}
+            Stmt::Import { .. } => {}
             Stmt::Say(expr) => self.generate_say(expr),
             Stmt::Expr(expr) => {
                 self.generate_expression(expr);

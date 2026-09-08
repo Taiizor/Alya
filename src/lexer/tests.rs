@@ -228,3 +228,27 @@ fn test_tokenize_struct() {
         ]
     );
 }
+
+#[test]
+fn test_tokenize_as_and_colon_colon() {
+    let source = "import \"math.alya\" as m\nm::calc()";
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Tokenization failed");
+    let types: Vec<_> = tokens.into_iter().map(|t| t.token_type).collect();
+    assert_eq!(
+        types,
+        vec![
+            TokenType::Import,
+            TokenType::String("math.alya".into()),
+            TokenType::As,
+            TokenType::Identifier("m".into()),
+            TokenType::Newline,
+            TokenType::Identifier("m".into()),
+            TokenType::ColonColon,
+            TokenType::Identifier("calc".into()),
+            TokenType::LeftParen,
+            TokenType::RightParen,
+            TokenType::Eof,
+        ]
+    );
+}

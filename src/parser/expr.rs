@@ -228,8 +228,25 @@ impl Parser {
                 })
             }
             TokenType::Identifier(name) => {
-                let ident = name.clone();
+                let mut ident = name.clone();
                 self.advance();
+
+                while matches!(self.current_token().token_type, TokenType::ColonColon) {
+                    self.advance();
+                    match &self.current_token().token_type {
+                        TokenType::Identifier(member) => {
+                            ident = format!("{}::{}", ident, member);
+                            self.advance();
+                        }
+                        _ => {
+                            return Err(format!(
+                                "Expected identifier after '::' at line {}, column {}",
+                                self.current_token().line,
+                                self.current_token().column
+                            ));
+                        }
+                    }
+                }
 
                 // Check for function call
                 if matches!(self.current_token().token_type, TokenType::LeftParen) {

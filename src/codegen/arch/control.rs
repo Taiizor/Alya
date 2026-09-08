@@ -42,10 +42,11 @@ pub fn emit_increment_var(
 }
 
 pub fn emit_function_prologue(out: &mut String, arch: Architecture, name: &str) {
+    let mangled = name.replace("::", "__");
     match arch {
-        Architecture::ARM64 => arm64::emit_function_prologue(out, name),
-        Architecture::X64 => x64::emit_function_prologue(out, name),
-        Architecture::X86 => x86::emit_function_prologue(out, name),
+        Architecture::ARM64 => arm64::emit_function_prologue(out, &mangled),
+        Architecture::X64 => x64::emit_function_prologue(out, &mangled),
+        Architecture::X86 => x86::emit_function_prologue(out, &mangled),
     }
 }
 
@@ -79,10 +80,11 @@ pub fn emit_function_call(
     stack_offset: i32,
     os: OperatingSystem,
 ) {
+    let mangled = name.replace("::", "__");
     match arch {
-        Architecture::ARM64 => arm64::emit_function_call(out, name, args_count),
-        Architecture::X64 => x64::emit_function_call(out, name, args_count, stack_offset, os),
-        Architecture::X86 => x86::emit_function_call(out, name, args_count),
+        Architecture::ARM64 => arm64::emit_function_call(out, &mangled, args_count),
+        Architecture::X64 => x64::emit_function_call(out, &mangled, args_count, stack_offset, os),
+        Architecture::X86 => x86::emit_function_call(out, &mangled, args_count),
     }
 }
 

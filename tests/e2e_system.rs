@@ -604,3 +604,25 @@ say normalize_slashes("foo\\bar\\baz")
         );
     }
 }
+
+#[test]
+fn test_e2e_module_alias_and_conflict_resolution() {
+    let code = r#"
+import "examples/modules/conflict/module1.alya" as m1
+import "examples/modules/conflict/module2.alya" as m2
+import "std/math" as m
+
+say m1::abc()
+say m2::abc()
+say m::clamp(15, 0, 10)
+say m::is_even(4)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(
+            code, 0,
+            "Execution failed with code {} and output:\n{}",
+            code, output
+        );
+        assert_eq!(output, "1\n2\n10\n1\n");
+    }
+}

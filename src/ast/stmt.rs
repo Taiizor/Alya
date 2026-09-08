@@ -2,7 +2,10 @@ use super::expr::Expr;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
-    Import(String),
+    Import {
+        path: String,
+        alias: Option<String>,
+    },
     Say(Expr),
     Let {
         name: String,

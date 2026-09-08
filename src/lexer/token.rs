@@ -24,6 +24,7 @@ pub enum TokenType {
     Finally,  // finally
     Throw,    // throw
     Import,   // import
+    As,       // as
     Struct,   // struct
 
     // Literals
@@ -64,6 +65,7 @@ pub enum TokenType {
     RightBrace,   // }
     Comma,        // ,
     Colon,        // :
+    ColonColon,   // ::
     Dot,          // .
     DotDot,       // ..
     Newline,      // \n
@@ -98,6 +100,7 @@ impl TokenType {
             "finally" => TokenType::Finally,
             "throw" => TokenType::Throw,
             "import" => TokenType::Import,
+            "as" => TokenType::As,
             "struct" => TokenType::Struct,
             "true" => TokenType::True,
             "false" => TokenType::False,
@@ -142,6 +145,7 @@ impl std::fmt::Display for TokenType {
             TokenType::Finally => write!(f, "'finally'"),
             TokenType::Throw => write!(f, "'throw'"),
             TokenType::Import => write!(f, "'import'"),
+            TokenType::As => write!(f, "'as'"),
             TokenType::Struct => write!(f, "'struct'"),
             TokenType::Number(n) => write!(f, "number '{}'", n),
             TokenType::Float(n) => write!(f, "float '{}'", n),
@@ -176,6 +180,7 @@ impl std::fmt::Display for TokenType {
             TokenType::RightBrace => write!(f, "'}}'"),
             TokenType::Comma => write!(f, "','"),
             TokenType::Colon => write!(f, "':'"),
+            TokenType::ColonColon => write!(f, "'::'"),
             TokenType::Dot => write!(f, "'.'"),
             TokenType::DotDot => write!(f, "'..'"),
             TokenType::Newline => write!(f, "newline"),
