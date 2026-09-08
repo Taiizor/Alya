@@ -149,4 +149,3 @@ pub fn emit_bit_op(out: &mut String, op: &str) {
 pub fn emit_bit_not(out: &mut String) {
     out.push_str("    mvn x0, x0\n");
 }
-

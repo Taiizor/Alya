@@ -245,4 +245,3 @@ pub fn emit_char_code_at(out: &mut String, arch: Architecture, done_label: &str)
         Architecture::ARM64 => arm64::builtins::emit_char_code_at(out, done_label),
     }
 }
-

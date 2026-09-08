@@ -295,4 +295,3 @@ pub fn emit_char_code_at(out: &mut String, done_label: &str) {
     out.push_str("    movzbl (%rdx, %rcx), %eax\n");
     out.push_str(&format!("{}:\n", done_label));
 }
-

@@ -168,4 +168,3 @@ pub fn emit_bit_op(out: &mut String, op: &str) {
 pub fn emit_bit_not(out: &mut String) {
     out.push_str("    not %rax\n");
 }
-

@@ -251,7 +251,6 @@ impl CodeGen {
                     }
                 }
 
-
                 let (call_name, actual_args): (&str, Vec<Expr>) =
                     if (name == "substring" || name == "substr") && args.len() == 2 {
                         (

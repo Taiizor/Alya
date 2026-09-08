@@ -49,4 +49,3 @@ pub fn emit_bit_not(out: &mut String, arch: Architecture) {
         Architecture::X86 => x86::emit_bit_not(out),
     }
 }
-
