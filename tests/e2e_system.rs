@@ -424,3 +424,108 @@ say "unreachable"
         assert_eq!(output, "before_exit\n");
     }
 }
+
+#[test]
+fn test_e2e_path_stdlib() {
+    let code = r#"
+import "std/path"
+
+# 1. Separators
+say path_separator()
+if len(native_separator()) > 0
+    say "native_sep_ok"
+end
+
+# 2. Classification
+say is_absolute("/foo/bar")
+say is_relative("/foo/bar")
+say is_relative("foo/bar")
+say is_root("/")
+say is_root("/foo")
+
+# 3. Filename, extension, stem, and hidden file edge case
+say file_name("path/to/file.txt")
+say basename("path/to/file.txt")
+say file_name("path/to/dir/")
+say file_ext("path/to/file.txt")
+say extname("path/to/file.txt")
+say has_extension("path/to/file.txt")
+say has_extension("path/to/noext")
+say file_stem("path/to/file.txt")
+say stem("path/to/file.txt")
+
+# Edge cases: dotfiles
+say file_name(".gitignore")
+say file_ext(".gitignore")
+say file_stem(".gitignore")
+
+# 4. Parent dir
+say parent_dir("path/to/file.txt")
+say dirname("path/to/file.txt")
+say parent_dir("/file.txt")
+say parent_dir("file.txt")
+
+# 5. Transformations
+say with_file_name("path/to/old.txt", "new.txt")
+say with_file_name("old.txt", "new.txt")
+say with_extension("path/to/file.txt", ".md")
+say with_extension("path/to/file.txt", "md")
+say with_extension("file.txt", "")
+
+# 6. Joining & Normalization
+say path_join("usr/local", "bin/alyac")
+say path_join("usr/local/", "/bin/alyac")
+say path_join3("usr", "local", "bin")
+let parts = ["a", "b", "c", "d"]
+say path_join_all(parts)
+say to_slash("foo\\bar\\baz")
+say normalize_slashes("foo\\bar\\baz")
+"#;
+
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(
+            code, 0,
+            "Execution failed with code {} and output:\n{}",
+            code, output
+        );
+        assert_eq!(
+            output,
+            concat!(
+                "/\n",
+                "native_sep_ok\n",
+                "1\n",
+                "0\n",
+                "1\n",
+                "1\n",
+                "0\n",
+                "file.txt\n",
+                "file.txt\n",
+                "dir\n",
+                ".txt\n",
+                ".txt\n",
+                "1\n",
+                "0\n",
+                "file\n",
+                "file\n",
+                ".gitignore\n",
+                "\n",
+                ".gitignore\n",
+                "path/to\n",
+                "path/to\n",
+                "/\n",
+                ".\n",
+                "path/to/new.txt\n",
+                "new.txt\n",
+                "path/to/file.md\n",
+                "path/to/file.md\n",
+                "file\n",
+                "usr/local/bin/alyac\n",
+                "usr/local/bin/alyac\n",
+                "usr/local/bin\n",
+                "a/b/c/d\n",
+                "foo/bar/baz\n",
+                "foo/bar/baz\n",
+            )
+        );
+    }
+}

@@ -1,9 +1,20 @@
 # Alya Standard Library - Path Module
 # Provides cross-platform filesystem path manipulation utilities.
 
+# --- Separators ---
+
 function path_separator()
     return "/"
 end
+
+function native_separator()
+    if target_os() == "windows"
+        return "\\"
+    end
+    return "/"
+end
+
+# --- Path Classification ---
 
 function is_absolute(path)
     let plen = len(path)
@@ -11,43 +22,80 @@ function is_absolute(path)
         return 0
     end
     let c0 = char_at(path, 0)
-    when c0
-        is "/", "\\" then return 1
+    if c0 == "/" or c0 == "\\"
+        return 1
     end
     if plen >= 3 and char_at(path, 1) == ":"
         let c2 = char_at(path, 2)
-        when c2
-            is "/", "\\" then return 1
+        if c2 == "/" or c2 == "\\"
+            return 1
         end
     end
     return 0
 end
+
+function is_relative(path)
+    if is_absolute(path)
+        return 0
+    end
+    return 1
+end
+
+function is_root(path)
+    let plen = len(path)
+    if plen == 1
+        let c0 = char_at(path, 0)
+        if c0 == "/" or c0 == "\\"
+            return 1
+        end
+    end
+    if plen == 2 and char_at(path, 1) == ":"
+        return 1
+    end
+    if plen == 3 and char_at(path, 1) == ":"
+        let c2 = char_at(path, 2)
+        if c2 == "/" or c2 == "\\"
+            return 1
+        end
+    end
+    return 0
+end
+
+# --- Component Extraction ---
 
 function file_name(path)
     let plen = len(path)
     if plen == 0
         return ""
     end
-    let i = plen - 1
+    let end_idx = plen
+    while end_idx > 1 and (char_at(path, end_idx - 1) == "/" or char_at(path, end_idx - 1) == "\\")
+        end_idx -= 1
+    end
+    let i = end_idx - 1
     let ch = ""
     while i >= 0
         ch = char_at(path, i)
-        when ch
-            is "/", "\\" then return substring(path, i + 1, plen - (i + 1))
+        if ch == "/" or ch == "\\"
+            return substring(path, i + 1, end_idx - (i + 1))
         end
         i -= 1
     end
-    return path
+    return substring(path, 0, end_idx)
+end
+
+function basename(path)
+    return file_name(path)
 end
 
 function file_ext(path)
     let name = file_name(path)
     let nlen = len(name)
-    if nlen == 0
+    if nlen <= 1
         return ""
     end
     let i = nlen - 1
-    while i >= 0
+    while i > 0
         if char_at(name, i) == "."
             return substring(name, i, nlen - i)
         end
@@ -56,15 +104,29 @@ function file_ext(path)
     return ""
 end
 
+function extname(path)
+    return file_ext(path)
+end
+
+function has_extension(path)
+    if len(file_ext(path)) > 0
+        return 1
+    end
+    return 0
+end
+
 function file_stem(path)
     let name = file_name(path)
     let ext = file_ext(name)
-    let nlen = len(name)
     let elen = len(ext)
     if elen == 0
         return name
     end
-    return substring(name, 0, nlen - elen)
+    return substring(name, 0, len(name) - elen)
+end
+
+function stem(path)
+    return file_stem(path)
 end
 
 function parent_dir(path)
@@ -72,27 +134,87 @@ function parent_dir(path)
     if plen == 0
         return "."
     end
-    let i = plen - 1
-    while i > 0 and (char_at(path, i) == "/" or char_at(path, i) == "\\")
-        i -= 1
+    let end_idx = plen
+    while end_idx > 1 and (char_at(path, end_idx - 1) == "/" or char_at(path, end_idx - 1) == "\\")
+        end_idx -= 1
     end
+    let i = end_idx - 1
     let ch = ""
     while i >= 0
         ch = char_at(path, i)
-        when ch
-            is "/", "\\" then
-                if i == 0
-                    return "/"
-                end
-                return substring(path, 0, i)
+        if ch == "/" or ch == "\\"
+            if i == 0
+                return "/"
+            end
+            if i == 2 and char_at(path, 1) == ":"
+                return substring(path, 0, 3)
+            end
+            return substring(path, 0, i)
         end
         i -= 1
     end
     return "."
 end
 
+function dirname(path)
+    return parent_dir(path)
+end
+
+# --- Path Transformations ---
+
+function with_file_name(path, new_name)
+    let pdir = parent_dir(path)
+    if pdir == "."
+        let has_slash = 0
+        let i = 0
+        let plen = len(path)
+        let ch = ""
+        while i < plen
+            ch = char_at(path, i)
+            if ch == "/" or ch == "\\"
+                has_slash = 1
+            end
+            i += 1
+        end
+        if has_slash == 0
+            return new_name
+        end
+    end
+    return path_join(pdir, new_name)
+end
+
+function with_extension(path, new_ext)
+    let pdir = parent_dir(path)
+    let st = file_stem(path)
+    let ext = new_ext
+    if len(ext) > 0 and char_at(ext, 0) != "."
+        ext = "." + ext
+    end
+    let new_file = st + ext
+    if pdir == "."
+        let has_slash = 0
+        let i = 0
+        let plen = len(path)
+        let ch = ""
+        while i < plen
+            ch = char_at(path, i)
+            if ch == "/" or ch == "\\"
+                has_slash = 1
+            end
+            i += 1
+        end
+        if has_slash == 0
+            return new_file
+        end
+    end
+    return path_join(pdir, new_file)
+end
+
+# --- Joining & Normalization ---
+
 function path_join(a, b)
-    let alen, blen = len(a), len(b)
+    let alen = len(a)
+    let blen = len(b)
     if alen == 0
         return b
     end
@@ -100,15 +222,76 @@ function path_join(a, b)
         return a
     end
     let last_a = char_at(a, alen - 1)
-    let a_has_slash = (last_a == "/" or last_a == "\\")
+    let a_slash = (last_a == "/" or last_a == "\\")
     let first_b = char_at(b, 0)
-    let b_has_slash = (first_b == "/" or first_b == "\\")
+    let b_slash = (first_b == "/" or first_b == "\\")
 
-    if a_has_slash and b_has_slash
+    if a_slash and b_slash
         return substring(a, 0, alen - 1) + "/" + substring(b, 1, blen - 1)
-    elif a_has_slash or b_has_slash
-        return a + b
+    elif a_slash
+        return substring(a, 0, alen - 1) + "/" + b
+    elif b_slash
+        return a + "/" + substring(b, 1, blen - 1)
     else
         return a + "/" + b
     end
+end
+
+function path_join3(a, b, c)
+    return path_join(path_join(a, b), c)
+end
+
+function path_join_all(parts)
+    let total = len(parts)
+    if total == 0
+        return ""
+    end
+    let res = parts[0]
+    let i = 1
+    while i < total
+        res = path_join(res, parts[i])
+        i += 1
+    end
+    return res
+end
+
+function to_slash(path)
+    let plen = len(path)
+    let res = ""
+    let i = 0
+    let ch = ""
+    while i < plen
+        ch = char_at(path, i)
+        if ch == "\\"
+            res = res + "/"
+        else
+            res = res + ch
+        end
+        i += 1
+    end
+    return res
+end
+
+function normalize_slashes(path)
+    return to_slash(path)
+end
+
+function to_native_separators(path)
+    if target_os() == "windows"
+        let plen = len(path)
+        let res = ""
+        let i = 0
+        let ch = ""
+        while i < plen
+            ch = char_at(path, i)
+            if ch == "/"
+                res = res + "\\"
+            else
+                res = res + ch
+            end
+            i += 1
+        end
+        return res
+    end
+    return to_slash(path)
 end
