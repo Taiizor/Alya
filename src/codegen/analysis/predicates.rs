@@ -288,6 +288,8 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             matches!(
                 bare,
                 "float"
+                    | "to_float"
+                    | "parse_float"
                     | "sin"
                     | "cos"
                     | "tan"

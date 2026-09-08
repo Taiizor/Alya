@@ -30,6 +30,8 @@ fn expr_is_definitely_float(expr: &Expr, known_floats: &HashSet<String>) -> bool
             matches!(
                 bare,
                 "float"
+                    | "to_float"
+                    | "parse_float"
                     | "sin"
                     | "cos"
                     | "tan"

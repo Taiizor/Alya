@@ -617,4 +617,86 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
 
+    // fn_str_to_int
+    out.push_str(".global fn_str_to_int\n");
+    out.push_str("fn_str_to_int:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rcx, %rsi\n");
+    } else {
+        out.push_str("    mov %rdi, %rsi\n");
+    }
+    out.push_str("    xor %rax, %rax\n");
+    out.push_str("    xor %rcx, %rcx\n");
+    out.push_str("    test %rsi, %rsi\n");
+    out.push_str("    jz .L_x64_s2i_done\n");
+    out.push_str(".L_x64_s2i_skip:\n");
+    out.push_str("    movzbq (%rsi), %rdx\n");
+    out.push_str("    test %rdx, %rdx\n");
+    out.push_str("    jz .L_x64_s2i_done\n");
+    out.push_str("    cmp $' ', %rdx\n");
+    out.push_str("    je .L_x64_s2i_next\n");
+    out.push_str("    cmp $'\\t', %rdx\n");
+    out.push_str("    je .L_x64_s2i_next\n");
+    out.push_str("    cmp $'\\n', %rdx\n");
+    out.push_str("    je .L_x64_s2i_next\n");
+    out.push_str("    cmp $'\\r', %rdx\n");
+    out.push_str("    je .L_x64_s2i_next\n");
+    out.push_str("    jmp .L_x64_s2i_sign\n");
+    out.push_str(".L_x64_s2i_next:\n");
+    out.push_str("    inc %rsi\n");
+    out.push_str("    jmp .L_x64_s2i_skip\n");
+    out.push_str(".L_x64_s2i_sign:\n");
+    out.push_str("    cmp $'-', %rdx\n");
+    out.push_str("    jne .L_x64_s2i_check_plus\n");
+    out.push_str("    mov $1, %rcx\n");
+    out.push_str("    inc %rsi\n");
+    out.push_str("    jmp .L_x64_s2i_digits\n");
+    out.push_str(".L_x64_s2i_check_plus:\n");
+    out.push_str("    cmp $'+', %rdx\n");
+    out.push_str("    jne .L_x64_s2i_digits\n");
+    out.push_str("    inc %rsi\n");
+    out.push_str(".L_x64_s2i_digits:\n");
+    out.push_str("    movzbq (%rsi), %rdx\n");
+    out.push_str("    sub $'0', %rdx\n");
+    out.push_str("    cmp $9, %rdx\n");
+    out.push_str("    ja .L_x64_s2i_apply_sign\n");
+    out.push_str("    imul $10, %rax\n");
+    out.push_str("    add %rdx, %rax\n");
+    out.push_str("    inc %rsi\n");
+    out.push_str("    jmp .L_x64_s2i_digits\n");
+    out.push_str(".L_x64_s2i_apply_sign:\n");
+    out.push_str("    test %rcx, %rcx\n");
+    out.push_str("    jz .L_x64_s2i_done\n");
+    out.push_str("    neg %rax\n");
+    out.push_str(".L_x64_s2i_done:\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_str_to_float
+    out.push_str(".global fn_str_to_float\n");
+    out.push_str("fn_str_to_float:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    test %rcx, %rcx\n");
+        out.push_str("    jz .L_x64_s2f_zero\n");
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    call atof\n");
+        out.push_str("    add $32, %rsp\n");
+    } else {
+        out.push_str("    test %rdi, %rdi\n");
+        out.push_str("    jz .L_x64_s2f_zero\n");
+        out.push_str(&format!("    call {}atof\n", p));
+    }
+    out.push_str("    movq %xmm0, %rax\n");
+    out.push_str("    jmp .L_x64_s2f_end\n");
+    out.push_str(".L_x64_s2f_zero:\n");
+    out.push_str("    xor %rax, %rax\n");
+    out.push_str(".L_x64_s2f_end:\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
 }

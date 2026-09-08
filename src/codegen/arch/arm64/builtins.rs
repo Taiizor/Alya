@@ -174,3 +174,11 @@ pub fn emit_char_code_at_direct(out: &mut String, done_label: &str) {
     out.push_str("    ldrb w0, [x2, x1]\n");
     out.push_str(&format!("{}:\n", done_label));
 }
+
+pub fn emit_call_str_to_int(out: &mut String) {
+    out.push_str("    bl fn_str_to_int\n");
+}
+
+pub fn emit_call_str_to_float(out: &mut String) {
+    out.push_str("    bl fn_str_to_float\n");
+}

@@ -31,6 +31,31 @@ say "Hello, {name} from {city}!"
 }
 
 #[test]
+fn test_e2e_ask_input_with_numeric_parsing() {
+    let code = r#"
+let item_name = ask "Item: "
+let raw_price = ask "Price: "
+let raw_qty   = ask "Qty: "
+
+let price = float(raw_price)
+let qty   = int(raw_qty)
+
+let subtotal = price * float(qty)
+say "Item: {item_name}"
+say "Qty: {qty}"
+say "Price: {price}"
+say "Subtotal: {subtotal}"
+"#;
+    if let Some((code, output)) = run_alya_code_with_input(code, Some("Laptop\n450.5\n2\n")) {
+        assert_eq!(code, 0);
+        assert!(output.contains("Item: Laptop"));
+        assert!(output.contains("Qty: 2"));
+        assert!(output.contains("Price: 450.5"));
+        assert!(output.contains("Subtotal: 901"));
+    }
+}
+
+#[test]
 fn test_e2e_sqrt_and_pow() {
     let code = r#"
 say sqrt(16)

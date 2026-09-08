@@ -264,15 +264,35 @@ impl CodeGen {
                     return;
                 }
 
-                if name == "float" && args.len() == 1 {
+                if (name == "float" || name == "to_float" || name == "parse_float")
+                    && args.len() == 1
+                {
                     self.generate_expression(&args[0]);
-                    arch::emit_int_to_float(&mut self.output, self.arch);
+                    if is_string_expr(&args[0], &self.ctx.variables) {
+                        arch::emit_call_str_to_float(
+                            &mut self.output,
+                            self.arch,
+                            self.ctx.stack_offset,
+                            self.os,
+                        );
+                    } else if !is_float_expr(&args[0], &self.ctx.variables) {
+                        arch::emit_int_to_float(&mut self.output, self.arch);
+                    }
                     return;
                 }
 
-                if name == "int" && args.len() == 1 {
+                if (name == "int" || name == "to_int" || name == "parse_int") && args.len() == 1 {
                     self.generate_expression(&args[0]);
-                    arch::emit_float_to_int(&mut self.output, self.arch);
+                    if is_string_expr(&args[0], &self.ctx.variables) {
+                        arch::emit_call_str_to_int(
+                            &mut self.output,
+                            self.arch,
+                            self.ctx.stack_offset,
+                            self.os,
+                        );
+                    } else if is_float_expr(&args[0], &self.ctx.variables) {
+                        arch::emit_float_to_int(&mut self.output, self.arch);
+                    }
                     return;
                 }
 

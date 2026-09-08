@@ -253,3 +253,29 @@ pub fn emit_char_code_at_direct(out: &mut String, arch: Architecture, done_label
         Architecture::ARM64 => arm64::builtins::emit_char_code_at_direct(out, done_label),
     }
 }
+
+pub fn emit_call_str_to_int(
+    out: &mut String,
+    arch: Architecture,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    match arch {
+        Architecture::X86 => x86::builtins::emit_call_str_to_int(out),
+        Architecture::X64 => x64::builtins::emit_call_str_to_int(out, stack_offset, os),
+        Architecture::ARM64 => arm64::builtins::emit_call_str_to_int(out),
+    }
+}
+
+pub fn emit_call_str_to_float(
+    out: &mut String,
+    arch: Architecture,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    match arch {
+        Architecture::X86 => x86::builtins::emit_call_str_to_float(out),
+        Architecture::X64 => x64::builtins::emit_call_str_to_float(out, stack_offset, os),
+        Architecture::ARM64 => arm64::builtins::emit_call_str_to_float(out),
+    }
+}

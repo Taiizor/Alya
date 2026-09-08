@@ -301,3 +301,43 @@ pub fn emit_char_code_at_direct(out: &mut String, done_label: &str) {
     out.push_str("    movzbl (%rdx, %rcx), %eax\n");
     out.push_str(&format!("{}:\n", done_label));
 }
+
+pub fn emit_call_str_to_int(out: &mut String, stack_offset: i32, os: OperatingSystem) {
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rax, %rcx\n");
+        let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
+        out.push_str(&format!("    sub ${}, %rsp\n", padding));
+        out.push_str("    call fn_str_to_int\n");
+        out.push_str(&format!("    add ${}, %rsp\n", padding));
+    } else {
+        out.push_str("    mov %rax, %rdi\n");
+        let misaligned = stack_offset % 16 != 0;
+        if misaligned {
+            out.push_str("    sub $8, %rsp\n");
+        }
+        out.push_str("    call fn_str_to_int\n");
+        if misaligned {
+            out.push_str("    add $8, %rsp\n");
+        }
+    }
+}
+
+pub fn emit_call_str_to_float(out: &mut String, stack_offset: i32, os: OperatingSystem) {
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rax, %rcx\n");
+        let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
+        out.push_str(&format!("    sub ${}, %rsp\n", padding));
+        out.push_str("    call fn_str_to_float\n");
+        out.push_str(&format!("    add ${}, %rsp\n", padding));
+    } else {
+        out.push_str("    mov %rax, %rdi\n");
+        let misaligned = stack_offset % 16 != 0;
+        if misaligned {
+            out.push_str("    sub $8, %rsp\n");
+        }
+        out.push_str("    call fn_str_to_float\n");
+        if misaligned {
+            out.push_str("    add $8, %rsp\n");
+        }
+    }
+}

@@ -264,3 +264,53 @@ say "item_" + 1 + "_part_" + 2
         );
     }
 }
+
+#[test]
+fn test_e2e_string_to_number_conversions() {
+    let code = r#"
+let s_int = "  42  "
+let s_neg = "-105"
+let s_flt = "3.14159"
+let s_zero = "0"
+
+let i1 = int(s_int)
+let i2 = int(s_neg)
+let i3 = to_int("789")
+let i4 = parse_int(s_zero)
+
+say i1
+say i2
+say i3
+say i4
+say i1 + i2
+
+let f1 = float(s_flt)
+let f2 = to_float("2.5")
+let f3 = parse_float("-0.75")
+let f_already = float(f1)
+
+say f1
+say f2
+say f3
+say f_already
+say f1 + f2
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!(
+                "42\n",
+                "-105\n",
+                "789\n",
+                "0\n",
+                "-63\n",
+                "3.14159\n",
+                "2.5\n",
+                "-0.75\n",
+                "3.14159\n",
+                "5.64159\n",
+            )
+        );
+    }
+}

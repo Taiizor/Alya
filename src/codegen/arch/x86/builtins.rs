@@ -174,3 +174,15 @@ pub fn emit_char_code_at_direct(out: &mut String, done_label: &str) {
     out.push_str("    movzbl (%edx, %ecx), %eax\n");
     out.push_str(&format!("{}:\n", done_label));
 }
+
+pub fn emit_call_str_to_int(out: &mut String) {
+    out.push_str("    push %eax\n");
+    out.push_str("    call fn_str_to_int\n");
+    out.push_str("    add $4, %esp\n");
+}
+
+pub fn emit_call_str_to_float(out: &mut String) {
+    out.push_str("    push %eax\n");
+    out.push_str("    call fn_str_to_float\n");
+    out.push_str("    add $4, %esp\n");
+}
