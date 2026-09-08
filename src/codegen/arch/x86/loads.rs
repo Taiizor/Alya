@@ -1,5 +1,9 @@
 pub fn emit_load_num(out: &mut String, val: i64) {
-    out.push_str(&format!("    mov ${}, %eax\n", val));
+    if val == 0 {
+        out.push_str("    xor %eax, %eax\n");
+    } else {
+        out.push_str(&format!("    mov ${}, %eax\n", val as i32));
+    }
 }
 
 pub fn emit_load_float(out: &mut String, val: f64) {
@@ -29,8 +33,20 @@ pub fn emit_load_var(out: &mut String, offset: i32) {
     out.push_str(&format!("    mov -{}(%ebp), %eax\n", offset));
 }
 
+pub fn emit_load_var_to_scratch(out: &mut String, offset: i32, is_float: bool) {
+    if is_float {
+        out.push_str(&format!("    movsd -{}(%ebp), %xmm1\n", offset));
+    } else {
+        out.push_str(&format!("    mov -{}(%ebp), %ebx\n", offset));
+    }
+}
+
 pub fn emit_store_var(out: &mut String, offset: i32) {
     out.push_str(&format!("    mov %eax, -{}(%ebp)\n", offset));
+}
+
+pub fn emit_store_var_float(out: &mut String, offset: i32) {
+    out.push_str(&format!("    movsd %xmm0, -{}(%ebp)\n", offset));
 }
 
 pub fn emit_allocate_var(out: &mut String, stack_offset: &mut i32) {

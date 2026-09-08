@@ -248,7 +248,7 @@ pub fn emit_char_code_at(out: &mut String, arch: Architecture, done_label: &str)
 
 pub fn emit_char_code_at_direct(out: &mut String, arch: Architecture, done_label: &str) {
     match arch {
-        Architecture::X86 => x86::builtins::emit_char_code_at(out, done_label),
+        Architecture::X86 => x86::builtins::emit_char_code_at_direct(out, done_label),
         Architecture::X64 => x64::builtins::emit_char_code_at_direct(out, done_label),
         Architecture::ARM64 => arm64::builtins::emit_char_code_at_direct(out, done_label),
     }

@@ -53,7 +53,7 @@ pub fn emit_load_var_to_scratch(out: &mut String, arch: Architecture, offset: i3
     match arch {
         Architecture::ARM64 => arm64::emit_load_var_to_scratch(out, offset, is_float),
         Architecture::X64 => x64::emit_load_var_to_scratch(out, offset, is_float),
-        Architecture::X86 => {}
+        Architecture::X86 => x86::emit_load_var_to_scratch(out, offset, is_float),
     }
 }
 
@@ -69,7 +69,7 @@ pub fn emit_store_var_float(out: &mut String, arch: Architecture, offset: i32, _
     match arch {
         Architecture::ARM64 => arm64::emit_store_var_float(out, offset),
         Architecture::X64 => x64::emit_store_var_float(out, offset),
-        Architecture::X86 => x86::emit_store_var(out, offset),
+        Architecture::X86 => x86::emit_store_var_float(out, offset),
     }
 }
 

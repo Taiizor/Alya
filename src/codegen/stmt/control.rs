@@ -1,10 +1,133 @@
 use super::CodeGen;
-use crate::ast::{Expr, Stmt};
-use crate::codegen::analysis::{is_float_array, is_string_array, is_string_expr};
+use crate::ast::{BinaryOp, Expr, Stmt};
+use crate::codegen::analysis::{is_float_array, is_float_expr, is_string_array, is_string_expr};
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
 
 impl CodeGen {
+    pub(super) fn generate_condition_jump_if_false(
+        &mut self,
+        condition: &Expr,
+        target_label: &str,
+    ) {
+        if let Expr::Binary { left, op, right } = condition {
+            let is_cmp = matches!(
+                op,
+                BinaryOp::Equal
+                    | BinaryOp::NotEqual
+                    | BinaryOp::Less
+                    | BinaryOp::LessEqual
+                    | BinaryOp::Greater
+                    | BinaryOp::GreaterEqual
+            );
+            if is_cmp
+                && !is_string_expr(left, &self.ctx.variables)
+                && !is_string_expr(right, &self.ctx.variables)
+            {
+                let left_is_flt = is_float_expr(left, &self.ctx.variables);
+                let right_is_flt = is_float_expr(right, &self.ctx.variables);
+                if left_is_flt || right_is_flt {
+                    self.generate_expression(left);
+                    if !left_is_flt {
+                        arch::emit_int_to_float(&mut self.output, self.arch);
+                    }
+                    if let Expr::Float(n) = &**right {
+                        arch::emit_float_binary_op_imm(&mut self.output, self.arch, *op, *n);
+                    } else if let Expr::Number(n) = &**right {
+                        arch::emit_float_binary_op_imm(&mut self.output, self.arch, *op, *n);
+                    } else if let Expr::Identifier(var_name) = &**right {
+                        if let Some(&VarType::Float(offset)) = self.ctx.variables.get(var_name) {
+                            arch::emit_load_var_to_scratch(
+                                &mut self.output,
+                                self.arch,
+                                offset,
+                                true,
+                            );
+                            arch::emit_float_cmp_reg(&mut self.output, self.arch);
+                            arch::emit_float_cond_jump(
+                                &mut self.output,
+                                self.arch,
+                                *op,
+                                true,
+                                target_label,
+                            );
+                            return;
+                        }
+                    } else {
+                        arch::emit_push_temp(&mut self.output, self.arch);
+                        self.generate_expression(right);
+                        if !right_is_flt {
+                            arch::emit_int_to_float(&mut self.output, self.arch);
+                        }
+                        arch::emit_float_binary_op(&mut self.output, self.arch, *op);
+                    }
+                    arch::emit_jump_if_zero(&mut self.output, self.arch, target_label);
+                    return;
+                }
+
+                if let Expr::Number(n) = &**right {
+                    self.generate_expression(left);
+                    arch::emit_cmp_imm(&mut self.output, self.arch, *n as i64);
+                    arch::emit_cond_jump(&mut self.output, self.arch, *op, true, target_label);
+                    return;
+                }
+                if let Expr::Identifier(var_name) = &**right {
+                    if let Some(&VarType::Number(offset)) = self.ctx.variables.get(var_name) {
+                        self.generate_expression(left);
+                        arch::emit_load_var_to_scratch(&mut self.output, self.arch, offset, false);
+                        arch::emit_cmp_reg(&mut self.output, self.arch);
+                        arch::emit_cond_jump(&mut self.output, self.arch, *op, true, target_label);
+                        return;
+                    }
+                }
+                if let Expr::Number(n) = &**left {
+                    self.generate_expression(right);
+                    arch::emit_cmp_imm(&mut self.output, self.arch, *n as i64);
+                    let swapped_op = match op {
+                        BinaryOp::Less => BinaryOp::Greater,
+                        BinaryOp::LessEqual => BinaryOp::GreaterEqual,
+                        BinaryOp::Greater => BinaryOp::Less,
+                        BinaryOp::GreaterEqual => BinaryOp::LessEqual,
+                        other => *other,
+                    };
+                    arch::emit_cond_jump(
+                        &mut self.output,
+                        self.arch,
+                        swapped_op,
+                        true,
+                        target_label,
+                    );
+                    return;
+                }
+                if let Expr::Identifier(var_name) = &**left {
+                    if let Some(&VarType::Number(offset)) = self.ctx.variables.get(var_name) {
+                        self.generate_expression(right);
+                        arch::emit_load_var_to_scratch(&mut self.output, self.arch, offset, false);
+                        arch::emit_cmp_reg(&mut self.output, self.arch);
+                        let swapped_op = match op {
+                            BinaryOp::Less => BinaryOp::Greater,
+                            BinaryOp::LessEqual => BinaryOp::GreaterEqual,
+                            BinaryOp::Greater => BinaryOp::Less,
+                            BinaryOp::GreaterEqual => BinaryOp::LessEqual,
+                            other => *other,
+                        };
+                        arch::emit_cond_jump(
+                            &mut self.output,
+                            self.arch,
+                            swapped_op,
+                            true,
+                            target_label,
+                        );
+                        return;
+                    }
+                }
+            }
+        }
+
+        self.generate_expression(condition);
+        arch::emit_jump_if_zero(&mut self.output, self.arch, target_label);
+    }
+
     pub(super) fn generate_if(
         &mut self,
         condition: &Expr,
@@ -14,14 +137,12 @@ impl CodeGen {
         let else_label = self.ctx.next_label();
         let end_label = self.ctx.next_label();
 
-        self.generate_expression(condition);
-
         let target_label = if else_block.is_some() {
             &else_label
         } else {
             &end_label
         };
-        arch::emit_jump_if_zero(&mut self.output, self.arch, target_label);
+        self.generate_condition_jump_if_false(condition, target_label);
 
         let initial_stack_offset = self.ctx.stack_offset;
         let initial_variables = self.ctx.variables.clone();
@@ -64,8 +185,7 @@ impl CodeGen {
         self.ctx.push_loop(start_label.clone(), end_label.clone());
 
         self.output.push_str(&format!("{}:\n", start_label));
-        self.generate_expression(condition);
-        arch::emit_jump_if_zero(&mut self.output, self.arch, &end_label);
+        self.generate_condition_jump_if_false(condition, &end_label);
 
         for s in body {
             self.generate_statement(s);

@@ -1,5 +1,9 @@
 pub fn emit_load_num(out: &mut String, val: i64) {
-    out.push_str(&format!("    mov ${}, %rax\n", val));
+    if val == 0 {
+        out.push_str("    xor %eax, %eax\n");
+    } else {
+        out.push_str(&format!("    mov ${}, %rax\n", val));
+    }
 }
 
 pub fn emit_load_float(out: &mut String, val: f64) {

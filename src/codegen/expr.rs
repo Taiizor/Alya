@@ -95,49 +95,71 @@ impl CodeGen {
                 let right_is_float = is_float_expr(right, &self.ctx.variables);
                 let is_float = left_is_float || right_is_float;
 
-                if !matches!(self.arch, Architecture::X86) {
-                    if is_float {
-                        if let Expr::Float(n) = &**right {
+                if is_float {
+                    if let Expr::Float(n) = &**right {
+                        self.generate_expression(left);
+                        if !left_is_float {
+                            arch::emit_int_to_float(&mut self.output, self.arch);
+                        }
+                        arch::emit_float_binary_op_imm(&mut self.output, self.arch, *op, *n);
+                        return;
+                    }
+                    if let Expr::Number(n) = &**right {
+                        self.generate_expression(left);
+                        if !left_is_float {
+                            arch::emit_int_to_float(&mut self.output, self.arch);
+                        }
+                        arch::emit_float_binary_op_imm(&mut self.output, self.arch, *op, *n);
+                        return;
+                    }
+                    if let Expr::Identifier(name) = &**right {
+                        if let Some(&VarType::Float(offset)) = self.ctx.variables.get(name) {
                             self.generate_expression(left);
                             if !left_is_float {
                                 arch::emit_int_to_float(&mut self.output, self.arch);
                             }
-                            arch::emit_float_binary_op_imm(&mut self.output, self.arch, *op, *n);
+                            arch::emit_load_var_to_scratch(
+                                &mut self.output,
+                                self.arch,
+                                offset,
+                                true,
+                            );
+                            arch::emit_float_binary_op_reg(&mut self.output, self.arch, *op);
                             return;
                         }
-                        if let Expr::Number(n) = &**right {
+                    }
+                } else {
+                    if let Expr::Number(n) = &**right {
+                        self.generate_expression(left);
+                        arch::emit_binary_op_imm(&mut self.output, self.arch, *op, *n as i64);
+                        return;
+                    }
+                    if let Expr::Identifier(name) = &**right {
+                        if let Some(&VarType::Number(offset)) = self.ctx.variables.get(name) {
                             self.generate_expression(left);
-                            if !left_is_float {
-                                arch::emit_int_to_float(&mut self.output, self.arch);
-                            }
-                            arch::emit_float_binary_op_imm(&mut self.output, self.arch, *op, *n);
+                            arch::emit_load_var_to_scratch(
+                                &mut self.output,
+                                self.arch,
+                                offset,
+                                false,
+                            );
+                            arch::emit_binary_op_reg(&mut self.output, self.arch, *op);
                             return;
                         }
-                        if let Expr::Identifier(name) = &**right {
-                            if let Some(&VarType::Float(offset)) = self.ctx.variables.get(name) {
-                                self.generate_expression(left);
-                                if !left_is_float {
-                                    arch::emit_int_to_float(&mut self.output, self.arch);
-                                }
-                                arch::emit_load_var_to_scratch(
-                                    &mut self.output,
-                                    self.arch,
-                                    offset,
-                                    true,
-                                );
-                                arch::emit_float_binary_op_reg(&mut self.output, self.arch, *op);
-                                return;
-                            }
-                        }
-                    } else {
-                        if let Expr::Number(n) = &**right {
-                            self.generate_expression(left);
+                    }
+                    let is_commutative = matches!(
+                        op,
+                        BinaryOp::Add | BinaryOp::Multiply | BinaryOp::Equal | BinaryOp::NotEqual
+                    );
+                    if is_commutative {
+                        if let Expr::Number(n) = &**left {
+                            self.generate_expression(right);
                             arch::emit_binary_op_imm(&mut self.output, self.arch, *op, *n as i64);
                             return;
                         }
-                        if let Expr::Identifier(name) = &**right {
+                        if let Expr::Identifier(name) = &**left {
                             if let Some(&VarType::Number(offset)) = self.ctx.variables.get(name) {
-                                self.generate_expression(left);
+                                self.generate_expression(right);
                                 arch::emit_load_var_to_scratch(
                                     &mut self.output,
                                     self.arch,
@@ -146,39 +168,6 @@ impl CodeGen {
                                 );
                                 arch::emit_binary_op_reg(&mut self.output, self.arch, *op);
                                 return;
-                            }
-                        }
-                        let is_commutative = matches!(
-                            op,
-                            BinaryOp::Add
-                                | BinaryOp::Multiply
-                                | BinaryOp::Equal
-                                | BinaryOp::NotEqual
-                        );
-                        if is_commutative {
-                            if let Expr::Number(n) = &**left {
-                                self.generate_expression(right);
-                                arch::emit_binary_op_imm(
-                                    &mut self.output,
-                                    self.arch,
-                                    *op,
-                                    *n as i64,
-                                );
-                                return;
-                            }
-                            if let Expr::Identifier(name) = &**left {
-                                if let Some(&VarType::Number(offset)) = self.ctx.variables.get(name)
-                                {
-                                    self.generate_expression(right);
-                                    arch::emit_load_var_to_scratch(
-                                        &mut self.output,
-                                        self.arch,
-                                        offset,
-                                        false,
-                                    );
-                                    arch::emit_binary_op_reg(&mut self.output, self.arch, *op);
-                                    return;
-                                }
                             }
                         }
                     }
@@ -300,16 +289,36 @@ impl CodeGen {
                     || name == "bit_shr")
                     && args.len() == 2
                 {
-                    if !matches!(self.arch, Architecture::X86) {
-                        if let Expr::Number(n) = &args[1] {
+                    if let Expr::Number(n) = &args[1] {
+                        self.generate_expression(&args[0]);
+                        arch::emit_bit_op_imm(&mut self.output, self.arch, name, *n as i64);
+                        return;
+                    }
+                    if let Expr::Identifier(var_name) = &args[1] {
+                        if let Some(&VarType::Number(offset)) = self.ctx.variables.get(var_name) {
                             self.generate_expression(&args[0]);
+                            arch::emit_load_var_to_scratch(
+                                &mut self.output,
+                                self.arch,
+                                offset,
+                                false,
+                            );
+                            arch::emit_bit_op_reg(&mut self.output, self.arch, name);
+                            return;
+                        }
+                    }
+                    let is_bit_commutative =
+                        matches!(name.as_str(), "bit_and" | "bit_or" | "bit_xor");
+                    if is_bit_commutative {
+                        if let Expr::Number(n) = &args[0] {
+                            self.generate_expression(&args[1]);
                             arch::emit_bit_op_imm(&mut self.output, self.arch, name, *n as i64);
                             return;
                         }
-                        if let Expr::Identifier(var_name) = &args[1] {
+                        if let Expr::Identifier(var_name) = &args[0] {
                             if let Some(&VarType::Number(offset)) = self.ctx.variables.get(var_name)
                             {
-                                self.generate_expression(&args[0]);
+                                self.generate_expression(&args[1]);
                                 arch::emit_load_var_to_scratch(
                                     &mut self.output,
                                     self.arch,
@@ -318,30 +327,6 @@ impl CodeGen {
                                 );
                                 arch::emit_bit_op_reg(&mut self.output, self.arch, name);
                                 return;
-                            }
-                        }
-                        let is_bit_commutative =
-                            matches!(name.as_str(), "bit_and" | "bit_or" | "bit_xor");
-                        if is_bit_commutative {
-                            if let Expr::Number(n) = &args[0] {
-                                self.generate_expression(&args[1]);
-                                arch::emit_bit_op_imm(&mut self.output, self.arch, name, *n as i64);
-                                return;
-                            }
-                            if let Expr::Identifier(var_name) = &args[0] {
-                                if let Some(&VarType::Number(offset)) =
-                                    self.ctx.variables.get(var_name)
-                                {
-                                    self.generate_expression(&args[1]);
-                                    arch::emit_load_var_to_scratch(
-                                        &mut self.output,
-                                        self.arch,
-                                        offset,
-                                        false,
-                                    );
-                                    arch::emit_bit_op_reg(&mut self.output, self.arch, name);
-                                    return;
-                                }
                             }
                         }
                     }
@@ -361,38 +346,39 @@ impl CodeGen {
                 if (name == "char_code" || name == "char_code_at" || name == "byte_at")
                     && args.len() == 2
                 {
-                    if !matches!(self.arch, Architecture::X86) {
-                        if let Expr::Identifier(idx_name) = &args[1] {
-                            if let Some(&VarType::Number(idx_offset)) =
-                                self.ctx.variables.get(idx_name)
-                            {
-                                self.generate_expression(&args[0]);
-                                match self.arch {
-                                    Architecture::ARM64 => {
-                                        self.output.push_str("    mov x2, x0\n");
-                                    }
-                                    Architecture::X64 => {
-                                        self.output.push_str("    mov %rax, %rdx\n");
-                                    }
-                                    _ => {}
+                    if let Expr::Identifier(idx_name) = &args[1] {
+                        if let Some(&VarType::Number(idx_offset)) = self.ctx.variables.get(idx_name)
+                        {
+                            self.generate_expression(&args[0]);
+                            match self.arch {
+                                Architecture::ARM64 => {
+                                    self.output.push_str("    mov x2, x0\n");
                                 }
-                                arch::emit_load_var_to_scratch(
-                                    &mut self.output,
-                                    self.arch,
-                                    idx_offset,
-                                    false,
-                                );
-                                if matches!(self.arch, Architecture::X64) {
-                                    self.output.push_str("    mov %rbx, %rcx\n");
+                                Architecture::X64 => {
+                                    self.output.push_str("    mov %rax, %rdx\n");
                                 }
-                                let done_label = self.ctx.next_label();
-                                arch::emit_char_code_at_direct(
-                                    &mut self.output,
-                                    self.arch,
-                                    &done_label,
-                                );
-                                return;
+                                Architecture::X86 => {
+                                    self.output.push_str("    mov %eax, %edx\n");
+                                }
                             }
+                            arch::emit_load_var_to_scratch(
+                                &mut self.output,
+                                self.arch,
+                                idx_offset,
+                                false,
+                            );
+                            if matches!(self.arch, Architecture::X64) {
+                                self.output.push_str("    mov %rbx, %rcx\n");
+                            } else if matches!(self.arch, Architecture::X86) {
+                                self.output.push_str("    mov %ebx, %ecx\n");
+                            }
+                            let done_label = self.ctx.next_label();
+                            arch::emit_char_code_at_direct(
+                                &mut self.output,
+                                self.arch,
+                                &done_label,
+                            );
+                            return;
                         }
                     }
                     self.generate_expression(&args[0]);
@@ -412,38 +398,40 @@ impl CodeGen {
                         if (inner_name == "char_at" || inner_name == "charAt")
                             && inner_args.len() == 2
                         {
-                            if !matches!(self.arch, Architecture::X86) {
-                                if let Expr::Identifier(idx_name) = &inner_args[1] {
-                                    if let Some(&VarType::Number(idx_offset)) =
-                                        self.ctx.variables.get(idx_name)
-                                    {
-                                        self.generate_expression(&inner_args[0]);
-                                        match self.arch {
-                                            Architecture::ARM64 => {
-                                                self.output.push_str("    mov x2, x0\n");
-                                            }
-                                            Architecture::X64 => {
-                                                self.output.push_str("    mov %rax, %rdx\n");
-                                            }
-                                            _ => {}
+                            if let Expr::Identifier(idx_name) = &inner_args[1] {
+                                if let Some(&VarType::Number(idx_offset)) =
+                                    self.ctx.variables.get(idx_name)
+                                {
+                                    self.generate_expression(&inner_args[0]);
+                                    match self.arch {
+                                        Architecture::ARM64 => {
+                                            self.output.push_str("    mov x2, x0\n");
                                         }
-                                        arch::emit_load_var_to_scratch(
-                                            &mut self.output,
-                                            self.arch,
-                                            idx_offset,
-                                            false,
-                                        );
-                                        if matches!(self.arch, Architecture::X64) {
-                                            self.output.push_str("    mov %rbx, %rcx\n");
+                                        Architecture::X64 => {
+                                            self.output.push_str("    mov %rax, %rdx\n");
                                         }
-                                        let done_label = self.ctx.next_label();
-                                        arch::emit_char_code_at_direct(
-                                            &mut self.output,
-                                            self.arch,
-                                            &done_label,
-                                        );
-                                        return;
+                                        Architecture::X86 => {
+                                            self.output.push_str("    mov %eax, %edx\n");
+                                        }
                                     }
+                                    arch::emit_load_var_to_scratch(
+                                        &mut self.output,
+                                        self.arch,
+                                        idx_offset,
+                                        false,
+                                    );
+                                    if matches!(self.arch, Architecture::X64) {
+                                        self.output.push_str("    mov %rbx, %rcx\n");
+                                    } else if matches!(self.arch, Architecture::X86) {
+                                        self.output.push_str("    mov %ebx, %ecx\n");
+                                    }
+                                    let done_label = self.ctx.next_label();
+                                    arch::emit_char_code_at_direct(
+                                        &mut self.output,
+                                        self.arch,
+                                        &done_label,
+                                    );
+                                    return;
                                 }
                             }
                             self.generate_expression(&inner_args[0]);
@@ -455,38 +443,40 @@ impl CodeGen {
                         }
                     } else if let Expr::Index { array, index } = &args[0] {
                         if is_string_expr(array, &self.ctx.variables) {
-                            if !matches!(self.arch, Architecture::X86) {
-                                if let Expr::Identifier(idx_name) = &**index {
-                                    if let Some(&VarType::Number(idx_offset)) =
-                                        self.ctx.variables.get(idx_name)
-                                    {
-                                        self.generate_expression(array);
-                                        match self.arch {
-                                            Architecture::ARM64 => {
-                                                self.output.push_str("    mov x2, x0\n");
-                                            }
-                                            Architecture::X64 => {
-                                                self.output.push_str("    mov %rax, %rdx\n");
-                                            }
-                                            _ => {}
+                            if let Expr::Identifier(idx_name) = &**index {
+                                if let Some(&VarType::Number(idx_offset)) =
+                                    self.ctx.variables.get(idx_name)
+                                {
+                                    self.generate_expression(array);
+                                    match self.arch {
+                                        Architecture::ARM64 => {
+                                            self.output.push_str("    mov x2, x0\n");
                                         }
-                                        arch::emit_load_var_to_scratch(
-                                            &mut self.output,
-                                            self.arch,
-                                            idx_offset,
-                                            false,
-                                        );
-                                        if matches!(self.arch, Architecture::X64) {
-                                            self.output.push_str("    mov %rbx, %rcx\n");
+                                        Architecture::X64 => {
+                                            self.output.push_str("    mov %rax, %rdx\n");
                                         }
-                                        let done_label = self.ctx.next_label();
-                                        arch::emit_char_code_at_direct(
-                                            &mut self.output,
-                                            self.arch,
-                                            &done_label,
-                                        );
-                                        return;
+                                        Architecture::X86 => {
+                                            self.output.push_str("    mov %eax, %edx\n");
+                                        }
                                     }
+                                    arch::emit_load_var_to_scratch(
+                                        &mut self.output,
+                                        self.arch,
+                                        idx_offset,
+                                        false,
+                                    );
+                                    if matches!(self.arch, Architecture::X64) {
+                                        self.output.push_str("    mov %rbx, %rcx\n");
+                                    } else if matches!(self.arch, Architecture::X86) {
+                                        self.output.push_str("    mov %ebx, %ecx\n");
+                                    }
+                                    let done_label = self.ctx.next_label();
+                                    arch::emit_char_code_at_direct(
+                                        &mut self.output,
+                                        self.arch,
+                                        &done_label,
+                                    );
+                                    return;
                                 }
                             }
                             self.generate_expression(array);

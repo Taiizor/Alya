@@ -59,11 +59,9 @@ pub fn emit_array_set_imm(out: &mut String, index: usize) {
 pub fn emit_array_get(out: &mut String) {
     out.push_str("    mov x1, x0\n");
     out.push_str("    ldr x0, [sp], #16\n");
-    out.push_str("    cmp x1, #0\n");
-    out.push_str("    b.lt alya_error_index_out_of_bounds\n");
     out.push_str("    ldr x2, [x0]\n");
     out.push_str("    cmp x1, x2\n");
-    out.push_str("    b.ge alya_error_index_out_of_bounds\n");
+    out.push_str("    b.hs alya_error_index_out_of_bounds\n");
     out.push_str("    ldr x0, [x0, #16]\n");
     out.push_str("    ldr x0, [x0, x1, lsl #3]\n");
 }
@@ -72,11 +70,9 @@ pub fn emit_array_set(out: &mut String) {
     out.push_str("    mov x2, x0\n");
     out.push_str("    ldr x1, [sp], #16\n");
     out.push_str("    ldr x0, [sp], #16\n");
-    out.push_str("    cmp x1, #0\n");
-    out.push_str("    b.lt alya_error_index_out_of_bounds\n");
     out.push_str("    ldr x3, [x0]\n");
     out.push_str("    cmp x1, x3\n");
-    out.push_str("    b.ge alya_error_index_out_of_bounds\n");
+    out.push_str("    b.hs alya_error_index_out_of_bounds\n");
     out.push_str("    ldr x0, [x0, #16]\n");
     out.push_str("    str x2, [x0, x1, lsl #3]\n");
 }

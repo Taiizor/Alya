@@ -49,10 +49,8 @@ pub fn emit_array_set_imm(out: &mut String, index: usize) {
 pub fn emit_array_get(out: &mut String) {
     out.push_str("    mov %eax, %ecx\n");
     out.push_str("    pop %edx\n");
-    out.push_str("    test %ecx, %ecx\n");
-    out.push_str("    jl alya_error_index_out_of_bounds\n");
     out.push_str("    cmp (%edx), %ecx\n");
-    out.push_str("    jge alya_error_index_out_of_bounds\n");
+    out.push_str("    jae alya_error_index_out_of_bounds\n");
     out.push_str("    mov 8(%edx), %edx\n");
     out.push_str("    mov (%edx, %ecx, 4), %eax\n");
 }
@@ -61,10 +59,8 @@ pub fn emit_array_set(out: &mut String) {
     out.push_str("    mov %eax, %ebx\n");
     out.push_str("    pop %eax\n");
     out.push_str("    pop %edx\n");
-    out.push_str("    test %eax, %eax\n");
-    out.push_str("    jl alya_error_index_out_of_bounds\n");
     out.push_str("    cmp (%edx), %eax\n");
-    out.push_str("    jge alya_error_index_out_of_bounds\n");
+    out.push_str("    jae alya_error_index_out_of_bounds\n");
     out.push_str("    mov 8(%edx), %edx\n");
     out.push_str("    mov %ebx, (%edx, %eax, 4)\n");
 }
@@ -160,6 +156,16 @@ pub fn emit_string_equality_call(out: &mut String, op: BinaryOp) {
 pub fn emit_char_code_at(out: &mut String, done_label: &str) {
     out.push_str("    mov %eax, %ecx\n");
     out.push_str("    pop %edx\n");
+    out.push_str("    xor %eax, %eax\n");
+    out.push_str("    test %edx, %edx\n");
+    out.push_str(&format!("    jz {}\n", done_label));
+    out.push_str("    test %ecx, %ecx\n");
+    out.push_str(&format!("    jl {}\n", done_label));
+    out.push_str("    movzbl (%edx, %ecx), %eax\n");
+    out.push_str(&format!("{}:\n", done_label));
+}
+
+pub fn emit_char_code_at_direct(out: &mut String, done_label: &str) {
     out.push_str("    xor %eax, %eax\n");
     out.push_str("    test %edx, %edx\n");
     out.push_str(&format!("    jz {}\n", done_label));

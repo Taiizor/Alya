@@ -64,10 +64,8 @@ pub fn emit_array_set_imm(out: &mut String, index: usize) {
 pub fn emit_array_get(out: &mut String) {
     out.push_str("    mov %rax, %rcx\n");
     out.push_str("    pop %rdx\n");
-    out.push_str("    test %rcx, %rcx\n");
-    out.push_str("    jl alya_error_index_out_of_bounds\n");
     out.push_str("    cmpq (%rdx), %rcx\n");
-    out.push_str("    jge alya_error_index_out_of_bounds\n");
+    out.push_str("    jae alya_error_index_out_of_bounds\n");
     out.push_str("    mov 16(%rdx), %rdx\n");
     out.push_str("    movq (%rdx, %rcx, 8), %rax\n");
 }
@@ -76,10 +74,8 @@ pub fn emit_array_set(out: &mut String) {
     out.push_str("    mov %rax, %r8\n");
     out.push_str("    pop %rax\n");
     out.push_str("    pop %rdx\n");
-    out.push_str("    test %rax, %rax\n");
-    out.push_str("    jl alya_error_index_out_of_bounds\n");
     out.push_str("    cmpq (%rdx), %rax\n");
-    out.push_str("    jge alya_error_index_out_of_bounds\n");
+    out.push_str("    jae alya_error_index_out_of_bounds\n");
     out.push_str("    mov 16(%rdx), %rdx\n");
     out.push_str("    movq %r8, (%rdx, %rax, 8)\n");
 }
