@@ -22,10 +22,10 @@ All implementations solve the exact same algorithmic problem on identical inputs
 
 | Benchmark | Target Workload | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs C | Alya vs Python | Alya vs Bun |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Recursive Fibonacci** | `fib(30)` (~2.69M calls) | `2.4 ms` | **`8.9 ms`** | `13.3 ms` | `123.7 ms` | **3.8x** | **13.9x faster** | **1.5x faster** |
-| **Mandelbrot Fractal** | 200×100 grid, 200 iters | `3.2 ms` | **`8.1 ms`** | `9.4 ms` | `127.1 ms` | **2.5x** | **15.7x faster** | **1.2x faster** |
-| **Sieve of Eratosthenes** | Primes under 50,000 | `1.1 ms` | **`1.7 ms`** | `6.9 ms` | `18.9 ms` | **1.6x** | **10.9x faster** | **4.0x faster** |
-| **FNV-1a String Hash** | 50,000 hash calculations | `5.0 ms` | **`9.1 ms`** | `13.0 ms` | `425.7 ms` | **1.8x** | **46.7x faster** | **1.4x faster** |
+| **Recursive Fibonacci** | `fib(30)` (~2.69M calls) | `2.4 ms` | **`8.8 ms`** | `13.7 ms` | `120.8 ms` | **3.7x** | **13.7x faster** | **1.5x faster** |
+| **Mandelbrot Fractal** | 200×100 grid, 200 iters | `3.2 ms` | **`8.0 ms`** | `10.0 ms` | `123.3 ms` | **2.5x** | **15.3x faster** | **1.2x faster** |
+| **Sieve of Eratosthenes** | Primes under 50,000 | `1.0 ms` | **`1.7 ms`** | `7.0 ms` | `17.5 ms` | **1.7x** | **10.4x faster** | **4.2x faster** |
+| **FNV-1a String Hash** | 50,000 hash calculations | `4.9 ms` | **`9.0 ms`** | `13.3 ms` | `427.1 ms` | **1.8x** | **47.6x faster** | **1.5x faster** |
 
 ---
 
@@ -34,22 +34,22 @@ All implementations solve the exact same algorithmic problem on identical inputs
 ### 1. Recursive Fibonacci (`fib(30)`)
 * **Measures:** Function call overhead, standard ABI calling conventions, stack frame push/pop.
 * **Why Alya is Fast:** Alya emits native assembly (ARM64, x64, x86) adhering strictly to platform ABIs with direct branch and link (`bl` / `call`) and return instructions. There are no virtual machine dispatch loops, garbage collection pauses, or interpreter frames.
-* **Result:** **3.8x of C (-O2)**, **1.5x faster than Bun**, and **13.9x faster than Python**.
+* **Result:** **3.7x of C (-O2)**, **1.5x faster than Bun**, and **13.7x faster than Python**.
 
 ### 2. Mandelbrot Fractal (`200x100x200`)
 * **Measures:** Double-precision floating-point arithmetic (`f64`), tight nested loops, register persistence.
 * **Why Alya is Fast:** Alya binds 64-bit float operations directly to hardware floating-point registers (`d0-d2` on ARM64, `xmm0-xmm1` on x64/x86) and fuses loop comparisons directly into single conditional branches.
-* **Result:** **2.5x of C (-O2)**, **1.2x faster than Bun**, and **15.7x faster than Python**.
+* **Result:** **2.5x of C (-O2)**, **1.2x faster than Bun**, and **15.3x faster than Python**.
 
 ### 3. Sieve of Eratosthenes (50,000 elements)
 * **Measures:** Memory allocation, dynamic array indexing, bounds safety overhead.
 * **Why Alya is Fast:** Alya performs single-comparison unsigned bounds checks (`b.hs` / `jae`) and calculates element addresses with native scaled base + index pointer arithmetic (`[x0, x1, lsl #3]` / `[rax + rbx*8]`).
-* **Result:** **1.6x of C (-O2)**, **4.0x faster than Bun**, and **10.9x faster than Python**.
+* **Result:** **1.7x of C (-O2)**, **4.2x faster than Bun**, and **10.4x faster than Python**.
 
 ### 4. FNV-1a String Hashing (50,000 iterations)
 * **Measures:** String iteration, character lookup (`char_at`, `ord`), bitwise XOR and integer multiplication.
 * **Why Alya is Fast:** Direct string index intrinsics bypass runtime function call overhead; bitwise masking is optimized natively (`ubfx` on ARM64, direct immediate bitwise ops on x64/x86); and loop conditions use zero-overhead branch fusion.
-* **Result:** **1.8x of C (-O2)**, **1.4x faster than Bun**, and **46.7x faster than Python**.
+* **Result:** **1.8x of C (-O2)**, **1.5x faster than Bun**, and **47.6x faster than Python**.
 
 ---
 
@@ -61,11 +61,11 @@ Alya features a lightweight single-pass frontend with immediate native x64 assem
 
 | Benchmark Stage | Iterations | Mean | Error | StdDev | Min | Max | Allocated | Alloc Ratio | Measured Throughput |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **`Lexer::tokenize`** | 1333 | `300.19 µs` | `3.79 µs` | `42.05 µs` | `283.15 µs` | `568.85 µs` | **`508.73 KB`** | `1.00` | **72.4 MB/s** |
-| **`Parser::parse`** | 591 | `676.55 µs` | `2.19 µs` | `16.19 µs` | `609.96 µs` | `827.33 µs` | **`1009.57 KB`** | `1.98` | **1739712 lines/s** |
-| **`ProgramInference::analyze`** | 48 | `8.49 ms` | `46.21 µs` | `92.52 µs` | `8.38 ms` | `8.77 ms` | **`70.36 KB`** | `0.14` | **118 ops/s** |
-| **`CodeGen::generate (x64)`** | 12 | `36.17 ms` | `126.16 µs` | `105.56 µs` | `36.00 ms` | `36.40 ms` | **`656.63 KB`** | `1.29` | **246026 asm lines/s** |
-| **`Full Frontend Pipeline`** | 14 | `36.37 ms` | `174.22 µs` | `157.45 µs` | `36.17 ms` | `36.66 ms` | **`1.79 MB`** | `3.61` | **27.5 files/s** |
+| **`Lexer::tokenize`** | 1336 | `299.49 µs` | `683.00 ns` | `7.59 µs` | `290.11 µs` | `384.70 µs` | **`508.73 KB`** | `1.00` | **72.5 MB/s** |
+| **`Parser::parse`** | 553 | `723.78 µs` | `4.58 µs` | `32.75 µs` | `653.55 µs` | `802.00 µs` | **`1.03 MB`** | `2.08` | **1626172 lines/s** |
+| **`ProgramInference::analyze`** | 48 | `8.44 ms` | `37.60 µs` | `75.30 µs` | `8.33 ms` | `8.74 ms` | **`70.36 KB`** | `0.14` | **118 ops/s** |
+| **`CodeGen::generate (x64)`** | 12 | `34.55 ms` | `233.40 µs` | `195.30 µs` | `34.37 ms` | `34.95 ms` | **`656.63 KB`** | `1.29` | **257557 asm lines/s** |
+| **`Full Frontend Pipeline`** | 15 | `34.62 ms` | `597.36 µs` | `558.83 µs` | `33.83 ms` | `35.83 ms` | **`1.84 MB`** | `3.71` | **28.9 files/s** |
 
 ---
 
