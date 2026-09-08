@@ -178,6 +178,9 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov alya_rand_state, %eax\n");
     out.push_str("    test %eax, %eax\n");
     out.push_str("    jnz .L_x86_rand_ok\n");
+    out.push_str("    rdtsc\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jnz .L_x86_rand_ok\n");
     out.push_str("    mov $123456789, %eax\n");
     out.push_str(".L_x86_rand_ok:\n");
     out.push_str("    imul $1103515245, %eax\n");

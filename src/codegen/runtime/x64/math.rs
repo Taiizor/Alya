@@ -207,6 +207,11 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov alya_rand_state(%rip), %rax\n");
     out.push_str("    test %rax, %rax\n");
     out.push_str("    jnz .L_x64_rand_ok\n");
+    out.push_str("    rdtsc\n");
+    out.push_str("    shl $32, %rdx\n");
+    out.push_str("    or %rdx, %rax\n");
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jnz .L_x64_rand_ok\n");
     out.push_str("    mov $123456789, %rax\n");
     out.push_str(".L_x64_rand_ok:\n");
     out.push_str("    mov $1103515245, %rdx\n");

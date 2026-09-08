@@ -119,6 +119,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     emit_adrp_add(out, "x9", "alya_rand_state", os);
     out.push_str("    ldr x0, [x9]\n");
     out.push_str("    cbnz x0, .L_arm64_rand_ok\n");
+    out.push_str("    mrs x0, cntvct_el0\n");
+    out.push_str("    cbnz x0, .L_arm64_rand_ok\n");
     out.push_str("    movz x0, #0xcd15\n");
     out.push_str("    movk x0, #0x075b, lsl #16\n");
     out.push_str(".L_arm64_rand_ok:\n");

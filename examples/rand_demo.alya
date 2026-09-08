@@ -2,9 +2,8 @@ import "std/rand"
 
 say "=== Alya std/rand Demo ==="
 
-# 1. Random Numbers & Floats
+# 1. Random Numbers & Floats (Auto-seeded by runtime)
 say "\n--- 1. Basic Generation ---"
-rand_seed(42)
 say "rand_int(1, 100): " + str(rand_int(1, 100))
 let rf = rand_float()
 say "rand_float()    : {rf}"
@@ -36,9 +35,17 @@ say "UUID simple   : " + uuid_v4_simple()
 let ulid = ulid_generate()
 say "ULID          : " + ulid
 
-# 5. Independent Random Stream (Xorshift64)
+# 5. Independent Random Stream (Auto-seeded Xorshift64)
 say "\n--- 5. Independent Generator ---"
-let rng = rand_new(12345)
+let rng = rand_new(0)
 say "rng.int(10, 50) : " + str(rand_rng_int(rng, 10, 50))
 let rng_f = rand_rng_float(rng)
 say "rng.float()     : {rng_f}"
+
+# 6. Reproducible Deterministic Generation (Fixed Seed)
+say "\n--- 6. Reproducible Generation (Fixed Seed=42) ---"
+rand_seed(42)
+let det1 = rand_int(1, 100)
+rand_seed(42)
+let det2 = rand_int(1, 100)
+say "Same seed produces same value: " + str(det1 == det2) + " (" + str(det1) + " == " + str(det2) + ")"

@@ -12,7 +12,7 @@ function rand_seed_state(s)
 end
 
 function rand_auto_seed()
-    let s = (time() * 1000) + (clock_ms() % 1000)
+    let s = (time() * 1000) + (clock_ms() % 1000) + rand()
     rand_seed(s)
 end
 
@@ -70,7 +70,7 @@ end
 
 function rand_new(seed)
     if seed == 0
-        seed = (time() * 1000) + (clock_ms() % 1000)
+        seed = (time() * 1000) + (clock_ms() % 1000) + rand()
     end
     if seed == 0
         seed = 123456789
