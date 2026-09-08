@@ -1,0 +1,286 @@
+# Alya Standard Library - CSV Module
+# Implements RFC 4180 compliant CSV and TSV parsing, serialization, and file operations.
+
+function _csv_escape_quotes(s)
+    let res = ""
+    let slen = len(s)
+    let i = 0
+    while i < slen
+        let ch = char_at(s, i)
+        if ch == "\""
+            res = res + "\"\""
+        else
+            res = res + ch
+        end
+        i += 1
+    end
+    return res
+end
+
+function csv_parse_with_delimiter(text, delimiter)
+    let s = str_from_ptr(text)
+    let slen = len(s)
+    let rows = []
+    let current_row = []
+    let current_field = ""
+    let in_quotes = 0
+    let i = 0
+
+    while i < slen
+        let ch = char_at(s, i)
+
+        if in_quotes == 1
+            if ch == "\""
+                if i + 1 < slen and char_at(s, i + 1) == "\""
+                    current_field = current_field + "\""
+                    i += 1
+                else
+                    in_quotes = 0
+                end
+            else
+                current_field = current_field + ch
+            end
+        else
+            if ch == "\""
+                in_quotes = 1
+            elif ch == delimiter
+                current_row.push(current_field)
+                current_field = ""
+            elif ch == "\r"
+                if i + 1 < slen and char_at(s, i + 1) == "\n"
+                    i += 1
+                end
+                current_row.push(current_field)
+                current_field = ""
+                rows.push(current_row)
+                current_row = []
+            elif ch == "\n"
+                current_row.push(current_field)
+                current_field = ""
+                rows.push(current_row)
+                current_row = []
+            else
+                current_field = current_field + ch
+            end
+        end
+        i += 1
+    end
+
+    if len(current_field) > 0 or array_len(current_row) > 0
+        current_row.push(current_field)
+        rows.push(current_row)
+    end
+
+    return rows
+end
+
+function csv_parse(text)
+    return csv_parse_with_delimiter(text, ",")
+end
+
+function csv_parse_tsv(text)
+    return csv_parse_with_delimiter(text, "\t")
+end
+
+function tsv_parse(text)
+    return csv_parse_with_delimiter(text, "\t")
+end
+
+function csv_parse_records_with_delimiter(text, delimiter)
+    let rows = csv_parse_with_delimiter(text, delimiter)
+    let r_count = array_len(rows)
+    if r_count == 0
+        return []
+    end
+
+    let headers = rows[0]
+    let h_count = array_len(headers)
+    let records = []
+    let row_idx = 1
+
+    while row_idx < r_count
+        let row = rows[row_idx]
+        let row_len = array_len(row)
+        let record = {}
+        let col_idx = 0
+        while col_idx < h_count
+            let h_name = str_from_ptr(headers[col_idx])
+            let val = ""
+            if col_idx < row_len
+                val = str_from_ptr(row[col_idx])
+            end
+            record[h_name] = val
+            col_idx += 1
+        end
+        records.push(record)
+        row_idx += 1
+    end
+
+    return records
+end
+
+function csv_parse_records(text)
+    return csv_parse_records_with_delimiter(text, ",")
+end
+
+function tsv_parse_records(text)
+    return csv_parse_records_with_delimiter(text, "\t")
+end
+
+function csv_escape_field_with_delimiter(field, delimiter)
+    let f = str_from_ptr(field)
+    let needs_quotes = 0
+
+    if contains(f, delimiter) or contains(f, "\"") or contains(f, "\n") or contains(f, "\r")
+        needs_quotes = 1
+    end
+
+    if needs_quotes == 0
+        return f
+    end
+
+    let escaped = _csv_escape_quotes(f)
+    return "\"" + escaped + "\""
+end
+
+function csv_escape_field(field)
+    return csv_escape_field_with_delimiter(field, ",")
+end
+
+function csv_stringify_with_delimiter(rows, delimiter)
+    let out = ""
+    let num_rows = array_len(rows)
+    let r = 0
+
+    while r < num_rows
+        let row = rows[r]
+        let num_cols = array_len(row)
+        let line = ""
+        let c = 0
+        while c < num_cols
+            let cell = csv_escape_field_with_delimiter(row[c], delimiter)
+            if c > 0
+                line = line + delimiter + cell
+            else
+                line = cell
+            end
+            c += 1
+        end
+        if r > 0
+            out = out + "\n" + line
+        else
+            out = line
+        end
+        r += 1
+    end
+
+    return out
+end
+
+function csv_stringify(rows)
+    return csv_stringify_with_delimiter(rows, ",")
+end
+
+function csv_stringify_tsv(rows)
+    return csv_stringify_with_delimiter(rows, "\t")
+end
+
+function tsv_stringify(rows)
+    return csv_stringify_with_delimiter(rows, "\t")
+end
+
+function csv_stringify_records_with_delimiter(headers, records, delimiter)
+    let rows = []
+    rows.push(headers)
+    let num_rec = array_len(records)
+    let h_count = array_len(headers)
+    let i = 0
+
+    while i < num_rec
+        let rec = records[i]
+        let row = []
+        let j = 0
+        while j < h_count
+            let h = str_from_ptr(headers[j])
+            let val = ""
+            if has(rec, h) == 1
+                val = str_from_ptr(get(rec, h))
+            end
+            row.push(val)
+            j += 1
+        end
+        rows.push(row)
+        i += 1
+    end
+
+    return csv_stringify_with_delimiter(rows, delimiter)
+end
+
+function csv_stringify_records(headers, records)
+    return csv_stringify_records_with_delimiter(headers, records, ",")
+end
+
+function tsv_stringify_records(headers, records)
+    return csv_stringify_records_with_delimiter(headers, records, "\t")
+end
+
+# File I/O helpers
+function csv_read_file_with_delimiter(path, delimiter)
+    let content = read_file(path)
+    return csv_parse_with_delimiter(content, delimiter)
+end
+
+function csv_read_file(path)
+    let content = read_file(path)
+    return csv_parse(content)
+end
+
+function tsv_read_file(path)
+    let content = read_file(path)
+    return csv_parse_tsv(content)
+end
+
+function csv_read_records_with_delimiter(path, delimiter)
+    let content = read_file(path)
+    return csv_parse_records_with_delimiter(content, delimiter)
+end
+
+function csv_read_records(path)
+    let content = read_file(path)
+    return csv_parse_records(content)
+end
+
+function tsv_read_records(path)
+    let content = read_file(path)
+    return tsv_parse_records(content)
+end
+
+function csv_write_file_with_delimiter(path, rows, delimiter)
+    let content = csv_stringify_with_delimiter(rows, delimiter)
+    return write_file(path, content)
+end
+
+function csv_write_file(path, rows)
+    let content = csv_stringify(rows)
+    return write_file(path, content)
+end
+
+function tsv_write_file(path, rows)
+    let content = tsv_stringify(rows)
+    return write_file(path, content)
+end
+
+function csv_write_records_with_delimiter(path, headers, records, delimiter)
+    let content = csv_stringify_records_with_delimiter(headers, records, delimiter)
+    return write_file(path, content)
+end
+
+function csv_write_records(path, headers, records)
+    let content = csv_stringify_records(headers, records)
+    return write_file(path, content)
+end
+
+function tsv_write_records(path, headers, records)
+    let content = tsv_stringify_records(headers, records)
+    return write_file(path, content)
+end

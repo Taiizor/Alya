@@ -1089,3 +1089,57 @@ say "has_opt: " + str(has_o)
         assert!(output.contains("has_opt: 1"));
     }
 }
+
+#[test]
+fn test_e2e_csv_stdlib() {
+    let code = r#"
+import "std/csv"
+
+let sample = "id,name,role,quote\n1,Alice,Engineer,\"Code, Test\"\n2,Bob,Lead,\"Keep it \"\"simple\"\"\""
+let rows = csv_parse(sample)
+say "rows: " + str(len(rows))
+
+let r0 = rows[0]
+say "r0_c0: " + str_from_ptr(r0[0])
+say "r0_c3: " + str_from_ptr(r0[3])
+
+let r1 = rows[1]
+say "r1_c1: " + str_from_ptr(r1[1])
+say "r1_c3: " + str_from_ptr(r1[3])
+
+let r2 = rows[2]
+say "r2_c1: " + str_from_ptr(r2[1])
+say "r2_c3: " + str_from_ptr(r2[3])
+
+let records = csv_parse_records(sample)
+say "records: " + str(len(records))
+let rec0 = records[0]
+say "rec0_name: " + str_from_ptr(get(rec0, "name"))
+say "rec0_quote: " + str_from_ptr(get(rec0, "quote"))
+
+let tsv_data = "name\tcity\nZara\tIstanbul"
+let tsv_rows = tsv_parse(tsv_data)
+say "tsv_rows: " + str(len(tsv_rows))
+let tr1 = tsv_rows[1]
+say "tsv_city: " + str_from_ptr(tr1[1])
+
+let serialized = csv_stringify(rows)
+say "has_escaped: " + str(contains(serialized, "\"Code, Test\""))
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("rows: 3"));
+        assert!(output.contains("r0_c0: id"));
+        assert!(output.contains("r0_c3: quote"));
+        assert!(output.contains("r1_c1: Alice"));
+        assert!(output.contains("r1_c3: Code, Test"));
+        assert!(output.contains("r2_c1: Bob"));
+        assert!(output.contains("r2_c3: Keep it \"simple\""));
+        assert!(output.contains("records: 2"));
+        assert!(output.contains("rec0_name: Alice"));
+        assert!(output.contains("rec0_quote: Code, Test"));
+        assert!(output.contains("tsv_rows: 2"));
+        assert!(output.contains("tsv_city: Istanbul"));
+        assert!(output.contains("has_escaped: 1"));
+    }
+}

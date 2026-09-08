@@ -267,6 +267,30 @@ fn test_all_examples_execute_with_gcc() {
             continue;
         }
 
+        if example_name == "csv_demo.alya" {
+            assert!(
+                actual_stdout.contains("=== Alya std/csv Demo ==="),
+                "csv_demo missing header:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("Alice (Engineer)"),
+                "csv_demo missing record parsing:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("TSV rows: 3"),
+                "csv_demo missing TSV:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("Serialized Books Records:"),
+                "csv_demo missing serialization:\n{}",
+                actual_stdout
+            );
+            continue;
+        }
+
         let expected = get_expected_output(example_name).unwrap_or_else(|| {
             panic!(
                 "Missing expected output definition for example '{}'!",

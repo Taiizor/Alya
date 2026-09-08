@@ -173,6 +173,19 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "rand_sample"
                     | "rand_shuffle"
                     | "rand_shuffled"
+                    | "csv_parse"
+                    | "csv_parse_with_delimiter"
+                    | "csv_parse_tsv"
+                    | "tsv_parse"
+                    | "csv_parse_records"
+                    | "csv_parse_records_with_delimiter"
+                    | "tsv_parse_records"
+                    | "csv_read_file"
+                    | "csv_read_file_with_delimiter"
+                    | "csv_read_records"
+                    | "csv_read_records_with_delimiter"
+                    | "tsv_read_file"
+                    | "tsv_read_records"
             )
         }
         Expr::FieldAccess { object, field } => {

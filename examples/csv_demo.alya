@@ -1,0 +1,46 @@
+import "std/csv"
+
+say "=== Alya std/csv Demo ==="
+
+# 1. Parse CSV with quotes, commas, and escaped quotes
+let raw_csv = "id,name,role,quote\n1,Alice,Engineer,\"Build things, break nothing\"\n2,Bob,Designer,\"Keep it \"\"simple\"\"\"\n3,Charlie,Lead,\"Multi\nLine\""
+say "\n--- 1. Parse Raw CSV Rows ---"
+let rows = csv_parse(raw_csv)
+say "Total rows: " + str(len(rows))
+
+let header = rows[0]
+say "Columns: " + str_from_ptr(header[0]) + " | " + str_from_ptr(header[1]) + " | " + str_from_ptr(header[2]) + " | " + str_from_ptr(header[3])
+
+let r1 = rows[1]
+say "Row 1: " + str_from_ptr(r1[1]) + " -> " + str_from_ptr(r1[3])
+
+let r2 = rows[2]
+say "Row 2: " + str_from_ptr(r2[1]) + " -> " + str_from_ptr(r2[3])
+
+# 2. Parse as Records (Maps)
+say "\n--- 2. Parse CSV as Records ---"
+let records = csv_parse_records(raw_csv)
+say "Records count: " + str(len(records))
+let rec0 = records[0]
+say "Record 0: " + str_from_ptr(get(rec0, "name")) + " (" + str_from_ptr(get(rec0, "role")) + ")"
+
+# 3. TSV Support
+say "\n--- 3. TSV (Tab-Separated Values) ---"
+let raw_tsv = "item\tqty\tprice\nLaptop\t5\t999.99\nMouse\t20\t29.99"
+let tsv_rows = tsv_parse(raw_tsv)
+say "TSV rows: " + str(len(tsv_rows))
+let tr1 = tsv_rows[1]
+say "Item: " + str_from_ptr(tr1[0]) + ", Qty: " + str_from_ptr(tr1[1])
+
+# 4. Serialization
+say "\n--- 4. Stringify Rows & Records ---"
+let out_csv = csv_stringify(rows)
+say "Serialized CSV length: " + str(len(out_csv))
+
+let hdrs = ["title", "stars", "author"]
+let b1 = {"title": "The Rust Book", "stars": "5", "author": "Steve, Carol"}
+let b2 = {"title": "Crafting Interpreters", "stars": "5", "author": "Bob Nystrom"}
+let books = [b1, b2]
+let books_csv = csv_stringify_records(hdrs, books)
+say "Serialized Books Records:"
+say books_csv

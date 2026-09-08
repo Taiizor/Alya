@@ -335,3 +335,29 @@ fn test_aliased_import_resolves_conflict() {
 
     let _ = fs::remove_dir_all(&temp_dir);
 }
+
+#[test]
+fn test_import_embedded_csv_stdlib() {
+    let source = "import \"std/csv\"\nlet rows = csv_parse(\"a,b\\n1,2\")\nsay rows";
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Tokenize failed");
+    let mut parser = Parser::new(tokens);
+    let mut ast = parser.parse().expect("Parse failed");
+
+    let current_dir = std::path::Path::new(".");
+    let res = resolve_imports(&mut ast, current_dir);
+    assert!(res.is_ok(), "Importing std/csv should succeed");
+
+    let fn_names: Vec<String> = ast
+        .statements
+        .iter()
+        .filter_map(|s| match s {
+            Stmt::Function { name, .. } => Some(name.clone()),
+            _ => None,
+        })
+        .collect();
+
+    assert!(fn_names.contains(&"csv_parse".to_string()));
+    assert!(fn_names.contains(&"csv_stringify".to_string()));
+    assert!(fn_names.contains(&"csv_parse_records".to_string()));
+}
