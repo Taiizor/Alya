@@ -1,0 +1,34 @@
+import "std/test"
+
+test_suite("Alya Core Builtin Tests")
+
+# 1. Arithmetic & Logic
+assert_eq(10 + 20, 30, "Addition")
+assert_eq(50 - 15, 35, "Subtraction")
+assert_eq(6 * 7, 42, "Multiplication")
+assert_eq(100 / 4, 25, "Division")
+assert_eq(29 % 5, 4, "Modulo")
+
+# 2. Logic & Comparisons
+assert_true(10 > 5, "Greater than")
+assert_true(5 < 10, "Less than")
+assert_true(5 >= 5, "Greater or equal")
+assert_true(10 <= 10, "Less or equal")
+assert_false(5 > 10, "False condition")
+
+# 3. String & Null Coalescing
+let null_val = null
+let coalesced = null_val ?? "default_str"
+assert_str_eq(coalesced, "default_str", "Null coalescing fallback")
+
+let defined_val = "custom_val"
+let chosen = defined_val ?? "default_str"
+assert_str_eq(chosen, "custom_val", "Null coalescing keeps value")
+
+# 4. Arrays
+let arr = [10, 20, 30]
+assert_eq(len(arr), 3, "Array length")
+assert_eq(arr[0], 10, "Array first element")
+assert_eq(arr[2], 30, "Array last element")
+
+say "All suite assertions passed."

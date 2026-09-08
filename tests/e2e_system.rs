@@ -1330,3 +1330,105 @@ say "╚═════════════════╝"
         assert!(output.contains("╚═════════════════╝"));
     }
 }
+
+#[test]
+fn test_e2e_fmt_tool() {
+    let unformatted = "function foo(a,b)\nlet x=10\nif x>5\nsay \"hello\"\nend\nreturn x\nend\n";
+    let formatted = alya::tools::fmt::format_source(unformatted).expect("format_source failed");
+    assert!(formatted.contains("function foo(a, b)"));
+    assert!(formatted.contains("    let x=10"));
+    assert!(formatted.contains("    if x>5"));
+    assert!(formatted.contains("        say \"hello\""));
+    assert!(formatted.contains("    end"));
+    assert!(formatted.contains("    return x"));
+    assert!(formatted.contains("end"));
+}
+
+#[test]
+fn test_e2e_net_and_http_stdlib() {
+    let code = r#"
+import "std/net"
+
+# 1. Socket Creation & Close
+let sock = net_socket()
+if sock >= 0
+    say "socket: valid"
+    net_close(sock)
+    say "socket: closed"
+else
+    say "socket: failed"
+end
+
+# 2. HTTP Protocol Parsing
+let raw = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nServer: Alya/1.0\r\n\r\n{\"greeting\":\"hello world\"}"
+let resp = http_parse_response(raw)
+say "code: " + str(resp.status_code)
+say "text: " + resp.status_text
+say "type: " + resp.headers["content-type"]
+say "body: " + resp.body
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        println!("OUTPUT WAS:\n{}", output);
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("socket: valid"));
+        assert!(output.contains("socket: closed"));
+        assert!(output.contains("code: 200"));
+        assert!(output.contains("text: OK"));
+        assert!(output.contains("type: application/json"));
+        assert!(output.contains("body: {\"greeting\":\"hello world\"}"));
+    }
+}
+
+#[test]
+fn test_e2e_pool_and_str_clone_stdlib() {
+    let code = r#"
+import "std/mem"
+
+# 1. Permanent heap strings
+let original = "Hello Alya Heap Memory"
+let cloned = str_clone(original)
+say "cloned: " + cloned
+str_free(cloned)
+say "freed: ok"
+
+# 2. Pool Allocator
+let pool = pool_new(32, 4)
+say "init_avail: " + str(pool_available(pool))
+
+let b1 = pool_alloc(pool)
+let b2 = pool_alloc(pool)
+say "after_2_alloc: " + str(pool_available(pool))
+
+poke_int(b1, 0, 12345)
+poke_int(b2, 0, 67890)
+say "b1_val: " + str(peek_int(b1, 0))
+say "b2_val: " + str(peek_int(b2, 0))
+
+pool_free(pool, b1)
+say "after_1_free: " + str(pool_available(pool))
+
+# Reuse freed block
+let b3 = pool_alloc(pool)
+say "b3_alloc: " + str(pool_available(pool))
+
+pool_destroy(pool)
+say "pool_destroyed: ok"
+
+# 3. Memory Tracking Stats
+let stats = mem_stats()
+say "stats_ok: " + str(stats.allocated_bytes >= 0)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("cloned: Hello Alya Heap Memory"));
+        assert!(output.contains("freed: ok"));
+        assert!(output.contains("init_avail: 4"));
+        assert!(output.contains("after_2_alloc: 2"));
+        assert!(output.contains("b1_val: 12345"));
+        assert!(output.contains("b2_val: 67890"));
+        assert!(output.contains("after_1_free: 3"));
+        assert!(output.contains("b3_alloc: 2"));
+        assert!(output.contains("pool_destroyed: ok"));
+        assert!(output.contains("stats_ok: 1"));
+    }
+}

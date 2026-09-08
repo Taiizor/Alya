@@ -170,4 +170,65 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movl $0, alya_allocated_bytes\n");
     out.push_str("    xor %eax, %eax\n");
     out.push_str("    ret\n\n");
+
+    // fn_str_clone
+    out.push_str(".global fn_str_clone\n");
+    out.push_str("fn_str_clone:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %rsp, %ebp\n");
+    out.push_str("    push %ebx\n");
+    out.push_str("    push %esi\n");
+    out.push_str("    push %edi\n");
+    out.push_str("    mov 8(%ebp), %esi\n");
+    out.push_str("    test %esi, %esi\n");
+    out.push_str("    jz .L_x86_sclone_empty\n");
+    out.push_str("    mov %esi, %edi\n");
+    out.push_str("    xor %ecx, %ecx\n");
+    out.push_str(".L_x86_sclone_len:\n");
+    out.push_str("    cmpb $0, (%edi)\n");
+    out.push_str("    je .L_x86_sclone_alloc\n");
+    out.push_str("    inc %edi\n");
+    out.push_str("    inc %ecx\n");
+    out.push_str("    jmp .L_x86_sclone_len\n");
+    out.push_str(".L_x86_sclone_alloc:\n");
+    out.push_str("    inc %ecx\n");
+    out.push_str("    mov %ecx, %ebx\n");
+    out.push_str("    add %ebx, alya_allocated_bytes\n");
+    out.push_str("    push %ebx\n");
+    out.push_str(&format!("    call {}malloc\n", p));
+    out.push_str("    add $4, %esp\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jz .L_x86_sclone_empty\n");
+    out.push_str("    push %ebx\n");
+    out.push_str("    push %esi\n");
+    out.push_str("    push %eax\n");
+    out.push_str(&format!("    call {}memcpy\n", p));
+    out.push_str("    add $12, %esp\n");
+    out.push_str("    jmp .L_x86_sclone_done\n");
+    out.push_str(".L_x86_sclone_empty:\n");
+    out.push_str("    mov $alya_str_empty, %eax\n");
+    out.push_str(".L_x86_sclone_done:\n");
+    out.push_str("    pop %edi\n");
+    out.push_str("    pop %esi\n");
+    out.push_str("    pop %ebx\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_str_free
+    out.push_str(".global fn_str_free\n");
+    out.push_str("fn_str_free:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %rsp, %ebp\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jz .L_x86_sfree_done\n");
+    out.push_str("    push %eax\n");
+    out.push_str(&format!("    call {}free\n", p));
+    out.push_str("    add $4, %esp\n");
+    out.push_str(".L_x86_sfree_done:\n");
+    out.push_str("    xor %eax, %eax\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
 }

@@ -8,6 +8,16 @@ use std::time::Instant;
 pub mod runner;
 
 pub fn run(args: CliArgs) -> Result<(), String> {
+    if args.command == CommandKind::Fmt {
+        crate::tools::fmt::run_fmt(&args.input_file, args.check_only).map(|_| ())?;
+        return Ok(());
+    }
+
+    if args.command == CommandKind::Test {
+        crate::tools::test_runner::run_tests(&args.input_file, args.arch, args.os)?;
+        return Ok(());
+    }
+
     let total_start = Instant::now();
 
     let source = fs::read_to_string(&args.input_file)

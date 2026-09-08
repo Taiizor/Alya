@@ -90,6 +90,11 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "uuid_v7_simple_at"
                     | "ulid_generate"
                     | "ulid_at"
+                    | "str_clone"
+                    | "string_clone"
+                    | "tcp_recv"
+                    | "net_recv"
+                    | "http_recv"
             ) {
                 return true;
             }

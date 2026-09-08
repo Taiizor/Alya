@@ -22,6 +22,8 @@ pub fn print_usage() {
     println!("  check <file>          Verify syntax and structure without generating code");
     println!("  ast <file>            Print the parsed Abstract Syntax Tree (AST)");
     println!("  tokens <file>         Print tokenized output from lexical analysis");
+    println!("  fmt [path]            Format Alya source code in-place (--check to verify)");
+    println!("  test [path]           Discover and run Alya test suites");
     println!("  help                  Display help information");
     println!("  version               Display version information\n");
     println!("OPTIONS:");
@@ -29,6 +31,7 @@ pub fn print_usage() {
     println!("  -b, -c, --binary      Compile directly to executable (calls GCC)");
     println!("  -r, --run             Compile and run immediately");
     println!("  -S, --asm             Emit assembly output only");
+    println!("  --check               Check formatting without modifying (with fmt)");
     println!(
         "  --arch <arch>         Target architecture: x86, x64, arm64 (default: auto-detected)"
     );
@@ -43,6 +46,9 @@ pub fn print_usage() {
     println!("  alyac build hello.alya               # Produce executable (hello.exe / hello)");
     println!("  alyac hello.alya                     # Produce assembly (hello.s)");
     println!("  alyac hello.alya -b -o my_app.exe    # Produce custom named binary");
+    println!("  alyac fmt hello.alya                 # Format single file");
+    println!("  alyac fmt . --check                  # Check formatting for entire codebase");
+    println!("  alyac test                           # Run all tests in project");
     println!("  alyac check hello.alya               # Quick syntax validation");
     println!("  alyac ast hello.alya                 # Inspect AST hierarchy");
 }

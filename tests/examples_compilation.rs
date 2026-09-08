@@ -170,6 +170,10 @@ fn test_all_examples_execute_with_gcc() {
         }
         if matches!(os, OperatingSystem::Linux) {
             gcc.arg("-no-pie");
+            gcc.arg("-lm");
+        }
+        if matches!(os, OperatingSystem::Windows) {
+            gcc.arg("-lws2_32");
         }
         let gcc_status = gcc.status().expect("Failed to run gcc");
         let _ = fs::remove_file(&temp_asm);
@@ -357,6 +361,35 @@ fn test_all_examples_execute_with_gcc() {
             assert!(
                 actual_stdout.contains("std/console demo completed successfully."),
                 "console_demo missing completion marker:\n{}",
+                actual_stdout
+            );
+            continue;
+        }
+
+        if example_name == "net_demo.alya" {
+            assert!(
+                actual_stdout.contains("=== Alya Network & Memory Management Demo ==="),
+                "net_demo missing header:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("HTTP Status Code: 200"),
+                "net_demo missing status code:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("HTTP Status Text: OK"),
+                "net_demo missing status text:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("Cloned String: Alya permanent heap string test"),
+                "net_demo missing cloned string:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("=== Network & Memory Demo Finished ==="),
+                "net_demo missing completion marker:\n{}",
                 actual_stdout
             );
             continue;

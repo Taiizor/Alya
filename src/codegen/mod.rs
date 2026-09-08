@@ -65,6 +65,20 @@ impl CodeGen {
             }
         }
 
+        for stmt in &program.statements {
+            if let Stmt::Function { name, .. } = stmt {
+                if let Some(sname) = analysis::infer_function_return_struct_type(name, program) {
+                    self.ctx.variables.insert(
+                        format!("fn_ret_struct:{}", name),
+                        VarType::Struct {
+                            struct_name: sname,
+                            offset: 0,
+                        },
+                    );
+                }
+            }
+        }
+
         let mut functions = Vec::new();
         let mut top_level = Vec::new();
 

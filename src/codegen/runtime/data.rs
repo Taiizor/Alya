@@ -18,6 +18,10 @@ pub fn emit_data_sections(
 
     out.push_str("alya_str_buf:\n");
     out.push_str("    .space 1048576\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("alya_wsa_data:\n");
+        out.push_str("    .space 512\n");
+    }
     match arch {
         Architecture::ARM64 | Architecture::X64 => {
             out.push_str("alya_str_idx:\n");

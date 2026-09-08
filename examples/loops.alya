@@ -55,4 +55,3 @@ for f in fruits
     say "Fruit: {f}"
 end
 
-

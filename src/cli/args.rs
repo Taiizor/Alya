@@ -9,6 +9,8 @@ pub enum CommandKind {
     Check,
     EmitTokens,
     EmitAst,
+    Fmt,
+    Test,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -22,6 +24,7 @@ pub struct CliArgs {
     pub quiet: bool,
     pub time: bool,
     pub stats: bool,
+    pub check_only: bool,
     pub run_args: Vec<String>,
 }
 
@@ -82,6 +85,14 @@ impl CliArgs {
                 command = CommandKind::EmitTokens;
                 start_idx = 2;
             }
+            "fmt" => {
+                command = CommandKind::Fmt;
+                start_idx = 2;
+            }
+            "test" => {
+                command = CommandKind::Test;
+                start_idx = 2;
+            }
             _ => {}
         }
 
@@ -90,6 +101,7 @@ impl CliArgs {
         let mut quiet = false;
         let mut time = false;
         let mut stats = false;
+        let mut check_only = false;
         let mut run_args = Vec::new();
         let mut arch = if cfg!(target_arch = "aarch64") {
             Architecture::ARM64
@@ -140,7 +152,11 @@ impl CliArgs {
                     output_binary = true;
                 }
                 "--check" => {
-                    command = CommandKind::Check;
+                    if command == CommandKind::Fmt {
+                        check_only = true;
+                    } else {
+                        command = CommandKind::Check;
+                    }
                 }
                 "--ast" => {
                     command = CommandKind::EmitAst;
@@ -217,7 +233,13 @@ impl CliArgs {
 
         let input_file = match input_file {
             Some(f) => f,
-            None => return Err("Error: No input source file specified.".to_string()),
+            None => {
+                if matches!(command, CommandKind::Fmt | CommandKind::Test) {
+                    ".".to_string()
+                } else {
+                    return Err("Error: No input source file specified.".to_string());
+                }
+            }
         };
 
         Ok(Some(Self {
@@ -230,6 +252,7 @@ impl CliArgs {
             quiet,
             time,
             stats,
+            check_only,
             run_args,
         }))
     }

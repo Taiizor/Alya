@@ -19,6 +19,10 @@ pub fn compile_with_gcc(
         gcc_args.push("-lm");
     }
 
+    if matches!(os, OperatingSystem::Windows) {
+        gcc_args.push("-lws2_32");
+    }
+
     let gcc_result = Command::new("gcc").args(&gcc_args).output();
 
     let _ = fs::remove_file(asm_file);

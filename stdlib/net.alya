@@ -1,0 +1,235 @@
+# Alya Standard Library - Network & HTTP Module (std/net)
+# Provides TCP socket networking (client & server) and lightweight HTTP/1.1 client.
+
+import "std/url"
+
+# --- Low-Level TCP Socket Functions ---
+
+# Connects to a remote TCP server. Returns a socket handle (>= 0) or -1 on error.
+function tcp_connect(host, port)
+    return net_connect(host, port)
+end
+
+# Sends a string over a connected TCP socket. Returns number of bytes sent or -1 on error.
+function tcp_send(sock, data)
+    return net_send(sock, data)
+end
+
+# Receives up to max_bytes from a connected TCP socket.
+# Returns received string, or "" on connection close/EOF.
+function tcp_recv(sock, max_bytes)
+    if max_bytes == null or max_bytes <= 0
+        max_bytes = 4096
+    end
+    return net_recv(sock, max_bytes)
+end
+
+# Closes a socket connection.
+function tcp_close(sock)
+    return net_close(sock)
+end
+
+# Creates a TCP server socket listening on the specified port.
+# Returns listening socket handle or -1 on error.
+function tcp_listen(port, backlog)
+    if backlog == null or backlog <= 0
+        backlog = 10
+    end
+    return net_listen(port, backlog)
+end
+
+# Accepts an incoming client connection on a listening server socket.
+# Returns client socket handle or -1 on error.
+function tcp_accept(server_sock)
+    return net_accept(server_sock)
+end
+
+# --- HTTP Client ---
+
+struct HttpResponse
+    status_code
+    status_text
+    headers
+    body
+end
+
+# Internal helper: find needle in haystack starting from start_idx
+function _net_find(s, target, start_idx)
+    let slen = len(s)
+    let tlen = len(target)
+    if tlen == 0
+        return start_idx
+    end
+    let i = start_idx
+    while i + tlen <= slen
+        if substring(s, i, tlen) == target
+            return i
+        end
+        i += 1
+    end
+    return -1
+end
+
+# Parses a raw HTTP/1.1 response string into an HttpResponse struct.
+function http_parse_response(raw)
+    if raw == null or len(raw) == 0
+        return HttpResponse(-1, "Empty response", {}, "")
+    end
+
+    # Find header/body boundary (\r\n\r\n or \n\n)
+    let body_idx = _net_find(raw, "\r\n\r\n", 0)
+    let header_part = ""
+    let body_part = ""
+    if body_idx >= 0
+        header_part = substring(raw, 0, body_idx)
+        body_part = substring(raw, body_idx + 4, len(raw) - (body_idx + 4))
+    else
+        let alt_idx = _net_find(raw, "\n\n", 0)
+        if alt_idx >= 0
+            header_part = substring(raw, 0, alt_idx)
+            body_part = substring(raw, alt_idx + 2, len(raw) - (alt_idx + 2))
+        else
+            header_part = raw
+        end
+    end
+
+    # Parse status line (e.g. HTTP/1.1 200 OK)
+    let lines = split(header_part, "\n")
+    let status_code = 0
+    let status_text = ""
+    let headers = {}
+
+    if len(lines) > 0
+        let status_line = trim(lines[0])
+        let parts = split(status_line, " ")
+        if len(parts) >= 2
+            status_code = to_int(parts[1])
+        end
+        if len(parts) >= 3
+            status_text = parts[2]
+            let pi = 3
+            while pi < len(parts)
+                status_text = status_text + " " + parts[pi]
+                pi += 1
+            end
+        end
+
+        # Parse header lines
+        let li = 1
+        while li < len(lines)
+            let hline = trim(lines[li])
+            let c_idx = _net_find(hline, ":", 0)
+            if c_idx > 0
+                let hkey = lower(trim(substring(hline, 0, c_idx)))
+                let hval = trim(substring(hline, c_idx + 1, len(hline) - (c_idx + 1)))
+                headers[hkey] = hval
+            end
+            li += 1
+        end
+    end
+
+    return HttpResponse(status_code, status_text, headers, body_part)
+end
+
+# Performs an HTTP request with method, host, port, path, extra_headers, and body.
+function http_request(method, host, port, path, extra_headers, body)
+    if port == null or port <= 0
+        port = 80
+    end
+    if path == null or len(path) == 0
+        path = "/"
+    end
+    if method == null or len(method) == 0
+        method = "GET"
+    end
+    if body == null
+        body = ""
+    end
+
+    let sock = tcp_connect(host, port)
+    if sock < 0
+        return HttpResponse(-1, "Connection failed to " + host + ":" + str(port), {}, "")
+    end
+
+    # Construct HTTP request string
+    let req = method + " " + path + " HTTP/1.1\r\n"
+    req = req + "Host: " + host + "\r\n"
+    req = req + "User-Agent: Alya-Net/1.0\r\n"
+    req = req + "Connection: close\r\n"
+    if len(body) > 0
+        req = req + "Content-Length: " + str(len(body)) + "\r\n"
+    end
+
+    # Send request
+    tcp_send(sock, req)
+    if len(body) > 0
+        tcp_send(sock, "\r\n" + body)
+    else
+        tcp_send(sock, "\r\n")
+    end
+
+    # Read response until connection is closed
+    let raw_resp = ""
+    while 1
+        let chunk = tcp_recv(sock, 4096)
+        if chunk == "" or len(chunk) == 0
+            break
+        end
+        raw_resp = raw_resp + chunk
+    end
+
+    tcp_close(sock)
+    return http_parse_response(raw_resp)
+end
+
+# Convenience GET request
+function http_get(url_str)
+    let parsed = url_parse(url_str)
+    let host = parsed.url_host
+    if host == ""
+        return HttpResponse(-1, "Invalid URL host", {}, "")
+    end
+    let port = parsed.url_port
+    if port <= 0
+        if parsed.url_scheme == "https"
+            port = 443
+        else
+            port = 80
+        end
+    end
+    let path = parsed.url_path
+    if path == ""
+        path = "/"
+    end
+    if parsed.url_query != ""
+        path = path + "?" + parsed.url_query
+    end
+
+    return http_request("GET", host, port, path, {}, "")
+end
+
+# Convenience POST request
+function http_post(url_str, body, content_type)
+    let parsed = url_parse(url_str)
+    let host = parsed.url_host
+    if host == ""
+        return HttpResponse(-1, "Invalid URL host", {}, "")
+    end
+    let port = parsed.url_port
+    if port <= 0
+        port = 80
+    end
+    let path = parsed.url_path
+    if path == ""
+        path = "/"
+    end
+    if parsed.url_query != ""
+        path = path + "?" + parsed.url_query
+    end
+    if content_type == null or content_type == ""
+        content_type = "application/json"
+    end
+
+    let headers = {"content-type": content_type}
+    return http_request("POST", host, port, path, headers, body)
+end

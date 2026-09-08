@@ -1,0 +1,56 @@
+# Alya Example: Network & Memory Management Demo
+# Demonstrates HTTP parsing, socket lifecycle, permanent strings, and pool allocators.
+
+import "std/net"
+import "std/mem"
+
+say "=== Alya Network & Memory Management Demo ==="
+
+# 1. Socket Creation & Lifecycle
+let sock = net_socket()
+if sock >= 0
+    say "Socket created successfully with descriptor: " + str(sock)
+    net_close(sock)
+    say "Socket closed cleanly."
+else
+    say "Failed to create socket."
+end
+
+# 2. HTTP Protocol Parsing
+let raw_http = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nServer: AlyaServer/1.0\r\n\r\n{\"message\":\"Hello from Alya!\",\"status\":\"success\"}"
+let resp = http_parse_response(raw_http)
+say "HTTP Status Code: " + str(resp.status_code)
+say "HTTP Status Text: " + resp.status_text
+say "Content-Type: " + resp.headers["content-type"]
+say "Response Body: " + resp.body
+
+# 3. Permanent Heap Strings
+let original = "Alya permanent heap string test"
+let cloned = str_clone(original)
+say "Cloned String: " + cloned
+str_free(cloned)
+
+# 4. Fixed-Size Block Pool Allocator
+say "--- Pool Allocator ---"
+let pool = pool_new(32, 4)
+say "Pool initial available: " + str(pool_available(pool))
+
+let b1 = pool_alloc(pool)
+let b2 = pool_alloc(pool)
+say "Allocated 2 blocks, remaining: " + str(pool_available(pool))
+
+poke_int(b1, 0, 42)
+poke_int(b2, 0, 99)
+say "Block 1 val: " + str(peek_int(b1, 0))
+say "Block 2 val: " + str(peek_int(b2, 0))
+
+pool_free(pool, b1)
+say "Freed block 1, remaining: " + str(pool_available(pool))
+
+pool_destroy(pool)
+say "Pool destroyed successfully."
+
+# 5. Memory Statistics
+let stats = mem_stats()
+say "Tracked Allocated Bytes: " + str(stats.allocated_bytes)
+say "=== Network & Memory Demo Finished ==="

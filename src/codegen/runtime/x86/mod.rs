@@ -6,6 +6,7 @@ pub mod heap;
 pub mod io;
 pub mod maps;
 pub mod math;
+pub mod net;
 pub mod str_ops;
 pub mod str_split;
 pub mod structs;
@@ -23,5 +24,6 @@ pub fn emit_x86_runtime(out: &mut String, os: OperatingSystem) {
     structs::emit(out, os);
     heap::emit(out, os);
     arena::emit(out, os);
+    net::emit(out, os);
     errors::emit(out, os);
 }

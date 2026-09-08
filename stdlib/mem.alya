@@ -316,3 +316,139 @@ function buffer_read_int(buf, offset)
     end
     return 0
 end
+
+# --- Permanent Heap Strings ---
+
+# Creates an independent heap-allocated copy of the string that survives ring-buffer recycling.
+function string_clone(s)
+    return str_clone(s)
+end
+
+# Frees an independent heap-allocated string created with string_clone / str_clone.
+function string_free(s)
+    str_free(s)
+end
+
+# --- Memory Allocation Tracking ---
+
+struct MemStats
+    allocated_bytes
+end
+
+# Returns the total number of bytes currently allocated through the heap allocator.
+function mem_bytes_allocated()
+    return mem_allocated()
+end
+
+# Resets the memory allocation tracking counter to zero.
+function mem_stats_reset()
+    return mem_reset_alloc()
+end
+
+# Returns a MemStats struct with current memory metrics.
+function mem_stats()
+    return MemStats(mem_allocated())
+end
+
+# --- Pool Allocator (Fixed-Size Block Pool) ---
+
+struct Pool
+    block_size
+    capacity
+    buffer
+    free_head
+    allocated_count
+end
+
+# Creates a new fixed-size block Pool allocator.
+# block_size is rounded up to multiple of 8 (minimum 8 bytes).
+function pool_new(block_size, capacity)
+    if block_size < 8
+        block_size = 8
+    end
+    let rem = block_size % 8
+    if rem != 0
+        block_size = block_size + (8 - rem)
+    end
+    if capacity <= 0
+        capacity = 16
+    end
+
+    let total_size = block_size * capacity
+    let buf = alloc(total_size)
+    if buf == 0
+        return Pool(block_size, 0, 0, 0, 0)
+    end
+
+    # Link free blocks into a singly-linked free list
+    let i = 0
+    while i < capacity - 1
+        let cur_ptr = buf + (i * block_size)
+        let next_ptr = buf + ((i + 1) * block_size)
+        poke_int(cur_ptr, 0, next_ptr)
+        i += 1
+    end
+    let last_ptr = buf + ((capacity - 1) * block_size)
+    poke_int(last_ptr, 0, 0)
+
+    return Pool(block_size, capacity, buf, buf, 0)
+end
+
+# Allocates one fixed-size block from the pool in O(1) time.
+# Returns raw pointer to block, or 0 if pool is exhausted.
+function pool_alloc(pool)
+    if pool.free_head == 0
+        return 0
+    end
+    let block = pool.free_head
+    pool.free_head = peek_int(block, 0)
+    pool.allocated_count = pool.allocated_count + 1
+    poke_int(block, 0, 0)
+    return block
+end
+
+# Returns an allocated block back to the pool in O(1) time.
+function pool_free(pool, ptr)
+    if ptr == 0
+        return 0
+    end
+    poke_int(ptr, 0, pool.free_head)
+    pool.free_head = ptr
+    pool.allocated_count = pool.allocated_count - 1
+    return 1
+end
+
+# Returns the number of available free blocks in the pool.
+function pool_available(pool)
+    return pool.capacity - pool.allocated_count
+end
+
+# Re-links all blocks in the pool without re-allocating buffer memory.
+function pool_clear(pool)
+    if pool.buffer == 0 or pool.capacity <= 0
+        return 0
+    end
+    let i = 0
+    while i < pool.capacity - 1
+        let cur_ptr = pool.buffer + (i * pool.block_size)
+        let next_ptr = pool.buffer + ((i + 1) * pool.block_size)
+        poke_int(cur_ptr, 0, next_ptr)
+        i += 1
+    end
+    let last_ptr = pool.buffer + ((pool.capacity - 1) * pool.block_size)
+    poke_int(last_ptr, 0, 0)
+    pool.free_head = pool.buffer
+    pool.allocated_count = 0
+    return 1
+end
+
+# Destroys the pool and frees underlying memory back to system heap.
+function pool_destroy(pool)
+    if pool.buffer != 0
+        free(pool.buffer)
+        pool.buffer = 0
+        pool.free_head = 0
+        pool.capacity = 0
+        pool.allocated_count = 0
+    end
+end

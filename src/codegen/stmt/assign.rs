@@ -231,6 +231,17 @@ impl CodeGen {
                             None
                         }
                     }
+                    Expr::Call { name: cname, .. } => {
+                        if self.ctx.structs.contains_key(cname) {
+                            Some(cname.clone())
+                        } else if let Some(VarType::Struct { struct_name, .. }) =
+                            self.ctx.variables.get(&format!("fn_ret_struct:{}", cname))
+                        {
+                            Some(struct_name.clone())
+                        } else {
+                            None
+                        }
+                    }
                     _ => None,
                 };
                 let is_flt = is_float_expr(value, &self.ctx.variables);
@@ -407,9 +418,42 @@ impl CodeGen {
                                 .insert(format!("arr_is_flt:{}", name), VarType::Number(0));
                         }
                     } else {
-                        self.ctx
-                            .variables
-                            .insert(name.clone(), VarType::Number(offset));
+                        let is_struct = match value {
+                            Expr::Identifier(ident) => {
+                                if let Some(VarType::Struct { struct_name, .. }) =
+                                    self.ctx.variables.get(ident)
+                                {
+                                    Some(struct_name.clone())
+                                } else {
+                                    None
+                                }
+                            }
+                            Expr::Call { name: cname, .. } => {
+                                if self.ctx.structs.contains_key(cname) {
+                                    Some(cname.clone())
+                                } else if let Some(VarType::Struct { struct_name, .. }) =
+                                    self.ctx.variables.get(&format!("fn_ret_struct:{}", cname))
+                                {
+                                    Some(struct_name.clone())
+                                } else {
+                                    None
+                                }
+                            }
+                            _ => None,
+                        };
+                        if let Some(sname) = is_struct {
+                            self.ctx.variables.insert(
+                                name.clone(),
+                                VarType::Struct {
+                                    struct_name: sname,
+                                    offset,
+                                },
+                            );
+                        } else {
+                            self.ctx
+                                .variables
+                                .insert(name.clone(), VarType::Number(offset));
+                        }
                     }
                 }
                 VarType::StringLabel(_) => {}

@@ -75,6 +75,9 @@ pub fn run_alya_code_with_input_and_args(
         gcc.arg("-no-pie");
         gcc.arg("-lm");
     }
+    if matches!(os, OperatingSystem::Windows) {
+        gcc.arg("-lws2_32");
+    }
 
     let gcc_out = gcc.output().expect("GCC invocation failed");
     let _ = fs::remove_file(&asm_path);
