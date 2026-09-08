@@ -23,20 +23,38 @@ impl CodeGen {
         };
         arch::emit_jump_if_zero(&mut self.output, self.arch, target_label);
 
+        let initial_stack_offset = self.ctx.stack_offset;
+        let initial_variables = self.ctx.variables.clone();
+
         for s in then_block {
             self.generate_statement(s);
+        }
+
+        let then_delta = self.ctx.stack_offset - initial_stack_offset;
+        if then_delta > 0 {
+            arch::emit_stack_restore(&mut self.output, self.arch, then_delta);
         }
 
         if let Some(else_stmts) = else_block {
             arch::emit_jump(&mut self.output, self.arch, &end_label);
             self.output.push_str(&format!("{}:\n", else_label));
 
+            self.ctx.stack_offset = initial_stack_offset;
+            self.ctx.variables = initial_variables.clone();
+
             for s in else_stmts {
                 self.generate_statement(s);
+            }
+
+            let else_delta = self.ctx.stack_offset - initial_stack_offset;
+            if else_delta > 0 {
+                arch::emit_stack_restore(&mut self.output, self.arch, else_delta);
             }
         }
 
         self.output.push_str(&format!("{}:\n", end_label));
+        self.ctx.stack_offset = initial_stack_offset;
+        self.ctx.variables = initial_variables;
     }
 
     pub(super) fn generate_while(&mut self, condition: &Expr, body: &[Stmt]) {

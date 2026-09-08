@@ -372,7 +372,11 @@ say ret
     };
 
     if let Some((code, output)) = run_alya_code_with_args(code, &["--flag", "input.txt"]) {
-        assert_eq!(code, 0);
+        assert_eq!(
+            code, 0,
+            "Execution failed with code {} and output:\n{}",
+            code, output
+        );
         assert_eq!(
             output,
             format!(

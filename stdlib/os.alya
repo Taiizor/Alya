@@ -98,92 +98,86 @@ end
 # --- Filesystem & Platform Helpers ---
 
 function temp_dir()
-    when target_os()
-        is "windows"
-            let t = get_env("TEMP")
-            if len(t) > 0
-                return t
-            end
-            t = get_env("TMP")
-            if len(t) > 0
-                return t
-            end
-            return "C:/Windows/Temp"
-        else
-            let t = get_env("TMPDIR")
-            if len(t) > 0
-                return t
-            end
-            return "/tmp"
+    let t = ""
+    if is_windows()
+        t = get_env("TEMP")
+        if len(t) > 0
+            return t
+        end
+        t = get_env("TMP")
+        if len(t) > 0
+            return t
+        end
+        return "C:/Windows/Temp"
     end
+    t = get_env("TMPDIR")
+    if len(t) > 0
+        return t
+    end
+    return "/tmp"
 end
 
 function home_dir()
-    when target_os()
-        is "windows"
-            let h = get_env("USERPROFILE")
-            if len(h) > 0
-                return h
-            end
-            let drive, p = get_env("HOMEDRIVE"), get_env("HOMEPATH")
-            if len(drive) > 0 and len(p) > 0
-                return drive + p
-            end
-            return ""
-        else
-            return get_env("HOME")
+    let h = ""
+    if is_windows()
+        h = get_env("USERPROFILE")
+        if len(h) > 0
+            return h
+        end
+        let drive = get_env("HOMEDRIVE")
+        let p = get_env("HOMEPATH")
+        if len(drive) > 0 and len(p) > 0
+            return drive + p
+        end
+        return ""
     end
+    return get_env("HOME")
 end
 
 function user_name()
-    when target_os()
-        is "windows"
-            let u = get_env("USERNAME")
-            if len(u) > 0
-                return u
-            end
-        else
-            let u = get_env("USER")
-            if len(u) > 0
-                return u
-            end
-            return get_env("LOGNAME")
+    let u = ""
+    if is_windows()
+        u = get_env("USERNAME")
+        if len(u) > 0
+            return u
+        end
+        return ""
     end
-    return ""
+    u = get_env("USER")
+    if len(u) > 0
+        return u
+    end
+    return get_env("LOGNAME")
 end
 
 function hostname()
-    when target_os()
-        is "windows"
-            let h = get_env("COMPUTERNAME")
-            if len(h) > 0
-                return h
-            end
-        else
-            let h = get_env("HOSTNAME")
-            if len(h) > 0
-                return h
-            end
+    let h = ""
+    if is_windows()
+        h = get_env("COMPUTERNAME")
+        if len(h) > 0
+            return h
+        end
+        return ""
+    end
+    h = get_env("HOSTNAME")
+    if len(h) > 0
+        return h
     end
     return ""
 end
 
 function null_device()
-    when target_os()
-        is "windows"
-            return "NUL"
-        else
-            return "/dev/null"
+    if is_windows()
+        return "NUL"
     end
+    return "/dev/null"
 end
 
 function path_list_separator()
-    when target_os()
-        is "windows"
-            return ";"
-        else
-            return ":"
+    if is_windows()
+        return ";"
     end
+    return ":"
 end
 
 

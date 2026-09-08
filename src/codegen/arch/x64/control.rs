@@ -108,3 +108,7 @@ pub fn emit_function_call(
         }
     }
 }
+
+pub fn emit_stack_restore(out: &mut String, delta: i32) {
+    out.push_str(&format!("    add ${}, %rsp\n", delta));
+}

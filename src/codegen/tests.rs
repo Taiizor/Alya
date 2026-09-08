@@ -155,3 +155,68 @@ fn test_codegen_arm64_large_number_expr() {
     assert!(asm.contains("movk x0, #6, lsl #16"));
     assert!(!asm.contains("mov x0, #424242"));
 }
+
+#[test]
+fn test_codegen_os_stdlib_linux_and_macos() {
+    use crate::lexer::Lexer;
+    use crate::parser::Parser;
+
+    let code = r#"
+import "std/os"
+
+# 1. Environment variables
+say env_or("NON_EXISTENT_VAR_98765", "default_val")
+say has_env("NON_EXISTENT_VAR_98765")
+say has_env("PATH")
+
+# 2. CLI arguments helpers
+say arg_count()
+say arg_at(0, "none")
+say arg_at(1, "none")
+say arg_at(99, "out_of_bounds")
+say has_arg("--flag")
+say has_arg("--unknown")
+
+let c_args = cli_args()
+for arg in c_args
+    say "arg: " + arg
+end
+
+# 3. Platform & system
+say target_os()
+say target_arch()
+say os_name()
+say arch()
+say is_windows() + is_linux() + is_macos()
+say is_windows() + is_posix()
+if len(platform()) > 0
+    say "platform_ok"
+end
+if len(temp_dir()) > 0
+    say "temp_dir_ok"
+end
+if len(null_device()) > 0
+    say "null_device_ok"
+end
+if len(path_list_separator()) > 0
+    say "path_sep_ok"
+end
+
+# 4. Command execution
+let ret = exec("echo test > " + null_device())
+say ret
+"#;
+    let mut lexer = Lexer::new(code);
+    let tokens = lexer.tokenize().unwrap();
+    let mut parser = Parser::new(tokens);
+    let mut ast = parser.parse().unwrap();
+    crate::parser::resolve_imports(&mut ast, std::path::Path::new(".")).unwrap();
+
+    let asm_linux = generate(&ast, Architecture::X64, OperatingSystem::Linux);
+    assert!(asm_linux.contains("fn_target_os"));
+    assert!(asm_linux.contains("fn_system_exec"));
+
+    let asm_macos = generate(&ast, Architecture::ARM64, OperatingSystem::MacOS);
+    assert!(asm_macos.contains("fn_target_os"));
+    assert!(asm_macos.contains("fn_system_exec"));
+}

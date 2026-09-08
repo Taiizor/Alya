@@ -72,3 +72,7 @@ pub fn emit_function_call(out: &mut String, name: &str, args_count: usize) {
     }
     out.push_str(&format!("    bl fn_{}\n", name));
 }
+
+pub fn emit_stack_restore(out: &mut String, delta: i32) {
+    out.push_str(&format!("    add sp, sp, #{}\n", delta));
+}

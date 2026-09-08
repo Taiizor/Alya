@@ -85,3 +85,14 @@ pub fn emit_function_call(
         Architecture::X86 => x86::emit_function_call(out, name, args_count),
     }
 }
+
+pub fn emit_stack_restore(out: &mut String, arch: Architecture, delta: i32) {
+    if delta <= 0 {
+        return;
+    }
+    match arch {
+        Architecture::ARM64 => arm64::emit_stack_restore(out, delta),
+        Architecture::X64 => x64::emit_stack_restore(out, delta),
+        Architecture::X86 => x86::emit_stack_restore(out, delta),
+    }
+}
