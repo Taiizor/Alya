@@ -47,7 +47,20 @@ impl Lexer {
                     self.skip_comment();
                 }
                 '"' => {
-                    let s = self.read_string()?;
+                    let s =
+                        if self.peek_char_at(1) == Some('"') && self.peek_char_at(2) == Some('"') {
+                            self.read_triple_quoted_string()?
+                        } else {
+                            self.read_string()?
+                        };
+                    tokens.push(Token {
+                        token_type: TokenType::String(s),
+                        line,
+                        column,
+                    });
+                }
+                '`' => {
+                    let s = self.read_raw_string()?;
                     tokens.push(Token {
                         token_type: TokenType::String(s),
                         line,
@@ -207,6 +220,14 @@ impl Lexer {
                             column,
                         });
                     }
+                }
+                '?' => {
+                    self.advance();
+                    tokens.push(Token {
+                        token_type: TokenType::Question,
+                        line,
+                        column,
+                    });
                 }
                 '.' => {
                     if self.peek_char() == Some('.') {

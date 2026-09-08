@@ -282,7 +282,9 @@ fn collect_float_vars_from_stmts(
                 scan_calls_in_expr(object, scope, known_floats);
                 scan_calls_in_expr(value, scope, known_floats);
             }
-            Stmt::Function { name, params, body } => {
+            Stmt::Function {
+                name, params, body, ..
+            } => {
                 let bare = name.rsplit("::").next().unwrap_or(name.as_str());
                 let bare = bare.rsplit("__").next().unwrap_or(bare);
                 let mut fn_locals = scope.clone();

@@ -84,7 +84,10 @@ impl CodeGen {
         arch::emit_footer(&mut self.output, self.arch);
 
         for func in functions {
-            if let Stmt::Function { name, params, body } = func {
+            if let Stmt::Function {
+                name, params, body, ..
+            } = func
+            {
                 self.generate_function(name, params, body, program, &inference);
             }
         }

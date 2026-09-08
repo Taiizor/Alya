@@ -122,3 +122,40 @@ say data["tag"]
         assert_eq!(output, concat!("init\n", "test_run\n", "test_run\n",));
     }
 }
+
+#[test]
+fn test_e2e_default_parameters() {
+    let code = r#"
+function greet(name, greeting = "Hello", punctuation = "!")
+    say "{greeting}, {name}{punctuation}"
+end
+
+greet("World")
+greet("Alice", "Hi")
+greet("Bob", "Good morning", "?")
+
+function power(base, exp = 2)
+    let result = 1
+    for i in 1..exp
+        result *= base
+    end
+    return result
+end
+
+say power(3)
+say power(2, 4)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!(
+                "Hello, World!\n",
+                "Hi, Alice!\n",
+                "Good morning, Bob?\n",
+                "9\n",
+                "16\n",
+            )
+        );
+    }
+}

@@ -238,6 +238,7 @@ let result = multiply(6, 7)
         Stmt::Function {
             name: "multiply".into(),
             params: vec!["a".into(), "b".into()],
+            defaults: vec![None, None],
             body: vec![Stmt::Return(Some(Expr::Binary {
                 left: Box::new(Expr::Identifier("a".into())),
                 op: BinaryOp::Multiply,
@@ -255,6 +256,46 @@ let result = multiply(6, 7)
                 args: vec![Expr::Number(6.0), Expr::Number(7.0)],
             }
         }
+    );
+}
+
+#[test]
+fn test_parse_function_default_parameters() {
+    let code = r#"
+function greet(name, greeting = "Hello", punctuation = "!")
+    say greeting
+end
+
+greet("Alya")
+"#;
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 2);
+
+    assert_eq!(
+        program.statements[0],
+        Stmt::Function {
+            name: "greet".into(),
+            params: vec!["name".into(), "greeting".into(), "punctuation".into()],
+            defaults: vec![
+                None,
+                Some(Expr::String("Hello".into())),
+                Some(Expr::String("!".into())),
+            ],
+            body: vec![Stmt::Say(Expr::Identifier("greeting".into()))],
+        }
+    );
+
+    // Call greet("Alya") should have been expanded to include default arguments
+    assert_eq!(
+        program.statements[1],
+        Stmt::Expr(Expr::Call {
+            name: "greet".into(),
+            args: vec![
+                Expr::String("Alya".into()),
+                Expr::String("Hello".into()),
+                Expr::String("!".into()),
+            ],
+        })
     );
 }
 

@@ -143,6 +143,11 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             op: BinaryOp::Add,
             right,
         } => is_string_expr(left, vars) || is_string_expr(right, vars),
+        Expr::Ternary {
+            then_branch,
+            else_branch,
+            ..
+        } => is_string_expr(then_branch, vars) || is_string_expr(else_branch, vars),
         _ => false,
     }
 }
@@ -222,6 +227,11 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             }
             false
         }
+        Expr::Ternary {
+            then_branch,
+            else_branch,
+            ..
+        } => is_array_expr(then_branch, vars) || is_array_expr(else_branch, vars),
         _ => false,
     }
 }
@@ -285,6 +295,11 @@ pub fn is_map_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             }
             false
         }
+        Expr::Ternary {
+            then_branch,
+            else_branch,
+            ..
+        } => is_map_expr(then_branch, vars) || is_map_expr(else_branch, vars),
         _ => false,
     }
 }
@@ -380,6 +395,11 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             ) || vars.contains_key(&format!("fn_ret_flt:{}", name))
                 || vars.contains_key(&format!("fn_ret_flt:{}", bare))
         }
+        Expr::Ternary {
+            then_branch,
+            else_branch,
+            ..
+        } => is_float_expr(then_branch, vars) || is_float_expr(else_branch, vars),
         _ => false,
     }
 }
@@ -388,6 +408,11 @@ pub fn is_null_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
     match expr {
         Expr::Null => true,
         Expr::Identifier(name) => matches!(vars.get(name), Some(VarType::Null(_))),
+        Expr::Ternary {
+            then_branch,
+            else_branch,
+            ..
+        } => is_null_expr(then_branch, vars) && is_null_expr(else_branch, vars),
         _ => false,
     }
 }

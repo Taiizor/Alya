@@ -218,6 +218,33 @@ impl CodeGen {
                     arch::emit_unary_op(&mut self.output, self.arch, *op);
                 }
             }
+            Expr::Ternary {
+                condition,
+                then_branch,
+                else_branch,
+            } => {
+                let else_label = self.ctx.next_label();
+                let end_label = self.ctx.next_label();
+
+                let is_flt = is_float_expr(then_branch, &self.ctx.variables)
+                    || is_float_expr(else_branch, &self.ctx.variables);
+
+                self.generate_condition_jump_if_false(condition, &else_label);
+
+                self.generate_expression(then_branch);
+                if is_flt && !is_float_expr(then_branch, &self.ctx.variables) {
+                    arch::emit_int_to_float(&mut self.output, self.arch);
+                }
+                arch::emit_jump(&mut self.output, self.arch, &end_label);
+
+                self.output.push_str(&format!("{}:\n", else_label));
+                self.generate_expression(else_branch);
+                if is_flt && !is_float_expr(else_branch, &self.ctx.variables) {
+                    arch::emit_int_to_float(&mut self.output, self.arch);
+                }
+
+                self.output.push_str(&format!("{}:\n", end_label));
+            }
             Expr::Call { name, args } => {
                 if let Some(sdef) = self.ctx.structs.get(name).cloned() {
                     let desc_label = format!("alya_struct_desc_{}", name);

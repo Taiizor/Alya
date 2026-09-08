@@ -33,6 +33,11 @@ pub enum Expr {
         fields: Vec<(String, Expr)>,
     },
     Map(Vec<(Expr, Expr)>),
+    Ternary {
+        condition: Box<Expr>,
+        then_branch: Box<Expr>,
+        else_branch: Box<Expr>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

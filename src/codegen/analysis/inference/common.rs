@@ -6,7 +6,9 @@ pub fn collect_function_defs<'a>(
 ) {
     for stmt in stmts {
         match stmt {
-            Stmt::Function { name, params, body } => {
+            Stmt::Function {
+                name, params, body, ..
+            } => {
                 defs.push((name.as_str(), params.as_slice(), body.as_slice()));
                 collect_function_defs(body, defs);
             }

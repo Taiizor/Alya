@@ -285,6 +285,23 @@ Absolute value of -42: 42\n\
 Minimum of 10 and 20: 10\n\
 Maximum of 10 and 20: 20\n",
         ),
+        "modern_syntax.alya" => Some(concat!(
+            "=== 1. Ternary & Inline If ===\n",
+            "Grade: Passed\n",
+            "Label: non-positive\n",
+            "Max: 25\n\n",
+            "=== 2. Default Parameters ===\n",
+            "Hello, World!\n",
+            "Welcome, Alice!\n",
+            "Good day, Bob?\n",
+            "Square of 5: 25\n",
+            "Cube of 3: 27\n\n",
+            "=== 3. Multiline & Raw Strings ===\n",
+            "*-------------------*\n",
+            "| Welcome to Alya!  |\n",
+            "*-------------------*\n\n",
+            "Raw path: C:\\path\\to\\config.json\n",
+        )),
         "modules.alya" => Some(
             "=== Modules & Imports ===\n\
 Sum: 16\n\

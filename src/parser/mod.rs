@@ -28,7 +28,9 @@ impl Parser {
             self.skip_newlines();
         }
 
-        Ok(Program { statements })
+        let mut program = Program { statements };
+        expand_default_args(&mut program);
+        Ok(program)
     }
 
     pub(super) fn current_token(&self) -> &Token {
@@ -75,6 +77,7 @@ pub fn resolve_imports(program: &mut Program, base_dir: &std::path::Path) -> Res
     validate_unique_functions(&resolved_stmts)?;
 
     program.statements = resolved_stmts;
+    expand_default_args(program);
     Ok(())
 }
 
@@ -108,9 +111,17 @@ fn apply_module_alias(
 
 fn prefix_stmt(stmt: &mut Stmt, alias: &str, local_fns: &std::collections::HashSet<String>) {
     match stmt {
-        Stmt::Function { name, body, .. } => {
+        Stmt::Function {
+            name,
+            defaults,
+            body,
+            ..
+        } => {
             if local_fns.contains(name) {
                 *name = format!("{}::{}", alias, name);
+            }
+            for def in defaults.iter_mut().flatten() {
+                prefix_expr(def, alias, local_fns);
             }
             for s in body {
                 prefix_stmt(s, alias, local_fns);
@@ -246,6 +257,15 @@ fn prefix_expr(expr: &mut Expr, alias: &str, local_fns: &std::collections::HashS
             for part in parts {
                 prefix_expr(part, alias, local_fns);
             }
+        }
+        Expr::Ternary {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            prefix_expr(condition, alias, local_fns);
+            prefix_expr(then_branch, alias, local_fns);
+            prefix_expr(else_branch, alias, local_fns);
         }
         _ => {}
     }
@@ -409,4 +429,229 @@ fn resolve_stmt_imports(
         }
     }
     Ok(())
+}
+
+pub fn expand_default_args(program: &mut Program) {
+    let mut fn_defs: std::collections::HashMap<String, (usize, Vec<Option<Expr>>)> =
+        std::collections::HashMap::new();
+
+    collect_fn_defaults(&program.statements, &mut fn_defs);
+
+    for stmt in &mut program.statements {
+        expand_defaults_in_stmt(stmt, &fn_defs);
+    }
+}
+
+fn collect_fn_defaults(
+    stmts: &[Stmt],
+    fn_defs: &mut std::collections::HashMap<String, (usize, Vec<Option<Expr>>)>,
+) {
+    for stmt in stmts {
+        match stmt {
+            Stmt::Function {
+                name,
+                params,
+                defaults,
+                body,
+            } => {
+                fn_defs.insert(name.clone(), (params.len(), defaults.clone()));
+                let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+                if bare != name {
+                    fn_defs.insert(bare.to_string(), (params.len(), defaults.clone()));
+                }
+                collect_fn_defaults(body, fn_defs);
+            }
+            Stmt::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                collect_fn_defaults(then_block, fn_defs);
+                if let Some(eb) = else_block {
+                    collect_fn_defaults(eb, fn_defs);
+                }
+            }
+            Stmt::While { body, .. }
+            | Stmt::Repeat { body, .. }
+            | Stmt::For { body, .. }
+            | Stmt::ForEach { body, .. } => {
+                collect_fn_defaults(body, fn_defs);
+            }
+            Stmt::TryCatch {
+                try_block,
+                catch_block,
+                finally_block,
+                ..
+            } => {
+                collect_fn_defaults(try_block, fn_defs);
+                collect_fn_defaults(catch_block, fn_defs);
+                if let Some(fb) = finally_block {
+                    collect_fn_defaults(fb, fn_defs);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+fn expand_defaults_in_stmt(
+    stmt: &mut Stmt,
+    fn_defs: &std::collections::HashMap<String, (usize, Vec<Option<Expr>>)>,
+) {
+    match stmt {
+        Stmt::Function { body, .. } => {
+            for s in body {
+                expand_defaults_in_stmt(s, fn_defs);
+            }
+        }
+        Stmt::Say(expr)
+        | Stmt::Expr(expr)
+        | Stmt::Let { value: expr, .. }
+        | Stmt::Assign { value: expr, .. } => {
+            expand_defaults_in_expr(expr, fn_defs);
+        }
+        Stmt::IndexAssign {
+            array,
+            index,
+            value,
+        } => {
+            expand_defaults_in_expr(array, fn_defs);
+            expand_defaults_in_expr(index, fn_defs);
+            expand_defaults_in_expr(value, fn_defs);
+        }
+        Stmt::FieldAssign { object, value, .. } => {
+            expand_defaults_in_expr(object, fn_defs);
+            expand_defaults_in_expr(value, fn_defs);
+        }
+        Stmt::If {
+            condition,
+            then_block,
+            else_block,
+        } => {
+            expand_defaults_in_expr(condition, fn_defs);
+            for s in then_block {
+                expand_defaults_in_stmt(s, fn_defs);
+            }
+            if let Some(eb) = else_block {
+                for s in eb {
+                    expand_defaults_in_stmt(s, fn_defs);
+                }
+            }
+        }
+        Stmt::While { condition, body } => {
+            expand_defaults_in_expr(condition, fn_defs);
+            for s in body {
+                expand_defaults_in_stmt(s, fn_defs);
+            }
+        }
+        Stmt::Repeat { body } => {
+            for s in body {
+                expand_defaults_in_stmt(s, fn_defs);
+            }
+        }
+        Stmt::For {
+            start, end, body, ..
+        } => {
+            expand_defaults_in_expr(start, fn_defs);
+            expand_defaults_in_expr(end, fn_defs);
+            for s in body {
+                expand_defaults_in_stmt(s, fn_defs);
+            }
+        }
+        Stmt::ForEach { iterable, body, .. } => {
+            expand_defaults_in_expr(iterable, fn_defs);
+            for s in body {
+                expand_defaults_in_stmt(s, fn_defs);
+            }
+        }
+        Stmt::Return(Some(expr)) | Stmt::Throw(Some(expr)) => {
+            expand_defaults_in_expr(expr, fn_defs);
+        }
+        Stmt::TryCatch {
+            try_block,
+            catch_block,
+            finally_block,
+            ..
+        } => {
+            for s in try_block {
+                expand_defaults_in_stmt(s, fn_defs);
+            }
+            for s in catch_block {
+                expand_defaults_in_stmt(s, fn_defs);
+            }
+            if let Some(fb) = finally_block {
+                for s in fb {
+                    expand_defaults_in_stmt(s, fn_defs);
+                }
+            }
+        }
+        _ => {}
+    }
+}
+
+fn expand_defaults_in_expr(
+    expr: &mut Expr,
+    fn_defs: &std::collections::HashMap<String, (usize, Vec<Option<Expr>>)>,
+) {
+    match expr {
+        Expr::Call { name, args } => {
+            for arg in args.iter_mut() {
+                expand_defaults_in_expr(arg, fn_defs);
+            }
+            if let Some((param_count, defaults)) = fn_defs.get(name) {
+                if args.len() < *param_count {
+                    for i in args.len()..*param_count {
+                        if let Some(Some(def_expr)) = defaults.get(i) {
+                            args.push(def_expr.clone());
+                        }
+                    }
+                }
+            }
+        }
+        Expr::Binary { left, right, .. } => {
+            expand_defaults_in_expr(left, fn_defs);
+            expand_defaults_in_expr(right, fn_defs);
+        }
+        Expr::Unary { expr, .. } => {
+            expand_defaults_in_expr(expr, fn_defs);
+        }
+        Expr::Ternary {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expand_defaults_in_expr(condition, fn_defs);
+            expand_defaults_in_expr(then_branch, fn_defs);
+            expand_defaults_in_expr(else_branch, fn_defs);
+        }
+        Expr::Array(elems) => {
+            for elem in elems {
+                expand_defaults_in_expr(elem, fn_defs);
+            }
+        }
+        Expr::Index { array, index } => {
+            expand_defaults_in_expr(array, fn_defs);
+            expand_defaults_in_expr(index, fn_defs);
+        }
+        Expr::FieldAccess { object, .. } => {
+            expand_defaults_in_expr(object, fn_defs);
+        }
+        Expr::StructInit { fields, .. } => {
+            for (_, val) in fields {
+                expand_defaults_in_expr(val, fn_defs);
+            }
+        }
+        Expr::Map(entries) => {
+            for (k, v) in entries {
+                expand_defaults_in_expr(k, fn_defs);
+                expand_defaults_in_expr(v, fn_defs);
+            }
+        }
+        Expr::InterpolatedString(parts) => {
+            for part in parts {
+                expand_defaults_in_expr(part, fn_defs);
+            }
+        }
+        _ => {}
+    }
 }

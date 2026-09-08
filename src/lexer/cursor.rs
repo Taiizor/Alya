@@ -17,6 +17,14 @@ impl Lexer {
         }
     }
 
+    pub(crate) fn peek_char_at(&self, offset: usize) -> Option<char> {
+        if self.position + offset < self.input.len() {
+            Some(self.input[self.position + offset])
+        } else {
+            None
+        }
+    }
+
     pub(crate) fn advance(&mut self) {
         if self.position < self.input.len() {
             if self.input[self.position] == '\n' {

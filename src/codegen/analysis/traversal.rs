@@ -165,6 +165,13 @@ pub fn find_call_arg_in_expr<'a>(
             }
             None
         }
+        Expr::Ternary {
+            condition,
+            then_branch,
+            else_branch,
+        } => find_call_arg_in_expr(condition, func_name, param_idx)
+            .or_else(|| find_call_arg_in_expr(then_branch, func_name, param_idx))
+            .or_else(|| find_call_arg_in_expr(else_branch, func_name, param_idx)),
         _ => None,
     }
 }

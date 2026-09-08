@@ -150,10 +150,21 @@ impl Parser {
         self.expect(TokenType::LeftParen)?;
 
         let mut params = Vec::new();
+        let mut defaults = Vec::new();
         while !matches!(self.current_token().token_type, TokenType::RightParen) {
             if let TokenType::Identifier(s) = &self.current_token().token_type {
-                params.push(s.clone());
+                let param_name = s.clone();
                 self.advance();
+
+                let default_val = if matches!(self.current_token().token_type, TokenType::Assign) {
+                    self.advance();
+                    Some(self.parse_expression()?)
+                } else {
+                    None
+                };
+
+                params.push(param_name);
+                defaults.push(default_val);
 
                 if matches!(self.current_token().token_type, TokenType::Comma) {
                     self.advance();
@@ -181,7 +192,12 @@ impl Parser {
 
         self.expect(TokenType::End)?;
 
-        Ok(Stmt::Function { name, params, body })
+        Ok(Stmt::Function {
+            name,
+            params,
+            defaults,
+            body,
+        })
     }
 
     pub(super) fn parse_return(&mut self) -> Result<Stmt, String> {

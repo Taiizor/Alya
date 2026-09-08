@@ -55,6 +55,7 @@ pub enum Stmt {
     Function {
         name: String,
         params: Vec<String>,
+        defaults: Vec<Option<Expr>>,
         body: Vec<Stmt>,
     },
     Return(Option<Expr>),

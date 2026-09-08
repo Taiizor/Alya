@@ -350,3 +350,58 @@ say x
         assert_eq!(output, "null\nnull\nnull\na is null\nb is nil\nnull equals nil\nc is not null\nvalue: null\nnull\n100\nnull\n");
     }
 }
+
+#[test]
+fn test_e2e_ternary_and_inline_if() {
+    let code = r#"
+let age = 20
+let status = age >= 18 ? "Adult" : "Minor"
+say status
+
+let num = -5
+let sign = if num > 0 then "positive" else "non-positive"
+say sign
+
+let a = 10
+let b = 20
+let max_val = a > b ? a : b
+say max_val
+
+let min_val = if a < b then a else b
+say min_val
+
+let nested = age > 10 ? (age > 18 ? "Adult" : "Teen") : "Child"
+say nested
+"#;
+    if let Some(output) = run_alya_code(code) {
+        assert_eq!(output, "Adult\nnon-positive\n20\n10\nAdult\n");
+    }
+}
+
+#[test]
+fn test_e2e_multiline_strings() {
+    let code = r#"
+let triple = """
+Line 1
+Line 2
+"""
+say triple
+
+let raw = `First line
+Second line`
+say raw
+
+let item = "Alya"
+let templ = """
+Hello, {item}!
+Welcome!
+"""
+say templ
+"#;
+    if let Some(output) = run_alya_code(code) {
+        assert_eq!(
+            output,
+            "Line 1\nLine 2\n\nFirst line\nSecond line\nHello, Alya!\nWelcome!\n\n"
+        );
+    }
+}

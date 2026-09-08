@@ -279,3 +279,21 @@ fn test_tokenize_null_nil_and_bitwise_operators() {
         ]
     );
 }
+
+#[test]
+fn test_tokenize_multiline_and_raw_strings() {
+    let source = "\"\"\"\nHello\nWorld\n\"\"\"\n`raw string\nwith newlines`";
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Tokenization failed");
+
+    assert_eq!(
+        tokens[0].token_type,
+        TokenType::String("Hello\nWorld\n".into())
+    );
+    assert_eq!(tokens[1].token_type, TokenType::Newline);
+    assert_eq!(
+        tokens[2].token_type,
+        TokenType::String("raw string\nwith newlines".into())
+    );
+    assert_eq!(tokens[3].token_type, TokenType::Eof);
+}

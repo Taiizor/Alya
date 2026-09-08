@@ -78,6 +78,7 @@ pub enum TokenType {
     Comma,        // ,
     Colon,        // :
     ColonColon,   // ::
+    Question,     // ?
     Dot,          // .
     DotDot,       // ..
     Newline,      // \n
@@ -207,6 +208,7 @@ impl std::fmt::Display for TokenType {
             TokenType::Comma => write!(f, "','"),
             TokenType::Colon => write!(f, "':'"),
             TokenType::ColonColon => write!(f, "'::'"),
+            TokenType::Question => write!(f, "'?'"),
             TokenType::Dot => write!(f, "'.'"),
             TokenType::DotDot => write!(f, "'..'"),
             TokenType::Newline => write!(f, "newline"),

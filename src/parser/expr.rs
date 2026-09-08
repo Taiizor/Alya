@@ -4,7 +4,39 @@ use crate::lexer::TokenType;
 
 impl Parser {
     pub(super) fn parse_expression(&mut self) -> Result<Expr, String> {
-        self.parse_or()
+        self.parse_ternary()
+    }
+
+    fn parse_ternary(&mut self) -> Result<Expr, String> {
+        if matches!(self.current_token().token_type, TokenType::If) {
+            self.advance();
+            let condition = self.parse_expression()?;
+            self.expect(TokenType::Then)?;
+            let then_branch = self.parse_expression()?;
+            self.expect(TokenType::Else)?;
+            let else_branch = self.parse_expression()?;
+            return Ok(Expr::Ternary {
+                condition: Box::new(condition),
+                then_branch: Box::new(then_branch),
+                else_branch: Box::new(else_branch),
+            });
+        }
+
+        let expr = self.parse_or()?;
+
+        if matches!(self.current_token().token_type, TokenType::Question) {
+            self.advance();
+            let then_branch = self.parse_expression()?;
+            self.expect(TokenType::Colon)?;
+            let else_branch = self.parse_expression()?;
+            return Ok(Expr::Ternary {
+                condition: Box::new(expr),
+                then_branch: Box::new(then_branch),
+                else_branch: Box::new(else_branch),
+            });
+        }
+
+        Ok(expr)
     }
 
     fn parse_or(&mut self) -> Result<Expr, String> {

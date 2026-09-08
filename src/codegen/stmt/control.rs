@@ -5,7 +5,7 @@ use crate::codegen::arch;
 use crate::codegen::context::VarType;
 
 impl CodeGen {
-    pub(super) fn generate_condition_jump_if_false(
+    pub(crate) fn generate_condition_jump_if_false(
         &mut self,
         condition: &Expr,
         target_label: &str,

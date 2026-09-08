@@ -461,3 +461,48 @@ fn test_parse_bitwise_operators_and_precedence() {
         other => panic!("Expected Shl, got {:?}", other),
     }
 }
+
+#[test]
+fn test_parse_ternary_and_inline_if() {
+    // cond ? a : b
+    let program1 = parse_code("say x > 0 ? 1 : 2").expect("Parse failed");
+    match &program1.statements[0] {
+        Stmt::Say(Expr::Ternary {
+            condition,
+            then_branch,
+            else_branch,
+        }) => {
+            assert!(matches!(
+                **condition,
+                Expr::Binary {
+                    op: BinaryOp::Greater,
+                    ..
+                }
+            ));
+            assert_eq!(**then_branch, Expr::Number(1.0));
+            assert_eq!(**else_branch, Expr::Number(2.0));
+        }
+        other => panic!("Expected Expr::Ternary, got {:?}", other),
+    }
+
+    // if cond then a else b
+    let program2 = parse_code("say if x > 0 then 1 else 2").expect("Parse failed");
+    match &program2.statements[0] {
+        Stmt::Say(Expr::Ternary {
+            condition,
+            then_branch,
+            else_branch,
+        }) => {
+            assert!(matches!(
+                **condition,
+                Expr::Binary {
+                    op: BinaryOp::Greater,
+                    ..
+                }
+            ));
+            assert_eq!(**then_branch, Expr::Number(1.0));
+            assert_eq!(**else_branch, Expr::Number(2.0));
+        }
+        other => panic!("Expected Expr::Ternary, got {:?}", other),
+    }
+}
