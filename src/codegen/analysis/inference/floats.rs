@@ -45,6 +45,9 @@ fn expr_is_definitely_float(expr: &Expr, known_floats: &HashSet<String>) -> bool
                     | "smoothstep"
                     | "variance"
                     | "_normalize_angle"
+                    | "rand_float"
+                    | "rand_float_range"
+                    | "rand_rng_float"
             ) || known_floats.contains(&format!("fn_ret_flt:{}", name))
                 || known_floats.contains(&format!("fn_ret_flt:{}", bare))
         }

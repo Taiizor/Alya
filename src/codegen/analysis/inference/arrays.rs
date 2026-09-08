@@ -33,6 +33,9 @@ fn expr_is_definitely_array(expr: &Expr, known_arrays: &HashSet<String>) -> bool
                     | "array_chunk"
                     | "array_fill"
                     | "map_entries"
+                    | "rand_sample"
+                    | "rand_shuffle"
+                    | "rand_shuffled"
             )
         }
         _ => false,

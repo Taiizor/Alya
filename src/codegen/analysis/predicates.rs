@@ -170,7 +170,31 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "array_chunk"
                     | "array_fill"
                     | "map_entries"
+                    | "rand_sample"
+                    | "rand_shuffle"
+                    | "rand_shuffled"
             )
+        }
+        Expr::FieldAccess { object, field } => {
+            if let Expr::Identifier(obj_name) = &**object {
+                let key = format!("{}.{}", obj_name, field);
+                if let Some(var_type) = vars.get(&key) {
+                    if matches!(var_type, VarType::Array(_)) {
+                        return true;
+                    }
+                }
+                if let Some(VarType::Struct { struct_name, .. }) = vars.get(obj_name) {
+                    let field_key = format!("struct_field_arr:{}.{}", struct_name, field);
+                    if vars.contains_key(&field_key) {
+                        return true;
+                    }
+                }
+            }
+            let global_field_key = format!("struct_field_arr:{}", field);
+            if vars.contains_key(&global_field_key) {
+                return true;
+            }
+            false
         }
         _ => false,
     }
@@ -302,6 +326,9 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "norm"
                     | "smoothstep"
                     | "variance"
+                    | "rand_float"
+                    | "rand_float_range"
+                    | "rand_rng_float"
             ) || vars.contains_key(&format!("fn_ret_flt:{}", name))
                 || vars.contains_key(&format!("fn_ret_flt:{}", bare))
         }

@@ -270,6 +270,7 @@ fn get_embedded_stdlib(module: &str) -> Option<&'static str> {
         "collections" => Some(include_str!("../../stdlib/collections.alya")),
         "test" => Some(include_str!("../../stdlib/test.alya")),
         "bench" => Some(include_str!("../../stdlib/bench.alya")),
+        "rand" => Some(include_str!("../../stdlib/rand.alya")),
         _ => None,
     }
 }

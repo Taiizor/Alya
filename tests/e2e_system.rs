@@ -989,3 +989,51 @@ bench_summary(b)
         assert!(output.contains("Finished 1 benchmark(s) in"));
     }
 }
+
+#[test]
+fn test_e2e_rand_stdlib() {
+    let code = r#"
+import "std/rand"
+
+rand_seed(12345)
+
+let r_int = rand_int(10, 20)
+say "int ok: {r_int >= 10 and r_int <= 20}"
+
+let r_flt = rand_float()
+say "flt ok: {r_flt >= 0.0 and r_flt < 1.0}"
+
+let arr = [10, 20, 30, 40, 50]
+let chosen = rand_choice(arr)
+say "choice ok: {chosen >= 10 and chosen <= 50}"
+
+let sampled = rand_sample(arr, 3)
+say "sample len: {len(sampled)}"
+
+let digits = rand_digits(6)
+say "digits len: {len(digits)}"
+
+let uuid = uuid_v4()
+say "uuid len: {len(uuid)}"
+say "uuid v4: {char_at(uuid, 14)}"
+
+let ulid = ulid_generate()
+say "ulid len: {len(ulid)}"
+
+let rng = rand_new(42)
+let rng_val = rand_rng_int(rng, 100, 200)
+say "rng ok: {rng_val >= 100 and rng_val <= 200}"
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("int ok: 1"));
+        assert!(output.contains("flt ok: 1"));
+        assert!(output.contains("choice ok: 1"));
+        assert!(output.contains("sample len: 3"));
+        assert!(output.contains("digits len: 6"));
+        assert!(output.contains("uuid len: 36"));
+        assert!(output.contains("uuid v4: 4"));
+        assert!(output.contains("ulid len: 26"));
+        assert!(output.contains("rng ok: 1"));
+    }
+}

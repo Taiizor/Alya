@@ -107,6 +107,7 @@ import "std/fs"
 import "std/hash"
 import "std/collections"
 import "std/test"
+import "std/rand"
 say PI
 "#;
     let mut lexer = Lexer::new(code);
@@ -164,6 +165,11 @@ say PI
         _ => false,
     });
 
+    let has_uuid_v4 = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "uuid_v4",
+        _ => false,
+    });
+
     assert!(has_hypot, "Missing hypot from std/math");
     assert!(has_now, "Missing now from std/time");
     assert!(has_env, "Missing env from std/os");
@@ -175,6 +181,7 @@ say PI
     assert!(has_fnv1a, "Missing fnv1a from std/hash");
     assert!(has_stack_new, "Missing stack_new from std/collections");
     assert!(has_assert_eq, "Missing assert_eq from std/test");
+    assert!(has_uuid_v4, "Missing uuid_v4 from std/rand");
 }
 
 #[test]

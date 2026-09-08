@@ -1,0 +1,332 @@
+# Alya Standard Library - Random & Unique ID Module (std/rand)
+# Provides PRNG utilities, range distributions, array shuffling, UUID v4, and ULID generation.
+
+struct Random
+    state
+end
+
+# --- Global PRNG Seeding & State ---
+
+function rand_seed_state(s)
+    rand_seed(s)
+end
+
+function rand_auto_seed()
+    let s = (time() * 1000) + (clock_ms() % 1000)
+    rand_seed(s)
+end
+
+# Generates a pseudo-random integer in the range [0, 2147483647] using the global PRNG.
+function rand_next()
+    let r = rand()
+    if r < 0
+        r = 0 - r
+    end
+    return r
+end
+
+# Generates a pseudo-random integer in the inclusive range [min_val, max_val].
+function rand_int(min_val, max_val)
+    if min_val >= max_val
+        return min_val
+    end
+    let r = rand_next()
+    let range = (max_val - min_val) + 1
+    return min_val + (r % range)
+end
+
+# Generates a pseudo-random float in the range [0.0, 1.0).
+function rand_float()
+    let r = rand_next() % 1000000000
+    return r / 1000000000.0
+end
+
+# Generates a pseudo-random float in the range [min_val, max_val).
+function rand_float_range(min_val, max_val)
+    if min_val >= max_val
+        return min_val
+    end
+    let f = rand_float()
+    return min_val + (f * (max_val - min_val))
+end
+
+# Returns 1 or 0 with 50% probability.
+function rand_bool()
+    return rand_next() % 2
+end
+
+# Returns 1 if an event with probability 'pct' (0..100) occurs, else 0.
+function rand_chance(pct)
+    if pct <= 0
+        return 0
+    end
+    if pct >= 100
+        return 1
+    end
+    return (rand_next() % 100) < pct
+end
+
+# --- Independent Random Instance (Xorshift64) ---
+
+function rand_new(seed)
+    if seed == 0
+        seed = (time() * 1000) + (clock_ms() % 1000)
+    end
+    if seed == 0
+        seed = 123456789
+    end
+    return Random(seed)
+end
+
+function rand_rng_next(rng)
+    let s = rng.state
+    s = bit_xor(s, bit_shl(s, 13))
+    s = bit_xor(s, bit_shr(s, 7))
+    s = bit_xor(s, bit_shl(s, 17))
+    if s < 0
+        s = 0 - s
+    end
+    if s == 0
+        s = 123456789
+    end
+    rng.state = s
+    return s
+end
+
+function rand_rng_int(rng, min_val, max_val)
+    if min_val >= max_val
+        return min_val
+    end
+    let s = rand_rng_next(rng)
+    let range = (max_val - min_val) + 1
+    return min_val + (s % range)
+end
+
+function rand_rng_float(rng)
+    let s = rand_rng_next(rng) % 1000000000
+    return s / 1000000000.0
+end
+
+function rand_rng_bool(rng)
+    return rand_rng_next(rng) % 2
+end
+
+function rand_rng_choice(rng, arr)
+    let n = len(arr)
+    if n == 0
+        return 0
+    end
+    let idx = rand_rng_int(rng, 0, n - 1)
+    return arr[idx]
+end
+
+# --- Array & Collection Utilities ---
+
+# Returns a randomly selected element from 'arr'.
+function rand_choice(arr)
+    let n = len(arr)
+    if n == 0
+        return 0
+    end
+    let idx = rand_int(0, n - 1)
+    return arr[idx]
+end
+
+# In-place Fisher-Yates shuffle of array 'arr'.
+function rand_shuffle(arr)
+    let n = len(arr)
+    let i = n - 1
+    while i > 0
+        let j = rand_int(0, i)
+        let temp = arr[i]
+        arr[i] = arr[j]
+        arr[j] = temp
+        i -= 1
+    end
+    return arr
+end
+
+# Returns a new shuffled copy of array 'arr'.
+function rand_shuffled(arr)
+    let copy = []
+    for item in arr
+        copy.push(item)
+    end
+    return rand_shuffle(copy)
+end
+
+# Returns 'count' randomly sampled distinct elements from 'arr' (without replacement).
+function rand_sample(arr, count)
+    let n = len(arr)
+    if count >= n
+        return rand_shuffled(arr)
+    end
+    let pool = rand_shuffled(arr)
+    let res = []
+    let i = 0
+    while i < count
+        res.push(pool[i])
+        i += 1
+    end
+    return res
+end
+
+# --- String Generation Utilities ---
+
+# Generates a random string of length 'n' from 'charset'.
+function rand_string(n, charset)
+    let clen = len(charset)
+    if clen == 0 or n <= 0
+        return ""
+    end
+    let res = ""
+    let i = 0
+    while i < n
+        let idx = rand_int(0, clen - 1)
+        res = res + char_at(charset, idx)
+        i += 1
+    end
+    return res
+end
+
+# Generates a random alphanumeric string of length 'n' ([a-zA-Z0-9]).
+function rand_alphanumeric(n)
+    let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+    return rand_string(n, chars)
+end
+
+# Generates a random numeric digits string of length 'n' ([0-9]).
+function rand_digits(n)
+    let digits = "0123456789"
+    return rand_string(n, digits)
+end
+
+# Generates a random hexadecimal string of length 'n' ([0-9a-f]).
+function rand_hex(n)
+    let hex = "0123456789abcdef"
+    return rand_string(n, hex)
+end
+
+# --- UUID v4 Generation (RFC 4122) ---
+
+# Generates a 36-character RFC 4122 compliant UUID Version 4 string.
+# Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+function uuid_v4()
+    let hex = "0123456789abcdef"
+    let variant_chars = "89ab"
+    let res = ""
+
+    # Part 1: 8 hex chars
+    let i = 0
+    while i < 8
+        res = res + char_at(hex, rand_int(0, 15))
+        i += 1
+    end
+    res = res + "-"
+
+    # Part 2: 4 hex chars
+    i = 0
+    while i < 4
+        res = res + char_at(hex, rand_int(0, 15))
+        i += 1
+    end
+    res = res + "-"
+
+    # Part 3: 4 hex chars with version '4'
+    res = res + "4"
+    i = 0
+    while i < 3
+        res = res + char_at(hex, rand_int(0, 15))
+        i += 1
+    end
+    res = res + "-"
+
+    # Part 4: 4 hex chars with variant [8, 9, a, b]
+    res = res + char_at(variant_chars, rand_int(0, 3))
+    i = 0
+    while i < 3
+        res = res + char_at(hex, rand_int(0, 15))
+        i += 1
+    end
+    res = res + "-"
+
+    # Part 5: 12 hex chars
+    i = 0
+    while i < 12
+        res = res + char_at(hex, rand_int(0, 15))
+        i += 1
+    end
+
+    return res
+end
+
+# Generates a 32-character UUID Version 4 string without hyphens.
+function uuid_v4_simple()
+    let hex = "0123456789abcdef"
+    let variant_chars = "89ab"
+    let res = ""
+
+    let i = 0
+    while i < 12
+        res = res + char_at(hex, rand_int(0, 15))
+        i += 1
+    end
+
+    # Version 4
+    res = res + "4"
+    i = 0
+    while i < 3
+        res = res + char_at(hex, rand_int(0, 15))
+        i += 1
+    end
+
+    # Variant
+    res = res + char_at(variant_chars, rand_int(0, 3))
+    i = 0
+    while i < 15
+        res = res + char_at(hex, rand_int(0, 15))
+        i += 1
+    end
+
+    return res
+end
+
+# --- ULID Generation (Universally Unique Lexicographically Sortable Identifier) ---
+
+# Internal helper to encode 48-bit millisecond timestamp into 10 Crockford Base32 characters.
+function _ulid_encode_time(t)
+    let chars = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+    let res = ""
+    let divisor = 35184372088832 # 32^9
+    let i = 0
+    while i < 10
+        let idx = (t / divisor) % 32
+        res = res + char_at(chars, idx)
+        divisor = divisor / 32
+        i += 1
+    end
+    return res
+end
+
+# Generates a 26-character ULID for a specific timestamp in milliseconds.
+function ulid_at(timestamp_ms)
+    let chars = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+    let time_part = _ulid_encode_time(timestamp_ms)
+
+    # 16 random Crockford Base32 characters (80 bits of randomness)
+    let rand_part = ""
+    let i = 0
+    while i < 16
+        let idx = rand_int(0, 31)
+        rand_part = rand_part + char_at(chars, idx)
+        i += 1
+    end
+
+    return time_part + rand_part
+end
+
+# Generates a 26-character ULID using current system time (epoch ms) and 80-bit randomness.
+function ulid_generate()
+    let now_ms = (time() * 1000) + (clock_ms() % 1000)
+    return ulid_at(now_ms)
+end
