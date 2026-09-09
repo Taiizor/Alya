@@ -13,8 +13,8 @@
 #
 # Usage:
 #   alyac run apps/http_bench/main.alya
-#   alyac run apps/http_bench/main.alya -- -u http://127.0.0.1:8080/ -n 1000 -c 4
-#   alyac run apps/http_bench/main.alya -- -u http://127.0.0.1:8080/ -n 5000 -c 8 -k
+#   alyac run apps/http_bench/main.alya -- -u http://127.0.0.1:8080/json -n 1000 -c 4
+#   alyac run apps/http_bench/main.alya -- -u http://127.0.0.1:8080/json -n 5000 -c 8 -k
 # ═══════════════════════════════════════════════════════════════
 
 import "std/net"
@@ -35,7 +35,7 @@ end
 
 function parse_args()
     let cli_args = args()
-    let u = "http://127.0.0.1:8080/"
+    let u = "http://127.0.0.1:8080/json"
     let n = 50
     let c = 2
     let t = 2000
