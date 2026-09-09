@@ -46,6 +46,9 @@ pub fn emit_header(out: &mut String) {
     out.push_str(".extern inet_ntoa\n");
     out.push_str(".extern sendto\n");
     out.push_str(".extern recvfrom\n");
+    out.push_str(".extern select\n");
+    out.push_str(".extern ioctlsocket\n");
+    out.push_str(".extern fcntl\n");
     out.push_str(".extern sin\n");
     out.push_str(".extern cos\n");
     out.push_str(".extern tan\n");

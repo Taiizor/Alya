@@ -4,15 +4,17 @@
 # ═══════════════════════════════════════════════════════════════
 #
 # Features:
-#   - Concurrent HTTP/TCP benchmarking (like wrk/ab)
-#   - Multi-threaded worker load generation via OS threads
+#   - Concurrent HTTP/TCP benchmarking (like wrk/ab/autocannon)
+#   - Multi-threaded worker load generation via OS threads (std/thread)
+#   - HTTP/1.1 Persistent Connections (Keep-Alive) socket reuse
+#   - Non-blocking I/O multiplexing & Event Polling (tcp_poll)
 #   - High-resolution latency profiling (Min, Max, Avg)
-#   - Real-time ASCII progress bar visualization
-#   - Formatted ANSI summary table and throughput metrics
+#   - Formatted ANSI summary table and throughput metrics (RPS)
 #
 # Usage:
 #   alyac run apps/http_bench/main.alya
-#   alyac run apps/http_bench/main.alya -- -u http://127.0.0.1:8080/ -n 100 -c 4
+#   alyac run apps/http_bench/main.alya -- -u http://127.0.0.1:8080/ -n 1000 -c 4
+#   alyac run apps/http_bench/main.alya -- -u http://127.0.0.1:8080/ -n 5000 -c 8 -k
 # ═══════════════════════════════════════════════════════════════
 
 import "std/net"
@@ -28,6 +30,7 @@ struct BenchConfig
     total_reqs
     concurrency
     timeout_ms
+    keep_alive
 end
 
 function parse_args()
@@ -36,6 +39,7 @@ function parse_args()
     let n = 50
     let c = 2
     let t = 2000
+    let k = 1
 
     let i = 0
     while i < len(cli_args)
@@ -57,14 +61,18 @@ function parse_args()
             if parsed_t > 0
                 t = parsed_t
             end
+        elif a == "-k" or a == "--keep-alive"
+            k = 1
+        elif a == "--no-keep-alive"
+            k = 0
         end
         i += 1
     end
 
-    return BenchConfig(u, n, c, t)
+    return BenchConfig(u, n, c, t, k)
 end
 
-function run_single_request(url_str)
+function run_single_probe(url_str)
     let t0 = clock_ms()
     let resp = http_get(url_str)
     let elapsed = clock_ms() - t0
@@ -73,6 +81,101 @@ function run_single_request(url_str)
         ok = 1
     end
     return ok, elapsed
+end
+
+function run_worker_task(args_tuple)
+    let cfg, reqs_for_worker, ch_res = args_tuple
+    let parsed = url_parse(cfg.url)
+    let host = parsed.url_host
+    let port = 80
+    if len(parsed.url_port) > 0
+        port = int(parsed.url_port)
+    end
+    let path = parsed.url_path
+    if len(path) == 0
+        path = "/"
+    end
+    if len(parsed.url_query) > 0
+        path = path + "?" + parsed.url_query
+    end
+
+    let req_str = "GET " + path + " HTTP/1.1\r\nHost: " + host + "\r\nConnection: keep-alive\r\nUser-Agent: Alya-Bench/1.0\r\n\r\n"
+    if cfg.keep_alive == 0
+        req_str = "GET " + path + " HTTP/1.1\r\nHost: " + host + "\r\nConnection: close\r\nUser-Agent: Alya-Bench/1.0\r\n\r\n"
+    end
+
+    let sock = -1
+    let ok_count = 0
+    let fail_count = 0
+    let min_latency = 999999
+    let max_latency = 0
+    let total_latency = 0
+
+    let i = 0
+    while i < reqs_for_worker
+        let t0 = clock_ms()
+
+        if sock < 0
+            sock = tcp_connect(host, port)
+            if sock < 0
+                fail_count += 1
+                i += 1
+                continue
+            end
+            tcp_set_timeout(sock, cfg.timeout_ms)
+        end
+
+        let s_res = tcp_send(sock, req_str)
+        if s_res < 0
+            tcp_close(sock)
+            sock = -1
+            fail_count += 1
+            i += 1
+            continue
+        end
+
+        let ready = tcp_poll(sock, cfg.timeout_ms)
+        if ready <= 0
+            tcp_close(sock)
+            sock = -1
+            fail_count += 1
+            i += 1
+            continue
+        end
+
+        let resp_str = tcp_recv(sock, 4096)
+        if len(resp_str) == 0
+            tcp_close(sock)
+            sock = -1
+            fail_count += 1
+            i += 1
+            continue
+        end
+
+        let elapsed = clock_ms() - t0
+        ok_count += 1
+        if elapsed < min_latency
+            min_latency = elapsed
+        end
+        if elapsed > max_latency
+            max_latency = elapsed
+        end
+        total_latency += elapsed
+
+        if cfg.keep_alive == 0
+            tcp_close(sock)
+            sock = -1
+        end
+
+        i += 1
+    end
+
+    if sock >= 0
+        tcp_close(sock)
+    end
+
+    channel_send(ch_res, (ok_count, fail_count, min_latency, max_latency, total_latency))
+    return 0
 end
 
 struct BenchStats
@@ -92,6 +195,11 @@ function show_banner(cfg)
     say color_cyan("║") + "  Target URL   : " + color_white(cfg.url)
     say color_cyan("║") + "  Total Reqs   : " + color_green(str(cfg.total_reqs)) + " requests"
     say color_cyan("║") + "  Concurrency  : " + color_magenta(str(cfg.concurrency)) + " worker threads"
+    if cfg.keep_alive == 1
+        say color_cyan("║") + "  Keep-Alive   : " + color_green("enabled (persistent TCP)")
+    else
+        say color_cyan("║") + "  Keep-Alive   : " + color_yellow("disabled (close per req)")
+    end
     say color_cyan("║") + "  Timeout      : " + str(cfg.timeout_ms) + " ms"
     say color_cyan("╚═════════════════════════════════════════════════╝")
     say ""
@@ -124,7 +232,7 @@ function main()
     let cfg = parse_args()
     show_banner(cfg)
 
-    # Check for test mode or simulate
+    # Check for smoke test mode
     let cli_args = args()
     let is_test = 0
     let i = 0
@@ -145,7 +253,7 @@ function main()
 
     # Pre-flight connectivity check: verify target server is reachable
     say "Connecting to " + color_white(cfg.url) + "..."
-    let probe_ok, probe_lat = run_single_request(cfg.url)
+    let probe_ok, probe_lat = run_single_probe(cfg.url)
     if probe_ok == 0
         say ""
         say color_red("✗ Error:") + " Could not connect to target server at " + style_bold(cfg.url)
@@ -158,50 +266,67 @@ function main()
     say color_green("✓ Connection verified") + " (" + str(probe_lat) + " ms). Starting benchmark...\n"
     let t_start = clock_ms()
 
-    let ok_count = 0
-    let fail_count = 0
-    let min_latency = 999999
-    let max_latency = 0
-    let total_latency = 0
+    let ch_res = channel_new()
+    let reqs_per_worker = cfg.total_reqs / cfg.concurrency
+    let remainder = cfg.total_reqs % cfg.concurrency
 
-    let cur = 0
-    while cur < cfg.total_reqs
-        let ok, lat = run_single_request(cfg.url)
-        if ok == 1
-            ok_count += 1
-        else
-            fail_count += 1
+    let w = 0
+    let threads = []
+    while w < cfg.concurrency
+        let n_w = reqs_per_worker
+        if w == cfg.concurrency - 1
+            n_w = n_w + remainder
         end
-
-        if lat < min_latency
-            min_latency = lat
-        end
-        if lat > max_latency
-            max_latency = lat
-        end
-        total_latency += lat
-        cur += 1
-
-        if cur % 5 == 0 or cur == cfg.total_reqs
-            let pbar = console_progress_bar(cur, cfg.total_reqs, 30)
-            say "\r" + pbar + " (" + str(cur) + "/" + str(cfg.total_reqs) + ")"
-        end
+        let t = thread_spawn(run_worker_task, (cfg, n_w, ch_res))
+        threads.push(t)
+        w += 1
     end
+
+    let total_ok = 0
+    let total_fail = 0
+    let overall_min_lat = 999999
+    let overall_max_lat = 0
+    let sum_latencies = 0
+
+    let recvd = 0
+    while recvd < cfg.concurrency
+        let res_tuple = channel_recv(ch_res, cfg.timeout_ms + 10000)
+        if res_tuple != null
+            let ok_c, fail_c, min_l, max_l, tot_l = res_tuple
+            total_ok += ok_c
+            total_fail += fail_c
+            if min_l < overall_min_lat
+                overall_min_lat = min_l
+            end
+            if max_l > overall_max_lat
+                overall_max_lat = max_l
+            end
+            sum_latencies += tot_l
+        end
+        recvd += 1
+    end
+
+    let ti = 0
+    while ti < len(threads)
+        thread_join(threads[ti])
+        ti += 1
+    end
+    channel_free(ch_res)
 
     let total_wall_time = clock_ms() - t_start
-    if min_latency == 999999
-        min_latency = 0
+    if overall_min_lat == 999999
+        overall_min_lat = 0
     end
     let avg_latency = 0
-    if cfg.total_reqs > 0
-        avg_latency = total_latency / cfg.total_reqs
+    if total_ok > 0
+        avg_latency = sum_latencies / total_ok
     end
     let rps = 0
     if total_wall_time > 0
-        rps = (cfg.total_reqs * 1000) / total_wall_time
+        rps = (total_ok * 1000) / total_wall_time
     end
 
-    let stats = BenchStats(ok_count, fail_count, total_wall_time, min_latency, max_latency, avg_latency, rps)
+    let stats = BenchStats(total_ok, total_fail, total_wall_time, overall_min_lat, overall_max_lat, avg_latency, rps)
     show_results(cfg, stats)
 end
 

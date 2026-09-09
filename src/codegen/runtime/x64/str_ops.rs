@@ -18,8 +18,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    mov %rsi, %r10\n");
         out.push_str("    mov %rdi, %rsi\n");
     }
-    out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    mov alya_str_idx(%rip), %rbx\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_concat_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
@@ -50,7 +50,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %r8, %rdi\n");
     out.push_str("    add $7, %rdi\n");
     out.push_str("    and $-8, %rdi\n");
-    out.push_str("    mov %rdi, alya_str_idx(%rip)\n");
+    out.push_str("    mov %rdi, (%r9)\n");
     out.push_str("    pop %rbx\n");
     out.push_str("    pop %rdi\n");
     out.push_str("    pop %rsi\n");
@@ -95,8 +95,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     if matches!(os, OperatingSystem::Windows) {
         out.push_str("    mov %rcx, %rdi\n");
     }
-    out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    mov alya_str_idx(%rip), %rbx\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_upper_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
@@ -124,7 +124,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %r8, %r13\n");
     out.push_str("    add $7, %r13\n");
     out.push_str("    and $-8, %r13\n");
-    out.push_str("    mov %r13, alya_str_idx(%rip)\n");
+    out.push_str("    mov %r13, (%r9)\n");
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
     out.push_str("    pop %rbx\n");
@@ -146,8 +146,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     if matches!(os, OperatingSystem::Windows) {
         out.push_str("    mov %rcx, %rdi\n");
     }
-    out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    mov alya_str_idx(%rip), %rbx\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_lower_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
@@ -175,7 +175,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %r8, %r13\n");
     out.push_str("    add $7, %r13\n");
     out.push_str("    and $-8, %r13\n");
-    out.push_str("    mov %r13, alya_str_idx(%rip)\n");
+    out.push_str("    mov %r13, (%r9)\n");
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
     out.push_str("    pop %rbx\n");
@@ -237,8 +237,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    dec %r12\n");
     out.push_str("    jmp .L_x64_trim_tws\n");
     out.push_str(".L_x64_trim_copy_start:\n");
-    out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    mov alya_str_idx(%rip), %rbx\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_trim_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
@@ -260,7 +260,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %r8, %r14\n");
     out.push_str("    add $7, %r14\n");
     out.push_str("    and $-8, %r14\n");
-    out.push_str("    mov %r14, alya_str_idx(%rip)\n");
+    out.push_str("    mov %r14, (%r9)\n");
     out.push_str("    pop %r14\n");
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
@@ -298,8 +298,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    dec %rsi\n");
     out.push_str("    jmp .L_x64_sub_adv\n");
     out.push_str(".L_x64_sub_adv_done:\n");
-    out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    mov alya_str_idx(%rip), %rbx\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_sub_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
@@ -326,7 +326,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %r8, %r13\n");
     out.push_str("    add $7, %r13\n");
     out.push_str("    and $-8, %r13\n");
-    out.push_str("    mov %r13, alya_str_idx(%rip)\n");
+    out.push_str("    mov %r13, (%r9)\n");
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
     out.push_str("    pop %rbx\n");
@@ -366,8 +366,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movzbl (%rdi), %edx\n");
     out.push_str("    test %edx, %edx\n");
     out.push_str("    jz .L_x64_char_at_end\n");
-    out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    mov alya_str_idx(%rip), %rbx\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_char_at_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
@@ -380,7 +380,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %r8, %r12\n");
     out.push_str("    add $7, %r12\n");
     out.push_str("    and $-8, %r12\n");
-    out.push_str("    mov %r12, alya_str_idx(%rip)\n");
+    out.push_str("    mov %r12, (%r9)\n");
     out.push_str(".L_x64_char_at_end:\n");
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
@@ -432,8 +432,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x64_chr_code:\n");
     out.push_str("    and $255, %edx\n");
     out.push_str("    jz .L_x64_chr_end\n");
-    out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    mov alya_str_idx(%rip), %rbx\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_chr_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
@@ -446,7 +446,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %r8, %r12\n");
     out.push_str("    add $7, %r12\n");
     out.push_str("    and $-8, %r12\n");
-    out.push_str("    mov %r12, alya_str_idx(%rip)\n");
+    out.push_str("    mov %r12, (%r9)\n");
     out.push_str(".L_x64_chr_end:\n");
     out.push_str("    pop %r12\n");
     out.push_str("    pop %rbx\n");
@@ -468,8 +468,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     } else {
         out.push_str("    mov %rdi, %rax\n");
     }
-    out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    mov alya_str_idx(%rip), %rbx\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_str_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
@@ -510,7 +510,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %r8, %r12\n");
     out.push_str("    add $7, %r12\n");
     out.push_str("    and $-8, %r12\n");
-    out.push_str("    mov %r12, alya_str_idx(%rip)\n");
+    out.push_str("    mov %r12, (%r9)\n");
     out.push_str("    mov %r14, %rax\n");
     out.push_str("    pop %r14\n");
     out.push_str("    pop %r13\n");

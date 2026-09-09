@@ -17,7 +17,7 @@ pub fn emit_data_sections(
     }
 
     out.push_str("alya_str_buf:\n");
-    out.push_str("    .space 1048576\n");
+    out.push_str("    .space 67108864\n");
     if matches!(os, OperatingSystem::Windows) {
         out.push_str("alya_wsa_data:\n");
         out.push_str("    .space 512\n");
@@ -25,7 +25,7 @@ pub fn emit_data_sections(
     match arch {
         Architecture::ARM64 | Architecture::X64 => {
             out.push_str("alya_str_idx:\n");
-            out.push_str("    .quad 0\n");
+            out.push_str("    .space 512\n");
             out.push_str("alya_argc:\n");
             out.push_str("    .quad 0\n");
             out.push_str("alya_argv:\n");

@@ -60,6 +60,28 @@ function tcp_set_timeout(sock, ms)
     return net_set_timeout(sock, ms)
 end
 
+# Sets non-blocking mode on a socket (mode = 1: non-blocking, mode = 0: blocking).
+# Returns 0 on success or -1 on error.
+function tcp_set_nonblocking(sock, mode = 1)
+    if mode == null
+        mode = 1
+    end
+    return net_set_nonblocking(sock, mode)
+end
+
+# Polls a socket for incoming readable data (or incoming connections on listening server)
+# within timeout_ms milliseconds.
+# Returns:
+#   1: socket has data ready to read (or connection ready to accept)
+#   0: timed out (no data ready)
+#  -1: error or connection reset
+function tcp_poll(sock, timeout_ms = 0)
+    if timeout_ms == null or timeout_ms < 0
+        timeout_ms = 0
+    end
+    return net_poll(sock, timeout_ms)
+end
+
 # Returns the remote peer's IP address as a string (e.g. "127.0.0.1"), or "" on failure.
 function tcp_peer_ip(sock)
     return net_peer_ip(sock)
@@ -120,6 +142,22 @@ function udp_set_timeout(sock, ms)
         ms = 10000
     end
     return net_set_timeout(sock, ms)
+end
+
+# Sets non-blocking mode on a UDP socket (mode = 1: non-blocking, mode = 0: blocking).
+function udp_set_nonblocking(sock, mode = 1)
+    if mode == null
+        mode = 1
+    end
+    return net_set_nonblocking(sock, mode)
+end
+
+# Polls a UDP socket for incoming datagrams within timeout_ms milliseconds.
+function udp_poll(sock, timeout_ms = 0)
+    if timeout_ms == null or timeout_ms < 0
+        timeout_ms = 0
+    end
+    return net_poll(sock, timeout_ms)
 end
 
 # --- HTTP Client ---

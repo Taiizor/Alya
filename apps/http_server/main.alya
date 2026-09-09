@@ -5,14 +5,18 @@
 #
 # Features:
 #   - High-performance TCP socket HTTP 1.1 server
+#   - HTTP/1.1 Persistent Connections (Keep-Alive)
+#   - Multi-threaded Worker Pool via OS threads (std/thread)
+#   - Non-blocking I/O multiplexing & Event Polling (tcp_poll)
 #   - Static file serving (HTML, CSS, text)
 #   - Dynamic REST JSON API endpoints (/api/status, /api/echo)
 #   - ANSI colored access logging with status codes
-#   - Configurable port via CLI argument
+#   - Configurable port and worker threads via CLI arguments
 #
 # Usage:
 #   alyac run apps/http_server/main.alya
-#   alyac run apps/http_server/main.alya --port 8080
+#   alyac run apps/http_server/main.alya --port 8080 --workers 4
+#   alyac run apps/http_server/main.alya -p 8080 -w 8 -q
 # ═══════════════════════════════════════════════════════════════
 
 import "std/net"
@@ -21,24 +25,48 @@ import "std/color"
 import "std/fs"
 import "std/time"
 import "std/os"
+import "std/thread"
 
-function parse_port()
+struct ServerConfig
+    port
+    workers
+    quiet
+    smoke_test
+    max_requests
+end
+
+function parse_server_config()
     let cli_args = args()
     let p = 8080
+    let w = 4
+    let q = 0
+    let test_mode = 0
+    let max_req = -1
+
     let i = 0
     while i < len(cli_args)
         let a = cli_args[i]
-        if a == "--port" or a == "-p"
-            if i + 1 < len(cli_args)
-                let parsed = int(cli_args[i + 1])
-                if parsed > 0 and parsed <= 65535
-                    p = parsed
-                end
+        if (a == "--port" or a == "-p") and i + 1 < len(cli_args)
+            let parsed = int(cli_args[i + 1])
+            if parsed > 0 and parsed <= 65535
+                p = parsed
             end
+        elif (a == "--workers" or a == "-w") and i + 1 < len(cli_args)
+            let parsed = int(cli_args[i + 1])
+            if parsed >= 1 and parsed <= 64
+                w = parsed
+            end
+        elif a == "--quiet" or a == "-q"
+            q = 1
+        elif a == "--test"
+            test_mode = 1
+        elif a == "--once"
+            max_req = 1
         end
         i += 1
     end
-    return p
+
+    return ServerConfig(p, w, q, test_mode, max_req)
 end
 
 function extract_request_line(raw)
@@ -70,70 +98,113 @@ function extract_request_line(raw)
     return m, p
 end
 
-function build_response(status_code, content_type, body)
+function build_response(status_code, content_type, body, keep_alive)
     let status_text = http_status_text(status_code)
     let blen = len(body)
     let resp = "HTTP/1.1 " + str(status_code) + " " + status_text + "\r\n"
     resp = resp + "Content-Type: " + content_type + "\r\n"
     resp = resp + "Content-Length: " + str(blen) + "\r\n"
     resp = resp + "Server: Alya-Native-Server/0.0.5\r\n"
-    resp = resp + "Connection: close\r\n\r\n"
+    if keep_alive == 1
+        resp = resp + "Connection: keep-alive\r\n"
+        resp = resp + "Keep-Alive: timeout=5, max=1000\r\n\r\n"
+    else
+        resp = resp + "Connection: close\r\n\r\n"
+    end
     resp = resp + body
     return resp
 end
 
 function handle_client(client_sock, start_time, quiet)
-    tcp_set_timeout(client_sock, 3000)
-    let req = tcp_recv(client_sock, 4096)
-    if len(req) == 0
-        tcp_close(client_sock)
-        return
-    end
+    while 1
+        # Use non-blocking event polling to wait for incoming HTTP request
+        # 5000ms idle keep-alive timeout
+        let ready = tcp_poll(client_sock, 5000)
+        if ready <= 0
+            break
+        end
 
-    let m, p = extract_request_line(req)
-    let now = clock_ms()
-    let uptime = now - start_time
+        let req = tcp_recv(client_sock, 4096)
+        if len(req) == 0
+            break
+        end
 
-    let status = 200
-    let ctype = "text/html; charset=utf-8"
-    let body = ""
+        let m, p = extract_request_line(req)
 
-    if p == "/" or p == "/index.html"
-        let file_path = "apps/http_server/public/index.html"
-        if file_exists(file_path) == 1
-            body = read_file(file_path)
+        # Detect Connection: keep-alive vs close
+        let keep_alive = 1
+        let lower_req = lower(req)
+        if index_of(lower_req, "connection: close") >= 0
+            keep_alive = 0
+        elif index_of(req, "HTTP/1.0") >= 0 and index_of(lower_req, "connection: keep-alive") < 0
+            keep_alive = 0
+        end
+
+        let now = clock_ms()
+        let uptime = now - start_time
+
+        let status = 200
+        let ctype = "text/html; charset=utf-8"
+        let body = ""
+
+        if p == "/" or p == "/index.html"
+            let file_path = "apps/http_server/public/index.html"
+            if file_exists(file_path) == 1
+                body = read_file(file_path)
+            else
+                body = "<!DOCTYPE html><html><body><h1>⚡ Alya HTTP Server</h1><p>Server running with Keep-Alive & Worker Pool!</p></body></html>"
+            end
+        elif p == "/api/status"
+            ctype = "application/json"
+            body = "{\"status\": \"ok\", \"server\": \"Alya-Native-Server\", \"version\": \"0.0.5\", \"uptime_ms\": " + str(uptime) + ", \"timestamp\": " + str(now) + "}"
+        elif starts_with(p, "/api/echo")
+            ctype = "application/json"
+            body = "{\"method\": \"" + m + "\", \"path\": \"" + p + "\", \"server_time_ms\": " + str(now) + ", \"engine\": \"Alya Native Compiler\"}"
         else
-            body = "<!DOCTYPE html><html><body><h1>⚡ Alya HTTP Server</h1><p>Server running!</p></body></html>"
+            status = 404
+            body = "<!DOCTYPE html><html><body><h1>404 Not Found</h1><p>The requested path '" + p + "' was not found on this server.</p></body></html>"
         end
-    elif p == "/api/status"
-        ctype = "application/json"
-        body = "{\"status\": \"ok\", \"server\": \"Alya-Native-Server\", \"version\": \"0.0.5\", \"uptime_ms\": " + str(uptime) + ", \"timestamp\": " + str(now) + "}"
-    elif starts_with(p, "/api/echo")
-        ctype = "application/json"
-        body = "{\"method\": \"" + m + "\", \"path\": \"" + p + "\", \"server_time_ms\": " + str(now) + ", \"engine\": \"Alya Native Compiler\"}"
-    else
-        status = 404
-        body = "<!DOCTYPE html><html><body><h1>404 Not Found</h1><p>The requested path '" + p + "' was not found on this server.</p></body></html>"
+
+        let resp = build_response(status, ctype, body, keep_alive)
+        tcp_send(client_sock, resp)
+
+        if quiet == 0
+            let stat_color = color_green(str(status))
+            if status >= 400
+                stat_color = color_red(str(status))
+            end
+            say color_cyan("[HTTP]") + " " + style_bold(m) + " " + p + " -> " + stat_color + " (" + str(len(body)) + " bytes)"
+        end
+
+        if keep_alive == 0
+            break
+        end
     end
 
-    let resp = build_response(status, ctype, body)
-    tcp_send(client_sock, resp)
     tcp_close(client_sock)
+end
 
-    if quiet == 0
-        let stat_color = color_green(str(status))
-        if status >= 400
-            stat_color = color_red(str(status))
+function worker_proc(ctx)
+    let ch, start_time, quiet = ctx
+    while 1
+        let client_sock = channel_recv(ch, 1000)
+        if client_sock != null
+            if client_sock == -999
+                break
+            end
+            if client_sock >= 0
+                handle_client(client_sock, start_time, quiet)
+            end
         end
-        say color_cyan("[HTTP]") + " " + style_bold(m) + " " + p + " -> " + stat_color + " (" + str(len(body)) + " bytes)"
     end
+    return 0
 end
 
 function main()
-    let port = parse_port()
-    let server = tcp_listen(port, 16)
+    let cfg = parse_server_config()
+    let server = tcp_listen(cfg.port, 128)
     if server < 0
-        say color_red("Error:") + " Failed to bind TCP server on port " + str(port)
+        say color_red("Error:") + " Failed to bind TCP server on port " + str(cfg.port)
         return
     end
 
@@ -141,48 +212,72 @@ function main()
     say color_cyan("╔═════════════════════════════════════════════════╗")
     say color_cyan("║") + "         " + style_bold(color_yellow("⚡ ALYA NATIVE HTTP SERVER ⚡")) + "          " + color_cyan("║")
     say color_cyan("╠═════════════════════════════════════════════════╣")
-    say color_cyan("║") + "  Listening at: " + color_green("http://127.0.0.1:" + str(port)) + "          " + color_cyan("║")
+    say color_cyan("║") + "  Listening at: " + color_green("http://127.0.0.1:" + str(cfg.port)) + "          " + color_cyan("║")
+    if cfg.workers > 1
+        say color_cyan("║") + "  Workers     : " + color_magenta(str(cfg.workers) + " threads (pool)") + "          " + color_cyan("║")
+    else
+        say color_cyan("║") + "  Workers     : " + color_white("1 thread (single)") + "            " + color_cyan("║")
+    end
+    say color_cyan("║") + "  Features    : " + color_white("Keep-Alive, Non-blocking I/O") + "    " + color_cyan("║")
     say color_cyan("║") + "  Endpoints   : " + color_white("/, /api/status, /api/echo") + "    " + color_cyan("║")
     say color_cyan("║") + "  Press Ctrl+C to shutdown server                 " + color_cyan("║")
     say color_cyan("╚═════════════════════════════════════════════════╝")
     say ""
 
-    # Check for non-interactive / automated smoke test mode
-    let cli_args = args()
-    let smoke_test = 0
-    let max_requests = -1
-    let quiet = 0
-    let i = 0
-    while i < len(cli_args)
-        if cli_args[i] == "--test"
-            smoke_test = 1
-        elif cli_args[i] == "--once"
-            max_requests = 1
-        elif cli_args[i] == "--quiet" or cli_args[i] == "-q"
-            quiet = 1
-        end
-        i += 1
-    end
-
-    if smoke_test == 1
+    if cfg.smoke_test == 1
         say color_yellow("[SERVER]") + " Single-run test mode active. Port verified."
         tcp_close(server)
         say color_green("[SERVER]") + " Server shutdown cleanly."
         return
     end
 
+    let ch = null
+    let threads = []
+    if cfg.workers > 1
+        ch = channel_new()
+        let w = 0
+        while w < cfg.workers
+            let t = thread_spawn(worker_proc, (ch, start_time, cfg.quiet))
+            threads.push(t)
+            w += 1
+        end
+    end
+
     let served = 0
     while 1
-        let client = tcp_accept(server)
-        if client >= 0
-            handle_client(client, start_time, quiet)
-            served += 1
-            if max_requests > 0 and served >= max_requests
-                say color_yellow("[SERVER]") + " Reached max requests (" + str(served) + "). Shutting down."
-                break
+        # Event loop: poll server socket with 200ms timeout
+        let ready = tcp_poll(server, 200)
+        if ready == 1
+            let client = tcp_accept(server)
+            if client >= 0
+                if cfg.workers > 1
+                    channel_send(ch, client)
+                else
+                    handle_client(client, start_time, cfg.quiet)
+                end
+                served += 1
+                if cfg.max_requests > 0 and served >= cfg.max_requests
+                    say color_yellow("[SERVER]") + " Reached max requests (" + str(served) + "). Shutting down."
+                    break
+                end
             end
         end
     end
+
+    if cfg.workers > 1 and ch != null
+        let w = 0
+        while w < cfg.workers
+            channel_send(ch, -999)
+            w += 1
+        end
+        let ti = 0
+        while ti < len(threads)
+            thread_join(threads[ti])
+            ti += 1
+        end
+        channel_free(ch)
+    end
+
     tcp_close(server)
 end
 

@@ -1765,3 +1765,26 @@ say "auth: " + basic_auth("admin", "secret")
         );
     }
 }
+
+#[test]
+fn test_e2e_stdlib_net_nonblocking_and_poll() {
+    let code = r#"
+import "std/net"
+
+let srv = tcp_listen(19876, 5)
+if srv >= 0
+    let nb_res = tcp_set_nonblocking(srv, 1)
+    say "nb: " + str(nb_res)
+    let poll_res = tcp_poll(srv, 20)
+    say "poll: " + str(poll_res)
+    tcp_close(srv)
+    say "close: ok"
+end
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("nb: 0"), "Got: {}", output);
+        assert!(output.contains("poll: 0"), "Got: {}", output);
+        assert!(output.contains("close: ok"), "Got: {}", output);
+    }
+}

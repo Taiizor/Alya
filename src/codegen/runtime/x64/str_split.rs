@@ -73,8 +73,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movq (%r12), %rax\n"); // arr->len
     out.push_str("    testq %rax, %rax\n");
     out.push_str("    jz .L_x64_join_empty\n");
-    out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    movq alya_str_idx(%rip), %rbx\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    movq (%r9), %rbx\n");
     out.push_str("    cmpq $950000, %rbx\n");
     out.push_str("    jl .L_x64_join_buf_ok\n");
     out.push_str("    xorq %rbx, %rbx\n");
@@ -116,7 +116,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    subq %r8, %rdi\n");
     out.push_str("    addq $7, %rdi\n");
     out.push_str("    andq $-8, %rdi\n");
-    out.push_str("    movq %rdi, alya_str_idx(%rip)\n");
+    out.push_str("    movq %rdi, (%r9)\n");
     out.push_str("    movq %r14, %rax\n");
     out.push_str("    jmp .L_x64_join_ret\n");
     out.push_str(".L_x64_join_empty:\n");
@@ -175,8 +175,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movb (%rsi), %al\n");
     out.push_str("    testb %al, %al\n");
     out.push_str("    jz .L_x64_split_ret\n");
-    out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    movq alya_str_idx(%rip), %rbx\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    movq (%r9), %rbx\n");
     out.push_str("    cmpq $950000, %rbx\n");
     out.push_str("    jl .L_x64_se1\n");
     out.push_str("    xorq %rbx, %rbx\n");
@@ -189,7 +189,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    subq %r8, %rdi\n");
     out.push_str("    addq $7, %rdi\n");
     out.push_str("    andq $-8, %rdi\n");
-    out.push_str("    movq %rdi, alya_str_idx(%rip)\n");
+    out.push_str("    movq %rdi, (%r9)\n");
     if matches!(os, OperatingSystem::Windows) {
         out.push_str("    movq %r14, %rcx\n");
         out.push_str("    movq %r10, %rdx\n");
@@ -222,8 +222,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    incq 32(%rsp)\n");
     out.push_str("    jmp .L_x64_split_main_loop\n");
     out.push_str(".L_x64_split_matched:\n");
-    out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    movq alya_str_idx(%rip), %rbx\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    movq (%r9), %rbx\n");
     out.push_str("    cmpq $950000, %rbx\n");
     out.push_str("    jl .L_x64_se2\n");
     out.push_str("    xorq %rbx, %rbx\n");
@@ -246,7 +246,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    subq %r8, %rdi\n");
     out.push_str("    addq $7, %rdi\n");
     out.push_str("    andq $-8, %rdi\n");
-    out.push_str("    movq %rdi, alya_str_idx(%rip)\n");
+    out.push_str("    movq %rdi, (%r9)\n");
     if matches!(os, OperatingSystem::Windows) {
         out.push_str("    movq %r14, %rcx\n");
         out.push_str("    movq 48(%rsp), %rdx\n");
@@ -261,8 +261,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movq %rax, 40(%rsp)\n"); // token_start = curr
     out.push_str("    jmp .L_x64_split_main_loop\n");
     out.push_str(".L_x64_split_emit_final:\n");
-    out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    movq alya_str_idx(%rip), %rbx\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    movq (%r9), %rbx\n");
     out.push_str("    cmpq $950000, %rbx\n");
     out.push_str("    jl .L_x64_se3\n");
     out.push_str("    xorq %rbx, %rbx\n");
@@ -285,7 +285,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    subq %r8, %rdi\n");
     out.push_str("    addq $7, %rdi\n");
     out.push_str("    andq $-8, %rdi\n");
-    out.push_str("    movq %rdi, alya_str_idx(%rip)\n");
+    out.push_str("    movq %rdi, (%r9)\n");
     if matches!(os, OperatingSystem::Windows) {
         out.push_str("    movq %r14, %rcx\n");
         out.push_str("    movq 48(%rsp), %rdx\n");
