@@ -44,14 +44,33 @@ permissions:
   contents: write
 
 jobs:
+  setup:
+    name: Prepare Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Compute OS matrix
+        id: set-matrix
+        shell: bash
+        run: |
+          TARGET_OS="${{ inputs.os }}"
+          if [ -z "$TARGET_OS" ]; then
+            TARGET_OS="ubuntu-latest"
+          fi
+          if [ "$TARGET_OS" = "all" ]; then
+            echo 'matrix={"os":["ubuntu-latest","windows-latest","macos-latest"]}' >> "$GITHUB_OUTPUT"
+          else
+            echo "matrix={\"os\":[\"$TARGET_OS\"]}" >> "$GITHUB_OUTPUT"
+          fi
+
   benchmark:
     name: Benchmark (${{ matrix.os }})
+    needs: setup
     runs-on: ${{ matrix.os }}
-    if: inputs.os == 'all' || matrix.os == inputs.os
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+      matrix: ${{ fromJson(needs.setup.outputs.matrix) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -78,7 +97,7 @@ jobs:
       - name: Run cross-language benchmarks
         shell: bash
         run: |
-          ARGS="--suite ${{ inputs.mode }} --iterations ${{ inputs.iterations }}"
+          ARGS="--suite ${{ inputs.mode || 'comprehensive' }} --iterations ${{ inputs.iterations || '5' }}"
           if [ "${{ inputs.update_readme }}" = "true" ] && ( [ "${{ matrix.os }}" = "ubuntu-latest" ] || [ "${{ inputs.os }}" != "all" ] ); then
             ARGS="$ARGS --update-readme"
           fi
