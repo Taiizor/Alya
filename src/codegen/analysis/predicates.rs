@@ -223,6 +223,8 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "glob_filter"
                     | "list_dir"
                     | "read_dir"
+                    | "fs_list_dir"
+                    | "fs_read_dir"
                     | "json_parse_array"
             )
         }
