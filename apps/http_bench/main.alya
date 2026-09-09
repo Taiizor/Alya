@@ -143,7 +143,19 @@ function main()
         return
     end
 
-    say "Running benchmark..."
+    # Pre-flight connectivity check: verify target server is reachable
+    say "Connecting to " + color_white(cfg.url) + "..."
+    let probe_ok, probe_lat = run_single_request(cfg.url)
+    if probe_ok == 0
+        say ""
+        say color_red("✗ Error:") + " Could not connect to target server at " + style_bold(cfg.url)
+        say color_yellow("  Hint:") + " Make sure the HTTP server is running first in another terminal:"
+        say "        " + style_bold(color_cyan("alyac run apps/http_server/main.alya --port 8080"))
+        say ""
+        return
+    end
+
+    say color_green("✓ Connection verified") + " (" + str(probe_lat) + " ms). Starting benchmark...\n"
     let t_start = clock_ms()
 
     let ok_count = 0
