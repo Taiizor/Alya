@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       os:
-        description: 'Operating System for Benchmark'
+        description: 'Target Operating System'
         type: choice
         required: true
         default: 'ubuntu-latest'
@@ -12,34 +12,62 @@ on:
           - 'ubuntu-latest'
           - 'windows-latest'
           - 'macos-latest'
+          - 'all'
+      mode:
+        description: 'Benchmark Suite Mode'
+        type: choice
+        required: true
+        default: 'comprehensive'
+        options:
+          - 'comprehensive'
+          - 'standard'
+      iterations:
+        description: 'Benchmark Measurement Iterations'
+        type: choice
+        required: true
+        default: '5'
+        options:
+          - '3'
+          - '5'
+          - '10'
       update_readme:
         description: 'Update benchmarks/README.md and README.md with results'
         type: boolean
         required: false
         default: true
-  push:
-    branches:
-      - main
-      - master
-      - develop
-    paths:
-      - 'src/**'
-      - 'stdlib/**'
-      - 'benchmarks/**'
-      - 'benches/**'
-      - 'Cargo.toml'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.os || 'ubuntu-latest' }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.os }}
   cancel-in-progress: true
 
 permissions:
   contents: write
 
 jobs:
+  setup:
+    name: Prepare Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Compute OS matrix
+        id: set-matrix
+        shell: bash
+        run: |
+          if [ "${{ inputs.os }}" = "all" ]; then
+            echo 'matrix=["ubuntu-latest", "windows-latest", "macos-latest"]' >> "$GITHUB_OUTPUT"
+          else
+            echo 'matrix=["${{ inputs.os || "ubuntu-latest" }}"]' >> "$GITHUB_OUTPUT"
+          fi
+
   benchmark:
-    name: Benchmark (${{ inputs.os || 'ubuntu-latest' }})
-    runs-on: ${{ inputs.os || 'ubuntu-latest' }}
+    name: Benchmark (${{ matrix.os }})
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.setup.outputs.matrix) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -63,17 +91,18 @@ jobs:
       - name: Build Alya compiler (Release)
         run: cargo build --release
 
-      - name: Run cross-language benchmarks & update README
+      - name: Run cross-language benchmarks
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.update_readme }}" = "false" ]; then
-            bun run benchmarks/cross_lang/runner.ts
-          else
-            bun run benchmarks/cross_lang/runner.ts --update-readme
+          ARGS="--suite ${{ inputs.mode || 'comprehensive' }} --iterations ${{ inputs.iterations || '5' }}"
+          # Only update README from ubuntu-latest if running on 'all', or on the single chosen OS
+          if [ "${{ inputs.update_readme }}" = "true" ] && ( [ "${{ matrix.os }}" = "ubuntu-latest" ] || [ "${{ inputs.os }}" != "all" ] ); then
+            ARGS="$ARGS --update-readme"
           fi
+          bun run benchmarks/cross_lang/runner.ts $ARGS
 
       - name: Commit and push benchmark results
-        if: github.ref_name == 'main' || github.ref_name == 'master' || github.ref_name == 'develop' || inputs.update_readme == true
+        if: inputs.update_readme == true && (matrix.os == 'ubuntu-latest' || inputs.os != 'all')
         shell: bash
         run: |
           git config --global user.name "github-actions[bot]"
@@ -83,5 +112,6 @@ jobs:
             echo "No changes in benchmark results."
           else
             git commit -m "docs(benchmarks): update benchmark results [skip ci]"
+            git pull --rebase origin ${{ github.ref_name }} || true
             git push
           fi

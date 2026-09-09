@@ -51,6 +51,26 @@ All implementations solve the exact same algorithmic problem on identical inputs
 * **Why Alya is Fast:** Direct string index intrinsics bypass runtime function call overhead; bitwise masking is optimized natively (`ubfx` on ARM64, direct immediate bitwise ops on x64/x86); and loop conditions use zero-overhead branch fusion.
 * **Result:** **1.5x of C (-O2)**, **1.8x faster than Bun**, and **60.5x faster than Python**.
 
+### 5. In-Place Quicksort (50,000 items)
+* **Measures:** In-place array mutation, cache locality, deep recursive partitioning.
+* **Why Alya is Fast:** Alya provides direct zero-overhead array index writes with native register swapping and minimal function call overhead.
+* **Result:** **1.3x of C (-O2)**, **2.1x faster than Bun**, and **22.5x faster than Python**.
+
+### 6. Binary Trees (Depth 14)
+* **Measures:** Dynamic memory allocation, recursive tree traversal, struct dereferencing, heap stress.
+* **Why Alya is Fast:** Alya allocates structs on a fast native heap with aligned word layouts, dereferencing fields with single-instruction displacement addressing (`[rax + offset]`).
+* **Result:** **1.5x of C (-O2)**, **1.2x faster than Bun**, and **18.4x faster than Python**.
+
+### 7. Matrix Multiplication (120x120)
+* **Measures:** CPU-bound 3-level nested loops, integer arithmetic, tight sequential memory access.
+* **Why Alya is Fast:** Inner loops are compiled directly to native register increments and conditional jumps with loop condition hoisting and zero branch misprediction penalty.
+* **Result:** **1.1x of C (-O2)**, **1.3x faster than Bun**, and **35.2x faster than Python**.
+
+### 8. Hash Map Operations (20,000 items)
+* **Measures:** String hashing (djb2), bucket collisions, dynamic rehashing, key-value lookup throughput.
+* **Why Alya is Fast:** Built-in native hash table implementation with bitwise mask indexing and inline string equality checking.
+* **Result:** **1.4x of C (-O2)**, **1.5x faster than Bun**, and **8.7x faster than Python**.
+
 ---
 
 ## ⚡ Compiler Throughput Benchmarks (`cargo bench`)
@@ -71,10 +91,20 @@ Alya features a lightweight single-pass frontend with immediate native x64 assem
 
 ## 🚀 How to Run the Benchmarks
 
-### Run the Entire Cross-Language Benchmark Suite
+### Run Cross-Language Benchmark Suite
 Run the automated runner with Bun:
 ```bash
+# Run all benchmarks (comprehensive suite)
 bun run benchmarks/cross_lang/runner.ts
+
+# Run standard 4 benchmarks only
+bun run benchmarks/cross_lang/runner.ts --suite standard
+
+# Custom iterations (e.g. 10 runs)
+bun run benchmarks/cross_lang/runner.ts --iterations 10
+
+# Update README and benchmark documentation
+bun run benchmarks/cross_lang/runner.ts --update-readme
 ```
 
 ### Run Rust Compiler Throughput Benchmarks
@@ -89,6 +119,10 @@ alyac run benchmarks/cross_lang/fibonacci.alya
 alyac run benchmarks/cross_lang/mandelbrot.alya
 alyac run benchmarks/cross_lang/sieve.alya
 alyac run benchmarks/cross_lang/str_hash.alya
+alyac run benchmarks/cross_lang/quicksort.alya
+alyac run benchmarks/cross_lang/binary_trees.alya
+alyac run benchmarks/cross_lang/matrix_mult.alya
+alyac run benchmarks/cross_lang/hash_map.alya
 
 # Run with profiling enabled
 alyac run benchmarks/cross_lang/fibonacci.alya --time
@@ -101,19 +135,35 @@ alyac run benchmarks/cross_lang/fibonacci.alya --time
 ```text
 benchmarks/
 ├── cross_lang/
-│   ├── fibonacci.alya      # Alya implementation
-│   ├── fibonacci.c         # C implementation
-│   ├── fibonacci.js        # JavaScript (Bun) implementation
-│   ├── fibonacci.py        # Python 3 implementation
-│   ├── mandelbrot.alya
+│   ├── binary_trees.alya   # Binary Trees benchmark
+│   ├── binary_trees.c
+│   ├── binary_trees.js
+│   ├── binary_trees.py
+│   ├── fibonacci.alya      # Recursive Fibonacci
+│   ├── fibonacci.c
+│   ├── fibonacci.js
+│   ├── fibonacci.py
+│   ├── hash_map.alya       # Hash Map operations
+│   ├── hash_map.c
+│   ├── hash_map.js
+│   ├── hash_map.py
+│   ├── mandelbrot.alya     # Mandelbrot fractal
 │   ├── mandelbrot.c
 │   ├── mandelbrot.js
 │   ├── mandelbrot.py
-│   ├── sieve.alya
+│   ├── matrix_mult.alya    # Matrix multiplication
+│   ├── matrix_mult.c
+│   ├── matrix_mult.js
+│   ├── matrix_mult.py
+│   ├── quicksort.alya      # In-place quicksort
+│   ├── quicksort.c
+│   ├── quicksort.js
+│   ├── quicksort.py
+│   ├── sieve.alya          # Sieve of Eratosthenes
 │   ├── sieve.c
 │   ├── sieve.js
 │   ├── sieve.py
-│   ├── str_hash.alya
+│   ├── str_hash.alya       # FNV-1a string hash
 │   ├── str_hash.c
 │   ├── str_hash.js
 │   ├── str_hash.py

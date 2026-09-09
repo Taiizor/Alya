@@ -10,6 +10,7 @@ interface BenchConfig {
     rootDisplayName: string;
     workload: string;
     expected: string;
+    suite: "standard" | "comprehensive";
     alyaSrc: string;
     cSrc: string;
     pySrc: string;
@@ -24,6 +25,7 @@ const BENCHMARKS: BenchConfig[] = [
         rootDisplayName: "**Recursive Fibonacci (n=30)**",
         workload: "`fib(30)` (~2.69M calls)",
         expected: "832040",
+        suite: "standard",
         alyaSrc: "benchmarks/cross_lang/fibonacci.alya",
         cSrc: "benchmarks/cross_lang/fibonacci.c",
         pySrc: "benchmarks/cross_lang/fibonacci.py",
@@ -36,6 +38,7 @@ const BENCHMARKS: BenchConfig[] = [
         rootDisplayName: "**Mandelbrot Fractal (200×100)**",
         workload: "200×100 grid, 200 iters",
         expected: "767273",
+        suite: "standard",
         alyaSrc: "benchmarks/cross_lang/mandelbrot.alya",
         cSrc: "benchmarks/cross_lang/mandelbrot.c",
         pySrc: "benchmarks/cross_lang/mandelbrot.py",
@@ -48,6 +51,7 @@ const BENCHMARKS: BenchConfig[] = [
         rootDisplayName: "**Sieve of Eratosthenes (50k)**",
         workload: "Primes under 50,000",
         expected: "5133",
+        suite: "standard",
         alyaSrc: "benchmarks/cross_lang/sieve.alya",
         cSrc: "benchmarks/cross_lang/sieve.c",
         pySrc: "benchmarks/cross_lang/sieve.py",
@@ -60,10 +64,63 @@ const BENCHMARKS: BenchConfig[] = [
         rootDisplayName: "**FNV-1a String Hash (50k)**",
         workload: "50,000 hash calculations",
         expected: "1736110778",
+        suite: "standard",
         alyaSrc: "benchmarks/cross_lang/str_hash.alya",
         cSrc: "benchmarks/cross_lang/str_hash.c",
         pySrc: "benchmarks/cross_lang/str_hash.py",
         jsSrc: "benchmarks/cross_lang/str_hash.js"
+    },
+    {
+        id: "quicksort",
+        name: "In-Place Quicksort (50,000 items)",
+        displayName: "**In-Place Quicksort**",
+        rootDisplayName: "**Quicksort (50k items)**",
+        workload: "50,000 items in-place sort",
+        expected: "1475860",
+        suite: "comprehensive",
+        alyaSrc: "benchmarks/cross_lang/quicksort.alya",
+        cSrc: "benchmarks/cross_lang/quicksort.c",
+        pySrc: "benchmarks/cross_lang/quicksort.py",
+        jsSrc: "benchmarks/cross_lang/quicksort.js"
+    },
+    {
+        id: "binary_trees",
+        name: "Binary Trees (Depth 14)",
+        displayName: "**Binary Trees**",
+        rootDisplayName: "**Binary Trees (Depth 14)**",
+        workload: "Heap tree allocation & traversal",
+        expected: "-43682",
+        suite: "comprehensive",
+        alyaSrc: "benchmarks/cross_lang/binary_trees.alya",
+        cSrc: "benchmarks/cross_lang/binary_trees.c",
+        pySrc: "benchmarks/cross_lang/binary_trees.py",
+        jsSrc: "benchmarks/cross_lang/binary_trees.js"
+    },
+    {
+        id: "matrix_mult",
+        name: "Matrix Multiplication (120x120)",
+        displayName: "**Matrix Multiply**",
+        rootDisplayName: "**Matrix Multiply (120×120)**",
+        workload: "120×120 dense integer matrix mult",
+        expected: "34992000",
+        suite: "comprehensive",
+        alyaSrc: "benchmarks/cross_lang/matrix_mult.alya",
+        cSrc: "benchmarks/cross_lang/matrix_mult.c",
+        pySrc: "benchmarks/cross_lang/matrix_mult.py",
+        jsSrc: "benchmarks/cross_lang/matrix_mult.js"
+    },
+    {
+        id: "hash_map",
+        name: "Hash Map Operations (20,000 items)",
+        displayName: "**Hash Map**",
+        rootDisplayName: "**Hash Map (20k entries)**",
+        workload: "20k insertions, updates & lookups",
+        expected: "799950000",
+        suite: "comprehensive",
+        alyaSrc: "benchmarks/cross_lang/hash_map.alya",
+        cSrc: "benchmarks/cross_lang/hash_map.c",
+        pySrc: "benchmarks/cross_lang/hash_map.py",
+        jsSrc: "benchmarks/cross_lang/hash_map.js"
     }
 ];
 
@@ -110,7 +167,7 @@ function measureMedian(cmd: string, args: string[], iters = 5): { median: number
     return { median, min, max, output: lastOutput };
 }
 
-function getTestEnvironment(pyCmd: string): { os: string; gcc: string; bun: string; python: string; alya: string } {
+function getTestEnvironment(pyCmd: string, iters: number): { os: string; gcc: string; bun: string; python: string; alya: string; methodology: string } {
     let osName = "Windows 11 Pro x64";
     if (process.platform === "win32") {
         osName = "Windows 11 Pro x64";
@@ -150,14 +207,16 @@ function getTestEnvironment(pyCmd: string): { os: string; gcc: string; bun: stri
         if (ver) pyVer = ver;
     } catch {}
 
-    let alyaVer = "0.0.3";
+    let alyaVer = "0.0.5";
     try {
         const cargo = fs.readFileSync(path.resolve("Cargo.toml"), "utf-8");
         const match = cargo.match(/version\s*=\s*"([^"]+)"/);
         if (match) alyaVer = match[1];
     } catch {}
 
-    return { os: osName, gcc: gccVer, bun: bunVer, python: pyVer, alya: alyaVer };
+    const methodology = `1 warmup run, followed by ${iters} timed runs. Median execution time reported.`;
+
+    return { os: osName, gcc: gccVer, bun: bunVer, python: pyVer, alya: alyaVer, methodology };
 }
 
 function runCompilerBenchmarks(): string[] {
@@ -220,7 +279,7 @@ interface DetailedBenchResult {
     pyText: string;
 }
 
-function updateBenchReadme(results: DetailedBenchResult[], compilerRows?: string[], pyCmd: string = "python") {
+function updateBenchReadme(results: DetailedBenchResult[], compilerRows?: string[], pyCmd: string = "python", iters: number = 5) {
     const readmePath = path.resolve("benchmarks/README.md");
     if (!fs.existsSync(readmePath)) {
         console.error(`Cannot find ${readmePath}`);
@@ -229,8 +288,8 @@ function updateBenchReadme(results: DetailedBenchResult[], compilerRows?: string
     let content = fs.readFileSync(readmePath, "utf-8");
 
     // 1. Update Test Environment
-    const env = getTestEnvironment(pyCmd);
-    const envBlock = `### Test Environment\n* **Operating System:** ${env.os}\n* **C Compiler:** ${env.gcc}\n* **JavaScript Engine:** ${env.bun}\n* **Python Runtime:** ${env.python}\n* **Alya Version:** ${env.alya} (Compiled with \`alyac build\` in Release mode)\n* **Measurement Methodology:** 1 warmup run, followed by 5 timed runs. Median execution time reported.`;
+    const env = getTestEnvironment(pyCmd, iters);
+    const envBlock = `### Test Environment\n* **Operating System:** ${env.os}\n* **C Compiler:** ${env.gcc}\n* **JavaScript Engine:** ${env.bun}\n* **Python Runtime:** ${env.python}\n* **Alya Version:** ${env.alya} (Compiled with \`alyac build\` in Release mode)\n* **Measurement Methodology:** ${env.methodology}`;
     content = content.replace(/### Test Environment[\s\S]*?(?=\r?\n\r?\n---)/, envBlock);
 
     // 2. Update Scoreboard Table
@@ -258,6 +317,22 @@ function updateBenchReadme(results: DetailedBenchResult[], compilerRows?: string
         {
             id: "str_hash",
             regex: /(### 4\. FNV-1a String Hashing[\s\S]*?\*\s*\*\*Result:\*\*)[^\r\n]*/
+        },
+        {
+            id: "quicksort",
+            regex: /(### 5\. In-Place Quicksort[\s\S]*?\*\s*\*\*Result:\*\*)[^\r\n]*/
+        },
+        {
+            id: "binary_trees",
+            regex: /(### 6\. Binary Trees[\s\S]*?\*\s*\*\*Result:\*\*)[^\r\n]*/
+        },
+        {
+            id: "matrix_mult",
+            regex: /(### 7\. Matrix Multiplication[\s\S]*?\*\s*\*\*Result:\*\*)[^\r\n]*/
+        },
+        {
+            id: "hash_map",
+            regex: /(### 8\. Hash Map Operations[\s\S]*?\*\s*\*\*Result:\*\*)[^\r\n]*/
         }
     ];
 
@@ -279,7 +354,7 @@ function updateBenchReadme(results: DetailedBenchResult[], compilerRows?: string
     console.log(`[INFO] Successfully updated ${readmePath} with latest benchmark results.`);
 }
 
-function updateRootReadme(results: DetailedBenchResult[]) {
+function updateRootReadme(results: DetailedBenchResult[], iters: number = 5) {
     const rootReadmePath = path.resolve("README.md");
     if (!fs.existsSync(rootReadmePath)) {
         console.error(`Cannot find ${rootReadmePath}`);
@@ -291,7 +366,7 @@ function updateRootReadme(results: DetailedBenchResult[]) {
     const rows = results.map(r =>
         `| ${r.rootDisplayName} | \`${r.cMs} ms\` | **\`${r.alyaMs} ms\`** | \`${r.bunMs} ms\` | \`${r.pyMs} ms\` | ${r.vsBunMarkdown} | **${r.vsPy}** |`
     );
-    const newSection = `### Cross-Language Execution Benchmark (Median of 5 runs)\n\n${header}\n${rows.join("\n")}`;
+    const newSection = `### Cross-Language Execution Benchmark (Median of ${iters} runs)\n\n${header}\n${rows.join("\n")}`;
 
     content = content.replace(/### Cross-Language Execution Benchmark[\s\S]*?(?=\r?\n\r?\n>)/, newSection);
 
@@ -302,9 +377,32 @@ function updateRootReadme(results: DetailedBenchResult[]) {
 async function main() {
     const shouldUpdateReadme = process.argv.includes("--update-readme");
 
+    // Suite selection: standard | comprehensive | all
+    let suiteMode = "comprehensive";
+    const suiteIdx = process.argv.indexOf("--suite");
+    if (suiteIdx !== -1 && process.argv[suiteIdx + 1]) {
+        suiteMode = process.argv[suiteIdx + 1].toLowerCase();
+    }
+
+    // Iterations: default 5
+    let iterations = 5;
+    const iterIdx = process.argv.indexOf("--iterations") !== -1
+        ? process.argv.indexOf("--iterations")
+        : process.argv.indexOf("-i");
+    if (iterIdx !== -1 && process.argv[iterIdx + 1]) {
+        const parsed = parseInt(process.argv[iterIdx + 1], 10);
+        if (!isNaN(parsed) && parsed > 0) iterations = parsed;
+    }
+
+    const activeBenchmarks = BENCHMARKS.filter(b => {
+        if (suiteMode === "standard") return b.suite === "standard";
+        return true; // "comprehensive" or "all" runs all benchmarks
+    });
+
     console.log("=========================================================================================");
     console.log("             CROSS-LANGUAGE PERFORMANCE BENCHMARK SUITE                                ");
     console.log("             Alya vs C (GCC -O2) vs Bun (JavaScript JIT) vs Python 3.12                 ");
+    console.log(`             Suite: ${suiteMode.toUpperCase()} (${activeBenchmarks.length} benchmarks) | Iterations: ${iterations}`);
     console.log("=========================================================================================\n");
 
     const exeExt = process.platform === "win32" ? ".exe" : "";
@@ -322,7 +420,7 @@ async function main() {
     const pyCmd = getPythonCmd();
     const benchResults: DetailedBenchResult[] = [];
 
-    for (const b of BENCHMARKS) {
+    for (const b of activeBenchmarks) {
         process.stdout.write(`Benchmarking ${b.name}... `);
 
         // 1. Compile Alya to binary
@@ -342,13 +440,13 @@ async function main() {
         }
 
         // Run C
-        const cRes = measureMedian(cExe, []);
+        const cRes = measureMedian(cExe, [], iterations);
         // Run Alya
-        const alyaRes = measureMedian(alyaExe, []);
+        const alyaRes = measureMedian(alyaExe, [], iterations);
         // Run Bun (JS)
-        const bunRes = measureMedian("bun", ["run", b.jsSrc]);
+        const bunRes = measureMedian("bun", ["run", b.jsSrc], iterations);
         // Run Python
-        const pyRes = measureMedian(pyCmd, [b.pySrc]);
+        const pyRes = measureMedian(pyCmd, [b.pySrc], iterations);
 
         // Cleanup binaries
         try { fs.unlinkSync(alyaExe); } catch {}
@@ -397,8 +495,8 @@ async function main() {
         console.log("Done.");
     }
 
-    console.log("\n=========================================================================================");
-    console.log("                               BENCHMARK RESULTS (Median of 5 runs)                      ");
+    console.log(`\n=========================================================================================`);
+    console.log(`                               BENCHMARK RESULTS (Median of ${iterations} runs)                      `);
     console.log("=========================================================================================");
     console.log(
         "| Benchmark                         | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | vs C (Ratio) | vs Python (Speedup) |"
@@ -421,8 +519,8 @@ async function main() {
         } catch (e) {
             console.warn("Could not run compiler benchmarks:", e);
         }
-        updateBenchReadme(benchResults, compilerRows, pyCmd);
-        updateRootReadme(benchResults);
+        updateBenchReadme(benchResults, compilerRows, pyCmd, iterations);
+        updateRootReadme(benchResults, iterations);
     }
 }
 

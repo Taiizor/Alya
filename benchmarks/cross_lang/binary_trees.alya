@@ -1,0 +1,54 @@
+struct TreeNode
+    left, right, item
+end
+
+function make_tree(item, depth)
+    if depth == 0
+        return TreeNode { left: null, right: null, item: item }
+    end
+    let d = depth - 1
+    let l = make_tree(2 * item - 1, d)
+    let r = make_tree(2 * item, d)
+    return TreeNode { left: l, right: r, item: item }
+end
+
+function check_tree(node)
+    if node.left == null
+        return node.item
+    end
+    let l_chk = check_tree(node.left)
+    let r_chk = check_tree(node.right)
+    return node.item + l_chk - r_chk
+end
+
+let max_depth = 14
+let stretch_tree = make_tree(0, max_depth + 1)
+let stretch_check = check_tree(stretch_tree)
+
+let long_lived_tree = make_tree(0, max_depth)
+
+let total = stretch_check
+let depth = 4
+while depth <= max_depth
+    let iterations = 1
+    let shift = max_depth - depth + 4
+    let s = 0
+    while s < shift
+        iterations = iterations * 2
+        s = s + 1
+    end
+
+    let check = 0
+    let i = 1
+    while i <= iterations
+        let temp1 = make_tree(i, depth)
+        let temp2 = make_tree(-i, depth)
+        check = check + check_tree(temp1) + check_tree(temp2)
+        i = i + 1
+    end
+    total = total + check
+    depth = depth + 2
+end
+
+total = total + check_tree(long_lived_tree)
+say total
