@@ -1,0 +1,279 @@
+# ═══════════════════════════════════════════════════════════════
+# Alya Conway's Game of Life (game_of_life)
+# Part of the Alya Apps Collection
+# ═══════════════════════════════════════════════════════════════
+#
+# Features:
+#   - Conway's 4 cellular automaton rules on a toroidal 2D grid
+#   - Preset seed patterns (Glider, R-pentomino, Blinker, Random Soup)
+#   - Real-time generation counter and live population tracking
+#   - ANSI terminal animation with smooth frame delays
+#   - Clean struct-based Board architecture (ABI-safe)
+#   - Non-hanging automated smoke test mode (--test)
+#
+# Usage:
+#   alyac run apps/game_of_life/main.alya
+#   alyac run apps/game_of_life/main.alya -- --pattern glider --gens 80
+#   alyac run apps/game_of_life/main.alya -- --pattern random --gens 120
+#   alyac run apps/game_of_life/main.alya -- --test
+# ═══════════════════════════════════════════════════════════════
+
+import "std/color"
+import "std/console"
+import "std/time"
+import "std/rand"
+import "std/str"
+import "std/os"
+
+struct Board
+    cells
+    w
+    h
+end
+
+function make_board(w, h)
+    let g = []
+    let total = w * h
+    let i = 0
+    while i < total
+        g.push(0)
+        i += 1
+    end
+    return Board(g, w, h)
+end
+
+function place_cell(b, x, y)
+    if x >= 0 and x < b.w and y >= 0 and y < b.h
+        let idx = y * b.w + x
+        b.cells[idx] = 1
+    end
+end
+
+function init_glider(b, sx, sy)
+    place_cell(b, sx + 1, sy)
+    place_cell(b, sx + 2, sy + 1)
+    place_cell(b, sx, sy + 2)
+    place_cell(b, sx + 1, sy + 2)
+    place_cell(b, sx + 2, sy + 2)
+end
+
+function init_r_pentomino(b, sx, sy)
+    place_cell(b, sx + 1, sy)
+    place_cell(b, sx + 2, sy)
+    place_cell(b, sx, sy + 1)
+    place_cell(b, sx + 1, sy + 1)
+    place_cell(b, sx + 1, sy + 2)
+end
+
+function init_blinker(b, sx, sy)
+    place_cell(b, sx, sy)
+    place_cell(b, sx + 1, sy)
+    place_cell(b, sx + 2, sy)
+end
+
+function init_random(b, pct)
+    let y = 0
+    while y < b.h
+        let x = 0
+        while x < b.w
+            if rand_chance(pct) == 1
+                place_cell(b, x, y)
+            end
+            x += 1
+        end
+        y += 1
+    end
+end
+
+function count_neighbors(b, x, y)
+    let count = 0
+    let dy = -1
+    while dy <= 1
+        let dx = -1
+        while dx <= 1
+            if dx != 0 or dy != 0
+                let nx = x + dx
+                if nx < 0
+                    nx += b.w
+                elif nx >= b.w
+                    nx -= b.w
+                end
+
+                let ny = y + dy
+                if ny < 0
+                    ny += b.h
+                elif ny >= b.h
+                    ny -= b.h
+                end
+
+                let idx = ny * b.w + nx
+                count += b.cells[idx]
+            end
+            dx += 1
+        end
+        dy += 1
+    end
+    return count
+end
+
+function count_alive(b)
+    let count = 0
+    let i = 0
+    let total = arr_len(b.cells)
+    while i < total
+        count += b.cells[i]
+        i += 1
+    end
+    return count
+end
+
+function step_life(b)
+    let next_cells = []
+    let y = 0
+    while y < b.h
+        let x = 0
+        while x < b.w
+            let n = count_neighbors(b, x, y)
+            let cell = b.cells[y * b.w + x]
+            let new_cell = 0
+            if cell == 1
+                if n == 2 or n == 3
+                    new_cell = 1
+                end
+            else
+                if n == 3
+                    new_cell = 1
+                end
+            end
+            next_cells.push(new_cell)
+            x += 1
+        end
+        y += 1
+    end
+    return Board(next_cells, b.w, b.h)
+end
+
+function show_banner(pattern_name)
+    say color_cyan("  ╔══════════════════════════════════════════════════╗")
+    say color_cyan("  ║") + "         " + style_bold(color_yellow("🧬 CONWAY'S GAME OF LIFE (ALYA) 🧬")) + "        " + color_cyan("║")
+    say color_cyan("  ╠══════════════════════════════════════════════════╣")
+    say color_cyan("  ║") + "  Pattern: " + color_green(pattern_name) + "    Rule: B3/S23 (Standard Conway)" + color_cyan("║")
+    say color_cyan("  ╚══════════════════════════════════════════════════╝")
+end
+
+function render_life(b, gen, alive)
+    let top = "  ╔"
+    let i = 0
+    while i < b.w * 2
+        top = top + "═"
+        i += 1
+    end
+    top = top + "╗"
+    say color_cyan(top)
+
+    let y = 0
+    while y < b.h
+        let row = "  " + color_cyan("║")
+        let x = 0
+        while x < b.w
+            let c = b.cells[y * b.w + x]
+            if c == 1
+                row = row + color_bright_cyan("■ ")
+            else
+                row = row + "  "
+            end
+            x += 1
+        end
+        row = row + color_cyan("║")
+        say row
+        y += 1
+    end
+
+    let bottom = "  ╚"
+    i = 0
+    while i < b.w * 2
+        bottom = bottom + "═"
+        i += 1
+    end
+    bottom = bottom + "╝"
+    say color_cyan(bottom)
+
+    say "  " + style_bold("Generation") + ": " + color_yellow(str(gen)) + "    " + style_bold("Live Population") + ": " + color_green(str(alive)) + "    " + style_bold("Dimensions") + ": " + str(b.w) + "x" + str(b.h)
+    say ""
+end
+
+function main()
+    console_utf8()
+    let cli_args = args()
+    let pattern_name = "glider"
+    let max_gens = 60
+    let delay_ms = 90
+    let is_test = 0
+
+    let i = 0
+    while i < arr_len(cli_args)
+        let a = cli_args[i]
+        if (a == "-p" or a == "--pattern") and i + 1 < arr_len(cli_args)
+            pattern_name = cli_args[i + 1]
+        elif (a == "-g" or a == "--gens") and i + 1 < arr_len(cli_args)
+            let g = int(cli_args[i + 1])
+            if g > 0 max_gens = g end
+        elif (a == "-d" or a == "--delay") and i + 1 < arr_len(cli_args)
+            let d = int(cli_args[i + 1])
+            if d >= 0 delay_ms = d end
+        elif a == "--test" or a == "--simulate"
+            is_test = 1
+        end
+        i += 1
+    end
+
+    let b = make_board(24, 13)
+
+    if pattern_name == "glider"
+        init_glider(b, 2, 2)
+    elif pattern_name == "r-pentomino" or pattern_name == "rle"
+        init_r_pentomino(b, b.w / 2 - 1, b.h / 2 - 1)
+    elif pattern_name == "blinker"
+        init_blinker(b, b.w / 2 - 1, b.h / 2)
+    elif pattern_name == "random"
+        init_random(b, 28)
+    else
+        init_glider(b, 2, 2)
+    end
+
+    if is_test == 1
+        say color_yellow("[LIFE]") + " Running automated simulation test..."
+        let gen = 0
+        while gen < 15
+            b = step_life(b)
+            gen += 1
+        end
+        let cur_alive = count_alive(b)
+        show_banner(pattern_name)
+        render_life(b, gen, cur_alive)
+        say color_green("[SUCCESS]") + " Game of Life simulation passed cleanly (" + str(gen) + " generations computed)."
+        return
+    end
+
+    console_clear()
+    let gen = 0
+    let cur_alive = count_alive(b)
+
+    while gen <= max_gens
+        console_clear()
+        show_banner(pattern_name)
+        render_life(b, gen, cur_alive)
+
+        if gen == max_gens
+            say color_green("Simulation complete!") + " (" + str(gen) + " generations)"
+            break
+        end
+
+        sleep(delay_ms)
+        b = step_life(b)
+        cur_alive = count_alive(b)
+        gen += 1
+    end
+end
+
+main()

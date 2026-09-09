@@ -1,0 +1,175 @@
+# ═══════════════════════════════════════════════════════════════
+# Alya Native HTTP Web Server
+# Part of the Alya Apps Collection
+# ═══════════════════════════════════════════════════════════════
+#
+# Features:
+#   - High-performance TCP socket HTTP 1.1 server
+#   - Static file serving (HTML, CSS, text)
+#   - Dynamic REST JSON API endpoints (/api/status, /api/echo)
+#   - ANSI colored access logging with status codes
+#   - Configurable port via CLI argument
+#
+# Usage:
+#   alyac run apps/http_server/main.alya
+#   alyac run apps/http_server/main.alya --port 8080
+# ═══════════════════════════════════════════════════════════════
+
+import "std/net"
+import "std/str"
+import "std/color"
+import "std/fs"
+import "std/time"
+import "std/os"
+
+function parse_port()
+    let cli_args = args()
+    let p = 8080
+    let i = 0
+    while i < len(cli_args)
+        let a = cli_args[i]
+        if a == "--port" or a == "-p"
+            if i + 1 < len(cli_args)
+                let parsed = int(cli_args[i + 1])
+                if parsed > 0 and parsed <= 65535
+                    p = parsed
+                end
+            end
+        end
+        i += 1
+    end
+    return p
+end
+
+function extract_request_line(raw)
+    let m = "GET"
+    let p = "/"
+    let rlen = len(raw)
+    if rlen == 0
+        return m, p
+    end
+
+    let sp1 = index_of(raw, " ")
+    if sp1 < 0
+        return m, p
+    end
+    m = substring(raw, 0, sp1)
+
+    let rest = substring(raw, sp1 + 1, rlen - (sp1 + 1))
+    let sp2 = index_of(rest, " ")
+    if sp2 < 0
+        sp2 = index_of(rest, "\r")
+        if sp2 < 0
+            sp2 = index_of(rest, "\n")
+            if sp2 < 0
+                sp2 = len(rest)
+            end
+        end
+    end
+    p = substring(rest, 0, sp2)
+    return m, p
+end
+
+function build_response(status_code, content_type, body)
+    let status_text = http_status_text(status_code)
+    let blen = len(body)
+    let resp = "HTTP/1.1 " + str(status_code) + " " + status_text + "\r\n"
+    resp = resp + "Content-Type: " + content_type + "\r\n"
+    resp = resp + "Content-Length: " + str(blen) + "\r\n"
+    resp = resp + "Server: Alya-Native-Server/0.0.5\r\n"
+    resp = resp + "Connection: close\r\n\r\n"
+    resp = resp + body
+    return resp
+end
+
+function handle_client(client_sock, start_time)
+    tcp_set_timeout(client_sock, 3000)
+    let req = tcp_recv(client_sock, 4096)
+    if len(req) == 0
+        tcp_close(client_sock)
+        return
+    end
+
+    let m, p = extract_request_line(req)
+    let now = clock_ms()
+    let uptime = now - start_time
+
+    let status = 200
+    let ctype = "text/html; charset=utf-8"
+    let body = ""
+
+    if p == "/" or p == "/index.html"
+        let file_path = "apps/http_server/public/index.html"
+        if file_exists(file_path) == 1
+            body = read_file(file_path)
+        else
+            body = "<!DOCTYPE html><html><body><h1>⚡ Alya HTTP Server</h1><p>Server running!</p></body></html>"
+        end
+    elif p == "/api/status"
+        ctype = "application/json"
+        body = "{\"status\": \"ok\", \"server\": \"Alya-Native-Server\", \"version\": \"0.0.5\", \"uptime_ms\": " + str(uptime) + ", \"timestamp\": " + str(now) + "}"
+    elif starts_with(p, "/api/echo")
+        ctype = "application/json"
+        body = "{\"method\": \"" + m + "\", \"path\": \"" + p + "\", \"server_time_ms\": " + str(now) + ", \"engine\": \"Alya Native Compiler\"}"
+    else
+        status = 404
+        body = "<!DOCTYPE html><html><body><h1>404 Not Found</h1><p>The requested path '" + p + "' was not found on this server.</p></body></html>"
+    end
+
+    let resp = build_response(status, ctype, body)
+    tcp_send(client_sock, resp)
+    tcp_close(client_sock)
+
+    let stat_color = color_green(str(status))
+    if status >= 400
+        stat_color = color_red(str(status))
+    end
+    say color_cyan("[HTTP]") + " " + style_bold(m) + " " + p + " -> " + stat_color + " (" + str(len(body)) + " bytes)"
+end
+
+function main()
+    let port = parse_port()
+    let server = tcp_listen(port, 16)
+    if server < 0
+        say color_red("Error:") + " Failed to bind TCP server on port " + str(port)
+        return
+    end
+
+    let start_time = clock_ms()
+    say color_cyan("╔═════════════════════════════════════════════════╗")
+    say color_cyan("║") + "         " + style_bold(color_yellow("⚡ ALYA NATIVE HTTP SERVER ⚡")) + "          " + color_cyan("║")
+    say color_cyan("╠═════════════════════════════════════════════════╣")
+    say color_cyan("║") + "  Listening at: " + color_green("http://127.0.0.1:" + str(port)) + "          " + color_cyan("║")
+    say color_cyan("║") + "  Endpoints   : " + color_white("/, /api/status, /api/echo") + "    " + color_cyan("║")
+    say color_cyan("║") + "  Press Ctrl+C to shutdown server                 " + color_cyan("║")
+    say color_cyan("╚═════════════════════════════════════════════════╝")
+    say ""
+
+    # Check for non-interactive / automated smoke test mode
+    let cli_args = args()
+    let single_run = 0
+    let i = 0
+    while i < len(cli_args)
+        if cli_args[i] == "--test" or cli_args[i] == "--once"
+            single_run = 1
+        end
+        i += 1
+    end
+
+    if single_run == 1
+        say color_yellow("[SERVER]") + " Single-run test mode active. Port verified."
+        tcp_close(server)
+        say color_green("[SERVER]") + " Server shutdown cleanly."
+        return
+    end
+
+    while 1
+        let client = tcp_accept(server)
+        if client >= 0
+            handle_client(client, start_time)
+        end
+    end
+    tcp_close(server)
+end
+
+main()

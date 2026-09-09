@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alya Web Server</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card-bg: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --heading: #58a6ff;
+            --accent: #2ea043;
+            --badge: #388bfd33;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        h1 {
+            color: var(--heading);
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            color: #8b949e;
+            font-size: 1.1rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .badge {
+            background-color: var(--badge);
+            color: var(--heading);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        .feature-box {
+            background: #0d1117;
+            border: 1px solid var(--border);
+            padding: 16px;
+            border-radius: 6px;
+        }
+        .feature-box h3 {
+            margin-top: 0;
+            color: var(--heading);
+            font-size: 1rem;
+        }
+        .feature-box p {
+            color: #8b949e;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        code {
+            background: #0d1117;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: "Courier New", Courier, monospace;
+            color: #ff7b72;
+        }
+        footer {
+            text-align: center;
+            color: #8b949e;
+            margin-top: 40px;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <span class="badge">Alya v0.0.5 Application Showcase</span>
+            <h1>⚡ Alya HTTP Web Server</h1>
+            <p class="subtitle">Compiled natively to machine code &bull; Zero external runtime VM</p>
+        </header>
+
+        <div class="card">
+            <h2>Welcome to Alya!</h2>
+            <p>This web page is being served directly by a native web server written entirely in the <strong>Alya Programming Language</strong> using the built-in <code>std/net</code> TCP socket stack.</p>
+            
+            <div class="grid">
+                <div class="feature-box">
+                    <h3>🚀 Native Performance</h3>
+                    <p>Compiled to pure machine assembly for x64, ARM64, and x86 with direct libc bindings.</p>
+                </div>
+                <div class="feature-box">
+                    <h3>🌐 Standard Library</h3>
+                    <p>Powered by <code>std/net</code>, <code>std/fs</code>, <code>std/json</code>, and <code>std/thread</code>.</p>
+                </div>
+                <div class="feature-box">
+                    <h3>🔌 REST API Ready</h3>
+                    <p>Try visiting <code>/api/status</code> or <code>/api/echo</code> for real-time JSON responses.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Live API Endpoints</h2>
+            <ul>
+                <li><a href="/api/status" style="color: #58a6ff;"><code>/api/status</code></a> - Returns server health, uptime, and language metadata in JSON format.</li>
+                <li><a href="/api/echo" style="color: #58a6ff;"><code>/api/echo</code></a> - Echoes request information and server time.</li>
+            </ul>
+        </div>
+
+        <footer>
+            <p>Crafted with Alya Programming Language &copy; 2026</p>
+        </footer>
+    </div>
+</body>
+</html>

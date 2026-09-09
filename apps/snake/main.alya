@@ -1,0 +1,339 @@
+# ═══════════════════════════════════════════════════════════════
+# Alya Snake Game (snake)
+# Part of the Alya Apps Collection
+# ═══════════════════════════════════════════════════════════════
+#
+# Features:
+#   - Classic Snake gameplay with ANSI terminal rendering
+#   - Turn-based interactive player mode (WASD + Enter)
+#   - Autonomous AI Autopilot mode (--demo or --ai)
+#   - High-score tracking, food spawning, collision mechanics
+#   - Non-hanging automated smoke test mode (--test)
+#
+# Controls:
+#   W: Move Up       S: Move Down
+#   A: Move Left     D: Move Right
+#   Enter: Keep moving in current direction
+#   Q: Quit game
+#
+# Usage:
+#   alyac run apps/snake/main.alya
+#   alyac run apps/snake/main.alya -- --demo
+#   alyac run apps/snake/main.alya -- --test
+# ═══════════════════════════════════════════════════════════════
+
+import "std/color"
+import "std/console"
+import "std/time"
+import "std/rand"
+import "std/str"
+import "std/os"
+
+struct Point
+    x
+    y
+end
+
+function abs_val(n)
+    if n < 0
+        return 0 - n
+    end
+    return n
+end
+
+function spawn_food(width, height, body)
+    let tries = 0
+    while tries < 100
+        let fx = rand_int(1, width - 2)
+        let fy = rand_int(1, height - 2)
+        let collision = 0
+        let i = 0
+        while i < arr_len(body)
+            let b = body[i]
+            if b.x == fx and b.y == fy
+                collision = 1
+                break
+            end
+            i += 1
+        end
+        if collision == 0
+            return Point(fx, fy)
+        end
+        tries += 1
+    end
+    return Point(5, 5)
+end
+
+function is_body_collision(x, y, body)
+    let i = 0
+    while i < arr_len(body)
+        let b = body[i]
+        if b.x == x and b.y == y
+            return 1
+        end
+        i += 1
+    end
+    return 0
+end
+
+function show_header(score, moves, is_ai)
+    let mode_str = color_green("PLAYER")
+    if is_ai == 1
+        mode_str = color_yellow("AI AUTOPILOT")
+    end
+    say color_cyan("  ╔════════════════════════════════════════╗")
+    say color_cyan("  ║") + "           " + style_bold(color_green("🐍 ALYA SNAKE GAME 🐍")) + "         " + color_cyan("║")
+    say color_cyan("  ╠════════════════════════════════════════╣")
+    say color_cyan("  ║") + "  Score: " + style_bold(str(score)) + "    Moves: " + str(moves) + "    Mode: " + mode_str + " " + color_cyan("║")
+    say color_cyan("  ╚════════════════════════════════════════╝")
+end
+
+function draw_board(width, height, body, food, head_dx, head_dy)
+    # Inner width = width - 2, each cell = 2 characters
+    let inner_chars = (width - 2) * 2
+    let top = "  ╔"
+    let i = 0
+    while i < inner_chars
+        top = top + "═"
+        i += 1
+    end
+    top = top + "╗"
+    say color_cyan(top)
+
+    let head = body[0]
+    let y = 1
+    while y < height - 1
+        let row = "  " + color_cyan("║")
+        let x = 1
+        while x < width - 1
+            if x == food.x and y == food.y
+                row = row + color_bright_red("★ ")
+            elif x == head.x and y == head.y
+                row = row + color_bright_yellow("● ")
+            elif is_body_collision(x, y, body) == 1
+                row = row + color_bright_green("■ ")
+            else
+                row = row + "  "
+            end
+            x += 1
+        end
+        row = row + color_cyan("║")
+        say row
+        y += 1
+    end
+
+    let bottom = "  ╚"
+    i = 0
+    while i < inner_chars
+        bottom = bottom + "═"
+        i += 1
+    end
+    bottom = bottom + "╝"
+    say color_cyan(bottom)
+end
+
+function get_player_move(cur_dx, cur_dy)
+    let prompt = "  Move [W/A/S/D, Enter=step, Q=quit]: "
+    let raw = lower(trim(ask(prompt)))
+    if raw == "q" or raw == "quit"
+        return 999, 999
+    end
+    if raw == "w" or raw == "up"
+        if cur_dy != 1 return 0, -1 end
+    elif raw == "s" or raw == "down"
+        if cur_dy != -1 return 0, 1 end
+    elif raw == "a" or raw == "left"
+        if cur_dx != 1 return -1, 0 end
+    elif raw == "d" or raw == "right"
+        if cur_dx != -1 return 1, 0 end
+    end
+    return cur_dx, cur_dy
+end
+
+function choose_ai_move(width, height, body, food, cur_dx, cur_dy)
+    let head = body[0]
+    let dirs = [
+        Point(0, -1),
+        Point(0, 1),
+        Point(-1, 0),
+        Point(1, 0)
+    ]
+
+    let best_dist = 999999
+    let best_dx = cur_dx
+    let best_dy = cur_dy
+    let found = 0
+
+    let i = 0
+    while i < arr_len(dirs)
+        let d = dirs[i]
+        # Avoid reversing immediately
+        if not (d.x == 0 - cur_dx and d.y == 0 - cur_dy)
+            let nx = head.x + d.x
+            let ny = head.y + d.y
+            # Check bounds
+            if nx >= 1 and nx < width - 1 and ny >= 1 and ny < height - 1
+                # Check body collision
+                if is_body_collision(nx, ny, body) == 0
+                    let dist = abs_val(nx - food.x) + abs_val(ny - food.y)
+                    if dist < best_dist
+                        best_dist = dist
+                        best_dx = d.x
+                        best_dy = d.y
+                        found = 1
+                    end
+                end
+            end
+        end
+        i += 1
+    end
+
+    if found == 1
+        return best_dx, best_dy
+    end
+    # Fallback to current direction if no safe move found
+    return cur_dx, cur_dy
+end
+
+function advance_snake(body, new_head, grow)
+    let new_body = [new_head]
+    let limit = arr_len(body)
+    if grow == 0
+        limit = limit - 1
+    end
+    let i = 0
+    while i < limit
+        new_body.push(body[i])
+        i += 1
+    end
+    return new_body
+end
+
+function main()
+    console_utf8()
+    let cli_args = args()
+    let is_ai = 0
+    let is_test = 0
+
+    let i = 0
+    while i < arr_len(cli_args)
+        let a = cli_args[i]
+        if a == "--demo" or a == "--ai"
+            is_ai = 1
+        elif a == "--test" or a == "--simulate"
+            is_test = 1
+            is_ai = 1
+        end
+        i += 1
+    end
+
+    let width = 20
+    let height = 12
+
+    let body = [
+        Point(10, 6),
+        Point(9, 6),
+        Point(8, 6)
+    ]
+    let food = Point(14, 6)
+    let dx = 1
+    let dy = 0
+    let score = 0
+    let moves = 0
+
+    if is_test == 1
+        say color_yellow("[SNAKE]") + " Running automated simulation test..."
+        # Simulate 25 game loop steps
+        let step = 0
+        while step < 25
+            let next_dx, next_dy = choose_ai_move(width, height, body, food, dx, dy)
+            dx = next_dx
+            dy = next_dy
+            let new_head = Point(body[0].x + dx, body[0].y + dy)
+
+            # Check food
+            let grow = 0
+            if new_head.x == food.x and new_head.y == food.y
+                score += 10
+                grow = 1
+                food = Point(rand_int(2, width - 3), rand_int(2, height - 3))
+            end
+
+            body = advance_snake(body, new_head, grow)
+            moves += 1
+            step += 1
+        end
+
+        draw_board(width, height, body, food, dx, dy)
+        say color_green("[SUCCESS]") + " Snake test passed (" + str(moves) + " moves simulated, score: " + str(score) + ")."
+        return
+    end
+
+    console_clear()
+    say color_bright_green("Welcome to Alya Snake!")
+    say ""
+
+    let running = 1
+    while running == 1
+        console_clear()
+        show_header(score, moves, is_ai)
+        draw_board(width, height, body, food, dx, dy)
+
+        if is_ai == 1
+            sleep(140)
+            let next_dx, next_dy = choose_ai_move(width, height, body, food, dx, dy)
+            dx = next_dx
+            dy = next_dy
+        else
+            let p_dx, p_dy = get_player_move(dx, dy)
+            if p_dx == 999 and p_dy == 999
+                say "Exiting game. Thanks for playing!"
+                return
+            end
+            dx = p_dx
+            dy = p_dy
+        end
+
+        let new_head = Point(body[0].x + dx, body[0].y + dy)
+
+        # Check wall collision
+        if new_head.x <= 0 or new_head.x >= width - 1 or new_head.y <= 0 or new_head.y >= height - 1
+            running = 0
+            break
+        end
+
+        # Check self collision
+        if is_body_collision(new_head.x, new_head.y, body) == 1
+            running = 0
+            break
+        end
+
+        # Check food
+        let grow = 0
+        if new_head.x == food.x and new_head.y == food.y
+            score += 10
+            grow = 1
+            food = spawn_food(width, height, body)
+            console_beep()
+        end
+
+        body = advance_snake(body, new_head, grow)
+        moves += 1
+
+        if is_ai == 1 and moves >= 100
+            say color_yellow("AI demonstration completed 100 moves successfully!")
+            break
+        end
+    end
+
+    console_clear()
+    show_header(score, moves, is_ai)
+    draw_board(width, height, body, food, dx, dy)
+    say ""
+    say color_red("  💥 GAME OVER! 💥")
+    say "  Final Score: " + style_bold(color_yellow(str(score)))
+    say "  Total Moves: " + str(moves)
+    say ""
+end
+
+main()
