@@ -66,7 +66,14 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern _floor\n");
         out.push_str(".extern _opendir\n");
         out.push_str(".extern _readdir\n");
-        out.push_str(".extern _closedir\n\n");
+        out.push_str(".extern _closedir\n");
+        out.push_str(".extern _pthread_create\n");
+        out.push_str(".extern _pthread_join\n");
+        out.push_str(".extern _pthread_self\n");
+        out.push_str(".extern _pthread_mutex_init\n");
+        out.push_str(".extern _pthread_mutex_lock\n");
+        out.push_str(".extern _pthread_mutex_unlock\n");
+        out.push_str(".extern _pthread_mutex_destroy\n\n");
         out.push_str(".text\n");
         out.push_str("_main:\n");
         out.push_str("    push %rbp\n");
@@ -138,7 +145,13 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
             out.push_str(".extern floor\n");
             out.push_str(".extern FindFirstFileA\n");
             out.push_str(".extern FindNextFileA\n");
-            out.push_str(".extern FindClose\n\n");
+            out.push_str(".extern FindClose\n");
+            out.push_str(".extern CreateThread\n");
+            out.push_str(".extern WaitForSingleObject\n");
+            out.push_str(".extern CloseHandle\n");
+            out.push_str(".extern GetCurrentThreadId\n");
+            out.push_str(".extern CreateMutexA\n");
+            out.push_str(".extern ReleaseMutex\n\n");
         } else {
             out.push_str(".extern usleep\n");
             out.push_str(".extern mkdir\n");
@@ -178,7 +191,14 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
             out.push_str(".extern floor\n");
             out.push_str(".extern opendir\n");
             out.push_str(".extern readdir\n");
-            out.push_str(".extern closedir\n\n");
+            out.push_str(".extern closedir\n");
+            out.push_str(".extern pthread_create\n");
+            out.push_str(".extern pthread_join\n");
+            out.push_str(".extern pthread_self\n");
+            out.push_str(".extern pthread_mutex_init\n");
+            out.push_str(".extern pthread_mutex_lock\n");
+            out.push_str(".extern pthread_mutex_unlock\n");
+            out.push_str(".extern pthread_mutex_destroy\n\n");
         }
         out.push_str(".text\n");
         out.push_str("main:\n");

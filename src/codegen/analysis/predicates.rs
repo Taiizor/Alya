@@ -125,6 +125,12 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     return true;
                 }
             }
+            if let (Expr::Identifier(arr_name), Expr::Number(idx)) = (&**array, &**index) {
+                let key = format!("tuple_elem_str:{}:{}", arr_name, *idx as usize);
+                if vars.contains_key(&key) {
+                    return true;
+                }
+            }
             is_string_array(array, vars) || is_string_expr(array, vars)
         }
         Expr::FieldAccess { object, field } => {

@@ -159,3 +159,71 @@ say power(2, 4)
         );
     }
 }
+
+#[test]
+fn test_e2e_multiple_returns_and_tuples() {
+    let code = r#"
+function min_max(a, b)
+    if a < b
+        return a, b
+    else
+        return b, a
+    end
+end
+
+let lo, hi = min_max(50, 20)
+say lo
+say hi
+
+let (x, y) = min_max(10, 99)
+say x
+say y
+
+let t = (100, 200, 300)
+say len(t)
+say t[0]
+say t[1]
+say t[2]
+
+let a = 1
+let b = 2
+a, b = b, a
+say a
+say b
+
+(a, b) = (b, a)
+say a
+say b
+
+function user_info()
+    return "Alice", 30
+end
+
+let name, age = user_info()
+say name
+say age
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(
+            output,
+            concat!(
+                "20\n",
+                "50\n",
+                "10\n",
+                "99\n",
+                "3\n",
+                "100\n",
+                "200\n",
+                "300\n",
+                "2\n",
+                "1\n",
+                "1\n",
+                "2\n",
+                "Alice\n",
+                "30\n",
+            )
+        );
+    }
+}
+

@@ -456,3 +456,63 @@ end
         other => panic!("Expected Stmt::If from desugared when, got {:?}", other),
     }
 }
+
+#[test]
+fn test_parse_multi_return() {
+    let code = "function pair()\n    return 10, 20\nend";
+    let program = parse_code(code).expect("Parse failed");
+    match &program.statements[0] {
+        Stmt::Function { body, .. } => {
+            assert_eq!(body.len(), 1);
+            match &body[0] {
+                Stmt::Return(Some(Expr::Array(elements))) => {
+                    assert_eq!(elements.len(), 2);
+                    assert_eq!(elements[0], Expr::Number(10.0));
+                    assert_eq!(elements[1], Expr::Number(20.0));
+                }
+                other => panic!("Expected Return(Some(Array)), got {:?}", other),
+            }
+        }
+        other => panic!("Expected Function, got {:?}", other),
+    }
+}
+
+#[test]
+fn test_parse_let_tuple_destructuring() {
+    let code = "let x, y = get_point()";
+    let program = parse_code(code).expect("Parse failed");
+    // Should desugar into tmp let and 2 indexed lets
+    assert_eq!(program.statements.len(), 3);
+    assert!(matches!(&program.statements[0], Stmt::Let { value: Expr::Call { .. }, .. }));
+    assert!(matches!(&program.statements[1], Stmt::Let { name, value: Expr::Index { .. } } if name == "x"));
+    assert!(matches!(&program.statements[2], Stmt::Let { name, value: Expr::Index { .. } } if name == "y"));
+}
+
+#[test]
+fn test_parse_parenthesized_let_destructuring() {
+    let code = "let (a, b) = (1, 2)";
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 3);
+    assert!(matches!(&program.statements[1], Stmt::Let { name, .. } if name == "a"));
+    assert!(matches!(&program.statements[2], Stmt::Let { name, .. } if name == "b"));
+}
+
+#[test]
+fn test_parse_multi_assignment() {
+    let code = "a, b = 10, 20";
+    let program = parse_code(code).expect("Parse failed");
+    // 2 tmps + 2 assigns = 4 stmts
+    assert_eq!(program.statements.len(), 4);
+    assert!(matches!(&program.statements[2], Stmt::Assign { name, .. } if name == "a"));
+    assert!(matches!(&program.statements[3], Stmt::Assign { name, .. } if name == "b"));
+}
+
+#[test]
+fn test_parse_parenthesized_multi_assignment() {
+    let code = "(a, b) = (b, a)";
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 3);
+    assert!(matches!(&program.statements[1], Stmt::Assign { name, .. } if name == "a"));
+    assert!(matches!(&program.statements[2], Stmt::Assign { name, .. } if name == "b"));
+}
+

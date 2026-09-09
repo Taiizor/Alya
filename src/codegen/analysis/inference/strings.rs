@@ -133,6 +133,12 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
                     return true;
                 }
             }
+            if let (Expr::Identifier(arr_name), Expr::Number(idx)) = (&**array, &**index) {
+                let idx_usize = *idx as usize;
+                if known_strings.contains(&format!("tuple_elem_str:{}:{}", arr_name, idx_usize)) {
+                    return true;
+                }
+            }
             match &**array {
                 Expr::Identifier(arr_name) => {
                     known_strings.contains(&format!("arr_is_str:{}", arr_name))
@@ -202,6 +208,54 @@ fn stmts_return_string(stmts: &[Stmt], known_strings: &HashSet<String>) -> bool 
         }
         _ => false,
     })
+}
+
+fn collect_tuple_returns_string(
+    stmts: &[Stmt],
+    known_strings: &HashSet<String>,
+    fn_name: &str,
+    target_strings: &mut HashSet<String>,
+) {
+    for s in stmts {
+        match s {
+            Stmt::Return(Some(Expr::Array(elements))) => {
+                for (i, elem) in elements.iter().enumerate() {
+                    if expr_is_definitely_string(elem, known_strings) {
+                        target_strings.insert(format!("fn_ret_tuple_str:{}:{}", fn_name, i));
+                    }
+                }
+            }
+            Stmt::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                collect_tuple_returns_string(then_block, known_strings, fn_name, target_strings);
+                if let Some(eb) = else_block {
+                    collect_tuple_returns_string(eb, known_strings, fn_name, target_strings);
+                }
+            }
+            Stmt::While { body, .. }
+            | Stmt::Repeat { body }
+            | Stmt::For { body, .. }
+            | Stmt::ForEach { body, .. } => {
+                collect_tuple_returns_string(body, known_strings, fn_name, target_strings);
+            }
+            Stmt::TryCatch {
+                try_block,
+                catch_block,
+                finally_block,
+                ..
+            } => {
+                collect_tuple_returns_string(try_block, known_strings, fn_name, target_strings);
+                collect_tuple_returns_string(catch_block, known_strings, fn_name, target_strings);
+                if let Some(fb) = finally_block {
+                    collect_tuple_returns_string(fb, known_strings, fn_name, target_strings);
+                }
+            }
+            _ => {}
+        }
+    }
 }
 
 fn collect_struct_defs(stmts: &[Stmt], map: &mut HashMap<String, Vec<String>>) {
@@ -336,6 +390,22 @@ fn collect_string_vars_from_stmts(
                 if expr_is_string_array(value, known_strings) {
                     known_strings.insert(format!("arr_is_str:{}", name));
                 }
+                if let Expr::Call { name: cname, .. } = value {
+                    let prefix = format!("fn_ret_tuple_str:{}:", cname);
+                    for item in known_strings.clone() {
+                        if item.starts_with(&prefix) {
+                            if let Some(idx_str) = item.strip_prefix(&prefix) {
+                                known_strings.insert(format!("tuple_elem_str:{}:{}", name, idx_str));
+                            }
+                        }
+                    }
+                } else if let Expr::Array(elems) = value {
+                    for (i, elem) in elems.iter().enumerate() {
+                        if expr_is_definitely_string(elem, known_strings) {
+                            known_strings.insert(format!("tuple_elem_str:{}:{}", name, i));
+                        }
+                    }
+                }
                 if let Expr::Map(entries) = value {
                     for (k, v) in entries {
                         if expr_is_definitely_string(v, known_strings) {
@@ -451,8 +521,11 @@ fn collect_string_vars_from_stmts(
                 if stmts_return_string(body, &fn_locals) {
                     known_strings.insert(format!("fn_ret_str:{}", name));
                 }
+                collect_tuple_returns_string(body, &fn_locals, name, known_strings);
                 for item in fn_locals {
                     if item.starts_with("fn_ret_str:")
+                        || item.starts_with("fn_ret_tuple_str:")
+                        || item.starts_with("tuple_elem_str:")
                         || item.starts_with("map_field_str:")
                         || item.starts_with("map_str:")
                         || item.starts_with("struct_field_str:")

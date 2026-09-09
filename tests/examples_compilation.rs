@@ -395,6 +395,30 @@ fn test_all_examples_execute_with_gcc() {
             continue;
         }
 
+        if example_name == "concurrency.alya" {
+            assert!(
+                actual_stdout.contains("Sum: 19, Product: 60"),
+                "concurrency missing stats:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("Worker 1 total (1..100): 5050"),
+                "concurrency missing worker 1:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("Worker 2 total (1..50): 1275"),
+                "concurrency missing worker 2:\n{}",
+                actual_stdout
+            );
+            assert!(
+                actual_stdout.contains("Concurrency test completed successfully."),
+                "concurrency missing completion marker:\n{}",
+                actual_stdout
+            );
+            continue;
+        }
+
         let expected = get_expected_output(example_name).unwrap_or_else(|| {
             panic!(
                 "Missing expected output definition for example '{}'!",

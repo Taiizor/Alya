@@ -537,3 +537,32 @@ fn test_parse_null_coalesce() {
         other => panic!("Expected Expr::NullCoalesce, got {:?}", other),
     }
 }
+
+#[test]
+fn test_parse_tuple_literal() {
+    let program = parse_code("let t = (1, 2, 3)").expect("Parse failed");
+    match &program.statements[0] {
+        Stmt::Let { name, value } => {
+            assert_eq!(name, "t");
+            assert_eq!(
+                *value,
+                Expr::Array(vec![
+                    Expr::Number(1.0),
+                    Expr::Number(2.0),
+                    Expr::Number(3.0),
+                ])
+            );
+        }
+        other => panic!("Expected Stmt::Let, got {:?}", other),
+    }
+
+    let program_empty = parse_code("let empty = ()").expect("Parse failed");
+    match &program_empty.statements[0] {
+        Stmt::Let { name, value } => {
+            assert_eq!(name, "empty");
+            assert_eq!(*value, Expr::Array(vec![]));
+        }
+        other => panic!("Expected Stmt::Let, got {:?}", other),
+    }
+}
+

@@ -9,6 +9,10 @@ impl Parser {
     pub(super) fn parse_statement(&mut self) -> Result<Vec<Stmt>, String> {
         self.skip_newlines();
 
+        if self.check_multi_assignment() {
+            return self.parse_multi_assignment();
+        }
+
         match &self.current_token().token_type {
             TokenType::Import => self.parse_import().map(|s| vec![s]),
             TokenType::Struct => self.parse_struct().map(|s| vec![s]),
@@ -295,6 +299,136 @@ impl Parser {
                 let expr = self.parse_expression()?;
                 Ok(vec![Stmt::Expr(expr)])
             }
+        }
+    }
+
+    fn check_multi_assignment(&self) -> bool {
+        let mut idx = self.position;
+        let mut in_parens = false;
+        if let Some(tok) = self.tokens.get(idx) {
+            if matches!(tok.token_type, TokenType::LeftParen) {
+                in_parens = true;
+                idx += 1;
+            }
+        } else {
+            return false;
+        }
+
+        match self.tokens.get(idx).map(|t| &t.token_type) {
+            Some(TokenType::Identifier(_)) => idx += 1,
+            _ => return false,
+        }
+
+        if !matches!(self.tokens.get(idx).map(|t| &t.token_type), Some(TokenType::Comma)) {
+            return false;
+        }
+
+        while matches!(self.tokens.get(idx).map(|t| &t.token_type), Some(TokenType::Comma)) {
+            idx += 1;
+            match self.tokens.get(idx).map(|t| &t.token_type) {
+                Some(TokenType::Identifier(_)) => idx += 1,
+                _ => return false,
+            }
+        }
+
+        if in_parens {
+            if !matches!(self.tokens.get(idx).map(|t| &t.token_type), Some(TokenType::RightParen)) {
+                return false;
+            }
+            idx += 1;
+        }
+
+        matches!(self.tokens.get(idx).map(|t| &t.token_type), Some(TokenType::Assign))
+    }
+
+    pub(super) fn parse_multi_assignment(&mut self) -> Result<Vec<Stmt>, String> {
+        let first_line = self.current_token().line;
+        let first_col = self.current_token().column;
+
+        let has_parens = if matches!(self.current_token().token_type, TokenType::LeftParen) {
+            self.advance();
+            true
+        } else {
+            false
+        };
+
+        let mut names = Vec::new();
+        loop {
+            let name = match &self.current_token().token_type {
+                TokenType::Identifier(s) => s.clone(),
+                _ => unreachable!(),
+            };
+            self.advance();
+            names.push(name);
+
+            if matches!(self.current_token().token_type, TokenType::Comma) {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        if has_parens {
+            self.expect(TokenType::RightParen)?;
+        }
+
+        self.expect(TokenType::Assign)?;
+
+        let mut values = Vec::new();
+        loop {
+            let value = self.parse_expression()?;
+            values.push(value);
+
+            if matches!(self.current_token().token_type, TokenType::Comma) {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+
+        if values.len() == 1 {
+            let single_val = values.remove(0);
+            let tmp_name = format!("__tuple_assign_{}_{}", first_line, first_col);
+            let mut stmts = vec![Stmt::Let {
+                name: tmp_name.clone(),
+                value: single_val,
+            }];
+            for (i, name) in names.into_iter().enumerate() {
+                stmts.push(Stmt::Assign {
+                    name,
+                    value: Expr::Index {
+                        array: Box::new(Expr::Identifier(tmp_name.clone())),
+                        index: Box::new(Expr::Number(i as f64)),
+                    },
+                });
+            }
+            Ok(stmts)
+        } else if values.len() == names.len() {
+            let mut stmts = Vec::new();
+            let mut tmp_names = Vec::new();
+            for (i, val) in values.into_iter().enumerate() {
+                let tmp_name = format!("__assign_tmp_{}_{}_{}", first_line, first_col, i);
+                stmts.push(Stmt::Let {
+                    name: tmp_name.clone(),
+                    value: val,
+                });
+                tmp_names.push(tmp_name);
+            }
+            for (name, tmp) in names.into_iter().zip(tmp_names) {
+                stmts.push(Stmt::Assign {
+                    name,
+                    value: Expr::Identifier(tmp),
+                });
+            }
+            Ok(stmts)
+        } else {
+            Err(format!(
+                "Mismatch in assignment: {} variables but {} values provided at line {}, column {}",
+                names.len(),
+                values.len(),
+                first_line,
+                first_col
+            ))
         }
     }
 }

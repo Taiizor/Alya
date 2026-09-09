@@ -5,7 +5,7 @@ use crate::codegen::analysis::{
 };
 use crate::codegen::arch;
 use crate::codegen::context::VarType;
-use crate::codegen::target::Architecture;
+use crate::codegen::target::{Architecture, OperatingSystem};
 
 impl CodeGen {
     pub(crate) fn generate_expression(&mut self, expr: &Expr) {
@@ -74,6 +74,29 @@ impl CodeGen {
                         },
                         VarType::StringLabel(label) => {
                             arch::emit_load_str_label(&mut self.output, self.arch, &label, self.os);
+                        }
+                    }
+                } else if self.ctx.functions.contains(name) {
+                    let mangled = if name.contains("::") {
+                        name.replace("::", "__")
+                    } else {
+                        name.clone()
+                    };
+                    match self.arch {
+                        Architecture::ARM64 => {
+                            if matches!(self.os, OperatingSystem::MacOS) {
+                                self.output.push_str(&format!("    adrp x0, fn_{}@PAGE\n", mangled));
+                                self.output.push_str(&format!("    add x0, x0, fn_{}@PAGEOFF\n", mangled));
+                            } else {
+                                self.output.push_str(&format!("    adrp x0, fn_{}\n", mangled));
+                                self.output.push_str(&format!("    add x0, x0, :lo12:fn_{}\n", mangled));
+                            }
+                        }
+                        Architecture::X64 => {
+                            self.output.push_str(&format!("    leaq fn_{}(%rip), %rax\n", mangled));
+                        }
+                        Architecture::X86 => {
+                            self.output.push_str(&format!("    movl $fn_{}, %eax\n", mangled));
                         }
                     }
                 }

@@ -51,6 +51,13 @@ impl Parser {
         let first_line = self.current_token().line;
         let first_col = self.current_token().column;
 
+        let has_parens = if matches!(self.current_token().token_type, TokenType::LeftParen) {
+            self.advance();
+            true
+        } else {
+            false
+        };
+
         let mut names = Vec::new();
         loop {
             let name = match &self.current_token().token_type {
@@ -73,6 +80,10 @@ impl Parser {
             }
         }
 
+        if has_parens {
+            self.expect(TokenType::RightParen)?;
+        }
+
         self.expect(TokenType::Assign)?;
 
         let mut values = Vec::new();
@@ -89,14 +100,42 @@ impl Parser {
 
         if values.len() == 1 {
             let single_val = values.remove(0);
-            let stmts = names
-                .into_iter()
-                .map(|name| Stmt::Let {
-                    name,
-                    value: single_val.clone(),
-                })
-                .collect();
-            Ok(stmts)
+            if names.len() == 1 {
+                Ok(vec![Stmt::Let {
+                    name: names.remove(0),
+                    value: single_val,
+                }])
+            } else {
+                match &single_val {
+                    Expr::Number(_) | Expr::Float(_) | Expr::String(_) | Expr::Null => {
+                        let stmts = names
+                            .into_iter()
+                            .map(|name| Stmt::Let {
+                                name,
+                                value: single_val.clone(),
+                            })
+                            .collect();
+                        Ok(stmts)
+                    }
+                    _ => {
+                        let tmp_name = format!("__tuple_{}_{}", first_line, first_col);
+                        let mut stmts = vec![Stmt::Let {
+                            name: tmp_name.clone(),
+                            value: single_val,
+                        }];
+                        for (i, name) in names.into_iter().enumerate() {
+                            stmts.push(Stmt::Let {
+                                name,
+                                value: Expr::Index {
+                                    array: Box::new(Expr::Identifier(tmp_name.clone())),
+                                    index: Box::new(Expr::Number(i as f64)),
+                                },
+                            });
+                        }
+                        Ok(stmts)
+                    }
+                }
+            }
         } else if values.len() == names.len() {
             let stmts = names
                 .into_iter()
@@ -210,7 +249,17 @@ impl Parser {
             Ok(Stmt::Return(None))
         } else {
             let expr = self.parse_expression()?;
-            Ok(Stmt::Return(Some(expr)))
+            if matches!(self.current_token().token_type, TokenType::Comma) {
+                let mut exprs = vec![expr];
+                while matches!(self.current_token().token_type, TokenType::Comma) {
+                    self.advance();
+                    self.skip_newlines();
+                    exprs.push(self.parse_expression()?);
+                }
+                Ok(Stmt::Return(Some(Expr::Array(exprs))))
+            } else {
+                Ok(Stmt::Return(Some(expr)))
+            }
         }
     }
 

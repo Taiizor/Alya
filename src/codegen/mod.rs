@@ -51,6 +51,8 @@ impl CodeGen {
             if s.starts_with("map_field_str:")
                 || s.starts_with("map_str:")
                 || s.starts_with("fn_ret_str:")
+                || s.starts_with("fn_ret_tuple_str:")
+                || s.starts_with("tuple_elem_str:")
                 || s.starts_with("struct_field_str:")
             {
                 self.ctx
@@ -67,6 +69,7 @@ impl CodeGen {
 
         for stmt in &program.statements {
             if let Stmt::Function { name, .. } = stmt {
+                self.ctx.functions.insert(name.clone());
                 if let Some(sname) = analysis::infer_function_return_struct_type(name, program) {
                     self.ctx.variables.insert(
                         format!("fn_ret_struct:{}", name),

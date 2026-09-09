@@ -1528,3 +1528,47 @@ say "stats_ok: " + str(stats.allocated_bytes >= 0)
         assert!(output.contains("stats_ok: 1"));
     }
 }
+
+#[test]
+fn test_e2e_thread_and_concurrency_stdlib() {
+    let code = r#"
+import "std/thread"
+
+function compute_square(x)
+    return x * x
+end
+
+function compute_sum(pair)
+    let a, b = pair
+    return a + b
+end
+
+let t1 = thread_spawn(compute_square, 9)
+let t2 = thread_spawn(compute_sum, (30, 12))
+
+let r1 = thread_join(t1)
+let r2 = thread_join(t2)
+
+say "sq: " + str(r1)
+say "sum: " + str(r2)
+
+let tid = thread_id()
+if tid > 0
+    say "tid: ok"
+end
+
+let m = mutex_new()
+mutex_lock(m)
+mutex_unlock(m)
+mutex_free(m)
+say "mutex: ok"
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("sq: 81"), "Expected sq: 81, got: {}", output);
+        assert!(output.contains("sum: 42"), "Expected sum: 42, got: {}", output);
+        assert!(output.contains("tid: ok"), "Expected tid: ok, got: {}", output);
+        assert!(output.contains("mutex: ok"), "Expected mutex: ok, got: {}", output);
+    }
+}
+

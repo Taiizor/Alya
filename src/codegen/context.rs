@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructDefInfo {
@@ -33,6 +33,7 @@ pub struct CodeGenContext {
     pub structs: HashMap<String, StructDefInfo>,
     pub stack_offset: i32,
     pub loop_stack: Vec<(String, String, i32)>,
+    pub functions: HashSet<String>,
 }
 
 impl CodeGenContext {
@@ -44,6 +45,7 @@ impl CodeGenContext {
             structs: HashMap::new(),
             stack_offset: 0,
             loop_stack: Vec::new(),
+            functions: HashSet::new(),
         }
     }
 

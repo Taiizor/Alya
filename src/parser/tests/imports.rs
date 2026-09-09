@@ -114,6 +114,7 @@ import "std/url"
 import "std/color"
 import "std/log"
 import "std/glob"
+import "std/thread"
 say PI
 "#;
     let mut lexer = Lexer::new(code);
@@ -210,6 +211,10 @@ say PI
         Stmt::Function { name, .. } => name == "glob_match",
         _ => false,
     });
+    let has_thread_spawn = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "thread_spawn",
+        _ => false,
+    });
 
     assert!(has_hypot, "Missing hypot from std/math");
     assert!(has_now, "Missing now from std/time");
@@ -230,6 +235,7 @@ say PI
     assert!(has_color_red, "Missing color_red from std/color");
     assert!(has_logger_new, "Missing logger_new from std/log");
     assert!(has_glob_match, "Missing glob_match from std/glob");
+    assert!(has_thread_spawn, "Missing thread_spawn from std/thread");
 }
 
 #[test]

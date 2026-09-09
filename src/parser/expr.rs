@@ -455,9 +455,30 @@ impl Parser {
             }
             TokenType::LeftParen => {
                 self.advance();
-                let expr = self.parse_expression()?;
-                self.expect(TokenType::RightParen)?;
-                Ok(expr)
+                self.skip_newlines();
+                if matches!(self.current_token().token_type, TokenType::RightParen) {
+                    self.advance();
+                    return Ok(Expr::Array(vec![]));
+                }
+                let first = self.parse_expression()?;
+                self.skip_newlines();
+                if matches!(self.current_token().token_type, TokenType::Comma) {
+                    let mut elements = vec![first];
+                    while matches!(self.current_token().token_type, TokenType::Comma) {
+                        self.advance();
+                        self.skip_newlines();
+                        if matches!(self.current_token().token_type, TokenType::RightParen) {
+                            break;
+                        }
+                        elements.push(self.parse_expression()?);
+                        self.skip_newlines();
+                    }
+                    self.expect(TokenType::RightParen)?;
+                    Ok(Expr::Array(elements))
+                } else {
+                    self.expect(TokenType::RightParen)?;
+                    Ok(first)
+                }
             }
             TokenType::LeftBrace => self.parse_map_literal(),
             TokenType::LeftBracket => {

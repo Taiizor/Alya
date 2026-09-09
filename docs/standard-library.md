@@ -382,3 +382,35 @@ emit_audit_log("BILLING", "INVOICE_GENERATED", "amount=$250.00 currency=USD")
 emit_audit_log("STORAGE", "SNAPSHOT_STORED", "target=s3://alya-backups/daily.tar.gz")
 ```
 
+---
+
+## 8. Threading & Concurrency (`std/thread`)
+
+Cross-platform OS thread creation and synchronization primitives (Win32 threads and POSIX `pthread`).
+
+```alya
+import "std/thread"
+
+# Worker function executed in a background OS thread
+function worker(param)
+    let id = thread_id()
+    say "Worker running on OS thread {id} with param: {param}"
+    return param * 2
+end
+
+# 1. Spawn worker thread
+let handle = thread_spawn(worker, 21)
+
+# 2. Mutex synchronization
+let lock = mutex_new()
+mutex_lock(lock)
+# ... critical section ...
+mutex_unlock(lock)
+mutex_free(lock)
+
+# 3. Join thread and retrieve 64-bit return value
+let result = thread_join(handle)
+say "Result from thread: {result}"    # 42
+```
+
+

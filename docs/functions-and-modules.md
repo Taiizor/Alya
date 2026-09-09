@@ -33,6 +33,33 @@ greet("Bob", "Good day", "?")   # "Good day, Bob?"
 ### Call Conventions & Native Stack Frames
 Alya generates native ABI-compliant function calls (`call` on x86/x64, `bl` on ARM64) with stack frame alignment and standard register calling conventions, avoiding any interpreter dispatch overhead.
 
+### Multiple Return Values & Tuples
+Functions can return multiple values separated by commas. Callers can unpack them directly using tuple destructuring:
+
+```alya
+function min_max(a, b)
+    if a < b
+        return a, b
+    end
+    return b, a
+end
+
+let (low, high) = min_max(42, 17)
+say low     # 17
+say high    # 42
+
+# Tuple literals and swapping:
+let pair = (100, 200)
+let x, y = pair
+say x       # 100
+say y       # 200
+
+# Parallel swap without temporary variable:
+x, y = y, x
+say x       # 200
+say y       # 100
+```
+
 ---
 
 ## 2. Recursion
