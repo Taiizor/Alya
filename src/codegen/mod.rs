@@ -252,15 +252,11 @@ impl CodeGen {
                 Some(VarType::Array(_)) | Some(VarType::Map(_)) | Some(VarType::Struct { .. })
             ),
             Expr::Call { name, .. } => {
-                if self.ctx.structs.contains_key(name) {
-                    true
-                } else if let Some(VarType::Struct { .. }) =
-                    self.ctx.variables.get(&format!("fn_ret_struct:{}", name))
-                {
-                    true
-                } else {
-                    false
-                }
+                self.ctx.structs.contains_key(name)
+                    || matches!(
+                        self.ctx.variables.get(&format!("fn_ret_struct:{}", name)),
+                        Some(VarType::Struct { .. })
+                    )
             }
             _ => false,
         }

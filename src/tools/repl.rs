@@ -582,9 +582,7 @@ pub fn execute_code_snippet(
     let gcc_res = runner::compile_with_gcc(&temp_asm, &temp_exe, arch, os);
     let _ = fs::remove_file(&temp_asm);
 
-    if let Err(err) = gcc_res {
-        return Err(err);
-    }
+    gcc_res?;
 
     // 6. Execute binary
     let exe_path = if matches!(os, OperatingSystem::Windows) {

@@ -72,15 +72,13 @@ impl CodeGen {
                 if let Some(expr) = opt_expr {
                     let is_flt = crate::codegen::analysis::is_float_expr(expr, &self.ctx.variables);
                     if let Expr::Identifier(id) = expr {
-                        if let Some(vtype) = self.ctx.variables.get(id) {
-                            match vtype {
-                                VarType::Array(off)
-                                | VarType::Map(off)
-                                | VarType::Struct { offset: off, .. } => {
-                                    skip_offset = Some(*off);
-                                }
-                                _ => {}
-                            }
+                        if let Some(
+                            VarType::Array(off)
+                            | VarType::Map(off)
+                            | VarType::Struct { offset: off, .. },
+                        ) = self.ctx.variables.get(id)
+                        {
+                            skip_offset = Some(*off);
                         }
                     }
                     self.generate_expression(expr);
