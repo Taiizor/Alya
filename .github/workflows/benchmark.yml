@@ -13,6 +13,17 @@ on:
           - 'windows-latest'
           - 'macos-latest'
           - 'all'
+      category:
+        description: 'Benchmark Category'
+        type: choice
+        required: true
+        default: 'all'
+        options:
+          - 'all'
+          - 'algorithms'
+          - 'collections'
+          - 'numeric'
+          - 'strings'
       mode:
         description: 'Benchmark Suite Mode'
         type: choice
@@ -37,7 +48,7 @@ on:
         default: true
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.inputs.os || 'default' }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event.inputs.os || 'default' }}-${{ github.event.inputs.category || 'all' }}
   cancel-in-progress: true
 
 permissions:
@@ -97,14 +108,14 @@ jobs:
       - name: Run cross-language benchmarks
         shell: bash
         run: |
-          ARGS="--suite ${{ inputs.mode || 'comprehensive' }} --iterations ${{ inputs.iterations || '5' }}"
-          if [ "${{ inputs.update_readme }}" = "true" ] && ( [ "${{ matrix.os }}" = "ubuntu-latest" ] || [ "${{ inputs.os }}" != "all" ] ); then
+          ARGS="--suite ${{ inputs.mode || 'comprehensive' }} --category ${{ inputs.category || 'all' }} --iterations ${{ inputs.iterations || '5' }}"
+          if [ "${{ inputs.update_readme }}" = "true" ] && [ "${{ inputs.category || 'all' }}" = "all" ] && ( [ "${{ matrix.os }}" = "ubuntu-latest" ] || [ "${{ inputs.os }}" != "all" ] ); then
             ARGS="$ARGS --update-readme"
           fi
           bun run benchmarks/cross_lang/runner.ts $ARGS
 
       - name: Commit and push benchmark results
-        if: inputs.update_readme == true && (matrix.os == 'ubuntu-latest' || inputs.os != 'all')
+        if: inputs.update_readme == true && (inputs.category == 'all' || inputs.category == '') && (matrix.os == 'ubuntu-latest' || inputs.os != 'all')
         shell: bash
         run: |
           git config --global user.name "github-actions[bot]"
