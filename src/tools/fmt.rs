@@ -14,6 +14,67 @@ enum BlockKind {
     Struct,
     When,
     WhenArm,
+    Brace,
+    Bracket,
+}
+
+fn pop_leading_closing_delimiters(code: &str, block_stack: &mut Vec<BlockKind>) -> usize {
+    let mut popped_bytes = 0;
+    let bytes = code.as_bytes();
+    while popped_bytes < bytes.len() {
+        let b = bytes[popped_bytes];
+        let matches_brace = b == b'}' && block_stack.last() == Some(&BlockKind::Brace);
+        let matches_bracket = b == b']' && block_stack.last() == Some(&BlockKind::Bracket);
+        if matches_brace || matches_bracket {
+            block_stack.pop();
+            popped_bytes += 1;
+        } else {
+            break;
+        }
+    }
+    popped_bytes
+}
+
+fn scan_delimiters_after_leading(code_slice: &str, block_stack: &mut Vec<BlockKind>) {
+    let mut in_str = false;
+    let mut quote_char = '"';
+    let mut escaped = false;
+    let bytes = code_slice.as_bytes();
+    let mut i = 0;
+
+    while i < bytes.len() {
+        let b = bytes[i];
+        if in_str {
+            if escaped {
+                escaped = false;
+            } else if b == b'\\' {
+                escaped = true;
+            } else if b == quote_char as u8 {
+                in_str = false;
+            }
+            i += 1;
+            continue;
+        }
+
+        if b == b'"' || b == b'`' {
+            in_str = true;
+            quote_char = b as char;
+            i += 1;
+            continue;
+        }
+
+        if b == b'{' {
+            block_stack.push(BlockKind::Brace);
+        } else if b == b'[' {
+            block_stack.push(BlockKind::Bracket);
+        } else if (b == b'}' && block_stack.last() == Some(&BlockKind::Brace))
+            || (b == b']' && block_stack.last() == Some(&BlockKind::Bracket))
+        {
+            block_stack.pop();
+        }
+
+        i += 1;
+    }
 }
 
 fn strip_line_comment(line: &str) -> &str {
@@ -320,6 +381,8 @@ pub fn format_source(source: &str) -> Result<String, String> {
             continue;
         }
 
+        let popped_bytes = pop_leading_closing_delimiters(code, &mut block_stack);
+
         let first_word = code.split_whitespace().next().unwrap_or("");
         let is_end = first_word == "end" || code.starts_with("end(");
         let is_elif = first_word == "elif" || code.starts_with("elif(");
@@ -334,15 +397,36 @@ pub fn format_source(source: &str) -> Result<String, String> {
             if block_stack.last() == Some(&BlockKind::WhenArm) {
                 block_stack.pop();
             }
+            while let Some(top) = block_stack.last() {
+                if matches!(top, BlockKind::Brace | BlockKind::Bracket) {
+                    block_stack.pop();
+                } else {
+                    break;
+                }
+            }
             if !block_stack.is_empty() {
                 block_stack.pop();
             }
             line_indent = block_stack.len();
         } else if is_elif {
+            while let Some(top) = block_stack.last() {
+                if matches!(top, BlockKind::Brace | BlockKind::Bracket) {
+                    block_stack.pop();
+                } else {
+                    break;
+                }
+            }
             line_indent = block_stack.len().saturating_sub(1);
         } else if is_else {
             if block_stack.last() == Some(&BlockKind::WhenArm) {
                 block_stack.pop();
+            }
+            while let Some(top) = block_stack.last() {
+                if matches!(top, BlockKind::Brace | BlockKind::Bracket) {
+                    block_stack.pop();
+                } else {
+                    break;
+                }
             }
             if block_stack.last() == Some(&BlockKind::When) {
                 line_indent = block_stack.len();
@@ -363,6 +447,13 @@ pub fn format_source(source: &str) -> Result<String, String> {
                 block_stack.push(BlockKind::WhenArm);
             }
         } else if is_catch || is_finally {
+            while let Some(top) = block_stack.last() {
+                if matches!(top, BlockKind::Brace | BlockKind::Bracket) {
+                    block_stack.pop();
+                } else {
+                    break;
+                }
+            }
             line_indent = block_stack.len().saturating_sub(1);
         } else {
             line_indent = block_stack.len();
@@ -378,6 +469,10 @@ pub fn format_source(source: &str) -> Result<String, String> {
             if let Some(new_block) = get_block_starter(code) {
                 block_stack.push(new_block);
             }
+        }
+
+        if popped_bytes < code.len() {
+            scan_delimiters_after_leading(&code[popped_bytes..], &mut block_stack);
         }
     }
 
@@ -657,6 +752,67 @@ end
             "function foo() return 1 end\nfunction bar() return 2 end\nlet x = foo() + bar()\n";
         let expected =
             "function foo() return 1 end\nfunction bar() return 2 end\nlet x = foo() + bar()\n";
+        assert_eq!(format_source(input).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_format_multiline_map() {
+        let input = r#"function get_user()
+let u = {
+"name": "Alya",
+"age": 2
+}
+return u
+end
+"#;
+        let expected = r#"function get_user()
+    let u = {
+        "name": "Alya",
+        "age": 2
+    }
+    return u
+end
+"#;
+        assert_eq!(format_source(input).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_format_multiline_return_map() {
+        let input = r#"function get_date()
+return {
+"year": 2026,
+"month": 9
+}
+end
+"#;
+        let expected = r#"function get_date()
+    return {
+        "year": 2026,
+        "month": 9
+    }
+end
+"#;
+        assert_eq!(format_source(input).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_format_multiline_array() {
+        let input = r#"function get_items()
+let items = [
+"alpha",
+"beta"
+]
+return items
+end
+"#;
+        let expected = r#"function get_items()
+    let items = [
+        "alpha",
+        "beta"
+    ]
+    return items
+end
+"#;
         assert_eq!(format_source(input).unwrap(), expected);
     }
 }
