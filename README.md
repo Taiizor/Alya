@@ -116,18 +116,18 @@ alyac check examples/calculator.alya
 
 Alya is engineered for rapid compilation and high-performance native execution across all operating systems and architectures.
 
-### Cross-Language Execution Benchmark (Median of 5 runs)
+### Cross-Language Execution Benchmark (Median of 10 runs)
 
 | Category | Benchmark | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs Bun | Alya vs Python |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| `Algorithms` | **Recursive Fibonacci (n=30)** | `10.8 ms` | **`16.1 ms`** | `28.1 ms` | `131.3 ms` | **1.8x faster** | **8.2x faster** |
-| `Algorithms` | **Quicksort (50k items)** | `22.2 ms` | **`122.0 ms`** | `42.3 ms` | `1475.6 ms` | `2.9x slower` | **12.1x faster** |
-| `Algorithms` | **Sieve of Eratosthenes (50k)** | `14.3 ms` | **`18.7 ms`** | `28.9 ms` | `55.3 ms` | **1.5x faster** | **3.0x faster** |
-| `Collections` | **Binary Trees (Depth 14)** | `263.6 ms` | **`467.0 ms`** | `145.5 ms` | `2165.0 ms` | `3.2x slower` | **4.6x faster** |
-| `Collections` | **Hash Map (20k entries)** | `17.5 ms` | **`22.5 ms`** | `38.0 ms` | `43.4 ms` | **1.7x faster** | **1.9x faster** |
-| `Numeric` | **Mandelbrot Fractal (200×100)** | `12.9 ms` | **`19.5 ms`** | `28.0 ms` | `111.8 ms` | **1.4x faster** | **5.7x faster** |
-| `Numeric` | **Matrix Multiply (120×120)** | `12.6 ms` | **`18.7 ms`** | `30.6 ms` | `153.6 ms` | **1.6x faster** | **8.2x faster** |
-| `Strings` | **FNV-1a String Hash (50k)** | `15.9 ms` | **`22.1 ms`** | `36.8 ms` | `380.7 ms` | **1.7x faster** | **17.3x faster** |
+| `Algorithms` | **Recursive Fibonacci (n=30)** | `2.4 ms` | **`9.9 ms`** | `14.3 ms` | `127.7 ms` | **1.4x faster** | **12.9x faster** |
+| `Algorithms` | **Quicksort (50k items)** | `16.7 ms` | **`132.9 ms`** | `34.7 ms` | `2128.5 ms` | `3.8x slower` | **16.0x faster** |
+| `Algorithms` | **Sieve of Eratosthenes (50k)** | `1.1 ms` | **`1.7 ms`** | `7.1 ms` | `19.4 ms` | **4.2x faster** | **11.6x faster** |
+| `Collections` | **Binary Trees (Depth 14)** | `117.2 ms` | **`476.1 ms`** | `99.8 ms` | `2917.5 ms` | `4.8x slower` | **6.1x faster** |
+| `Collections` | **Hash Map (20k entries)** | `4.2 ms` | **`11.6 ms`** | `16.3 ms` | `27.5 ms` | **1.4x faster** | **2.4x faster** |
+| `Numeric` | **Mandelbrot Fractal (200×100)** | `3.5 ms` | **`8.9 ms`** | `10.6 ms` | `136.7 ms` | **1.2x faster** | **15.3x faster** |
+| `Numeric` | **Matrix Multiply (120×120)** | `1.3 ms` | **`8.3 ms`** | `12.9 ms` | `235.0 ms` | **1.6x faster** | **28.4x faster** |
+| `Strings` | **FNV-1a String Hash (50k)** | `5.2 ms` | **`7.9 ms`** | `13.9 ms` | `473.0 ms` | **1.8x faster** | **60.1x faster** |
 
 > 📊 For full cross-platform benchmark results (Linux, macOS, Windows), compiler throughput benchmarks, and reproduction instructions, see **[benchmarks/README.md](benchmarks/README.md)**.
 
