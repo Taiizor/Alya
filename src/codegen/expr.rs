@@ -384,6 +384,14 @@ impl CodeGen {
                             }
                         }
                         self.generate_expression(arg);
+                        if self.is_heap_expression(arg) {
+                            arch::emit_rc_retain(
+                                &mut self.output,
+                                self.arch,
+                                self.ctx.stack_offset + 8,
+                                self.os,
+                            );
+                        }
                         arch::emit_struct_field_set_imm(&mut self.output, self.arch, i);
                     }
 
@@ -791,16 +799,34 @@ impl CodeGen {
 
                 if let Some(sdef) = self.ctx.structs.get(name).cloned() {
                     for (i, fname) in sdef.fields.iter().enumerate() {
-                        if let Some((_, fval)) = fields.iter().find(|(k, _)| k == fname) {
-                            self.generate_expression(fval);
-                        } else {
-                            self.generate_expression(&Expr::Number(0.0));
+                        let arg_expr =
+                            if let Some((_, fval)) = fields.iter().find(|(k, _)| k == fname) {
+                                fval
+                            } else {
+                                &Expr::Number(0.0)
+                            };
+                        self.generate_expression(arg_expr);
+                        if self.is_heap_expression(arg_expr) {
+                            arch::emit_rc_retain(
+                                &mut self.output,
+                                self.arch,
+                                self.ctx.stack_offset + 8,
+                                self.os,
+                            );
                         }
                         arch::emit_struct_field_set_imm(&mut self.output, self.arch, i);
                     }
                 } else {
                     for (i, (_, fval)) in fields.iter().enumerate() {
                         self.generate_expression(fval);
+                        if self.is_heap_expression(fval) {
+                            arch::emit_rc_retain(
+                                &mut self.output,
+                                self.arch,
+                                self.ctx.stack_offset + 8,
+                                self.os,
+                            );
+                        }
                         arch::emit_struct_field_set_imm(&mut self.output, self.arch, i);
                     }
                 }
@@ -857,6 +883,14 @@ impl CodeGen {
 
                 for (i, elem) in elements.iter().enumerate() {
                     self.generate_expression(elem);
+                    if self.is_heap_expression(elem) {
+                        arch::emit_rc_retain(
+                            &mut self.output,
+                            self.arch,
+                            self.ctx.stack_offset + 8,
+                            self.os,
+                        );
+                    }
                     arch::emit_array_set_imm(&mut self.output, self.arch, i);
                 }
 
@@ -904,6 +938,14 @@ impl CodeGen {
                                     v_offset,
                                     self.ctx.stack_offset,
                                 );
+                                if self.is_heap_expression(v) {
+                                    arch::emit_rc_retain(
+                                        &mut self.output,
+                                        self.arch,
+                                        self.ctx.stack_offset,
+                                        self.os,
+                                    );
+                                }
                                 arch::emit_push_temp(&mut self.output, self.arch);
 
                                 arch::emit_load_var(
@@ -945,6 +987,14 @@ impl CodeGen {
                                     v_offset,
                                     self.ctx.stack_offset,
                                 );
+                                if self.is_heap_expression(v) {
+                                    arch::emit_rc_retain(
+                                        &mut self.output,
+                                        self.arch,
+                                        self.ctx.stack_offset,
+                                        self.os,
+                                    );
+                                }
                                 arch::emit_push_temp(&mut self.output, self.arch);
                             }
                         }

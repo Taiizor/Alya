@@ -257,6 +257,12 @@ impl CodeGen {
                         self.ctx.variables.get(&format!("fn_ret_struct:{}", name)),
                         Some(VarType::Struct { .. })
                     )
+                    || crate::codegen::analysis::is_array_expr(expr, &self.ctx.variables)
+                    || crate::codegen::analysis::is_map_expr(expr, &self.ctx.variables)
+            }
+            Expr::FieldAccess { .. } | Expr::Index { .. } => {
+                crate::codegen::analysis::is_array_expr(expr, &self.ctx.variables)
+                    || crate::codegen::analysis::is_map_expr(expr, &self.ctx.variables)
             }
             _ => false,
         }

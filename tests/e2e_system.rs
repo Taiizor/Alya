@@ -1144,6 +1144,7 @@ say "has_cmd: " + str(has_c)
 say "has_opt: " + str(has_o)
 "#;
     if let Some((code, output)) = run_alya_code_full(code) {
+        println!("OUTPUT WAS:\n{}", output);
         assert_eq!(code, 0, "Execution failed: {}", output);
         assert!(output.contains("cmd: run"));
         assert!(output.contains("verbose: 1"));
