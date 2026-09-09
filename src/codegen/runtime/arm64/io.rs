@@ -34,7 +34,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x9, #16960\n");
     out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x2, x9\n");
-    out.push_str("    b.lt .L_arm_ask_buf_ok\n");
+    out.push_str("    b.lo .L_arm_ask_buf_ok\n");
     out.push_str("    mov x2, #0\n");
     out.push_str(".L_arm_ask_buf_ok:\n");
     out.push_str("    add x19, x19, x2\n");
@@ -79,7 +79,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x5, #16960\n");
     out.push_str("    movk x5, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x4, x5\n");
-    out.push_str("    b.lt .L_arm64_getenv_buf_ok\n");
+    out.push_str("    b.lo .L_arm64_getenv_buf_ok\n");
     out.push_str("    mov x4, #0\n");
     out.push_str(".L_arm64_getenv_buf_ok:\n");
     out.push_str("    add x20, x2, x4\n");

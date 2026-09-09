@@ -19,7 +19,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x9, #16960\n");
     out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x21, x9\n");
-    out.push_str("    b.lt .L_arm_concat_ok\n");
+    out.push_str("    b.lo .L_arm_concat_ok\n");
     out.push_str("    mov x21, #0\n");
     out.push_str(".L_arm_concat_ok:\n");
     out.push_str("    add x22, x19, x21\n");
@@ -74,7 +74,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x9, #16960\n");
     out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x22, x9\n");
-    out.push_str("    b.lt .L_arm64_upper_buf_ok\n");
+    out.push_str("    b.lo .L_arm64_upper_buf_ok\n");
     out.push_str("    mov x22, #0\n");
     out.push_str(".L_arm64_upper_buf_ok:\n");
     out.push_str("    add x0, x20, x22\n");
@@ -114,7 +114,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x9, #16960\n");
     out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x22, x9\n");
-    out.push_str("    b.lt .L_arm64_lower_buf_ok\n");
+    out.push_str("    b.lo .L_arm64_lower_buf_ok\n");
     out.push_str("    mov x22, #0\n");
     out.push_str(".L_arm64_lower_buf_ok:\n");
     out.push_str("    add x0, x20, x22\n");
@@ -194,7 +194,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x9, #16960\n");
     out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x22, x9\n");
-    out.push_str("    b.lt .L_arm64_trim_buf_ok\n");
+    out.push_str("    b.lo .L_arm64_trim_buf_ok\n");
     out.push_str("    mov x22, #0\n");
     out.push_str(".L_arm64_trim_buf_ok:\n");
     out.push_str("    add x0, x20, x22\n");
@@ -242,7 +242,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x9, #16960\n");
     out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x22, x9\n");
-    out.push_str("    b.lt .L_arm64_sub_buf_ok\n");
+    out.push_str("    b.lo .L_arm64_sub_buf_ok\n");
     out.push_str("    mov x22, #0\n");
     out.push_str(".L_arm64_sub_buf_ok:\n");
     out.push_str("    add x0, x20, x22\n");
@@ -295,7 +295,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x6, #16960\n");
     out.push_str("    movk x6, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x5, x6\n");
-    out.push_str("    b.lt .L_arm64_char_at_buf_ok\n");
+    out.push_str("    b.lo .L_arm64_char_at_buf_ok\n");
     out.push_str("    mov x5, #0\n");
     out.push_str(".L_arm64_char_at_buf_ok:\n");
     out.push_str("    add x0, x3, x5\n");
@@ -345,7 +345,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x4, #16960\n");
     out.push_str("    movk x4, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x3, x4\n");
-    out.push_str("    b.lt .L_arm64_chr_buf_ok\n");
+    out.push_str("    b.lo .L_arm64_chr_buf_ok\n");
     out.push_str("    mov x3, #0\n");
     out.push_str(".L_arm64_chr_buf_ok:\n");
     out.push_str("    add x0, x1, x3\n");
@@ -377,7 +377,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x4, #16960\n");
     out.push_str("    movk x4, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x3, x4\n");
-    out.push_str("    b.lt .L_arm64_str_buf_ok\n");
+    out.push_str("    b.lo .L_arm64_str_buf_ok\n");
     out.push_str("    mov x3, #0\n");
     out.push_str(".L_arm64_str_buf_ok:\n");
     out.push_str("    add x20, x1, x3\n");

@@ -238,7 +238,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movk x4, #15, lsl #16\n"); // 1000000 (0xF4240)
     out.push_str("    sub x4, x4, x20\n");
     out.push_str("    cmp x3, x4\n");
-    out.push_str("    csel x3, xzr, x3, gt\n");
+    out.push_str("    csel x3, xzr, x3, hi\n");
     out.push_str("    add x21, x5, x3\n"); // x21 = buffer
     out.push_str("    mov x22, x3\n");      // x22 = start idx
 
@@ -345,7 +345,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x3, #16960\n");
     out.push_str("    movk x3, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x2, x3\n");
-    out.push_str("    csel x2, xzr, x2, gt\n");
+    out.push_str("    csel x2, xzr, x2, hi\n");
     out.push_str("    add x20, x4, x2\n");
     out.push_str("    mov x5, x20\n");
     out.push_str("    mov x6, x19\n");
@@ -526,7 +526,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movk x4, #15, lsl #16\n");
     out.push_str("    sub x4, x4, x20\n");
     out.push_str("    cmp x3, x4\n");
-    out.push_str("    csel x3, xzr, x3, gt\n");
+    out.push_str("    csel x3, xzr, x3, hi\n");
     out.push_str("    add x21, x5, x3\n");
     out.push_str("    mov x22, x3\n");
     out.push_str("    mov x0, x19\n");

@@ -55,7 +55,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x9, #16960\n");
     out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x24, x9\n");
-    out.push_str("    b.lt .L_arm64_join_buf_ok\n");
+    out.push_str("    b.lo .L_arm64_join_buf_ok\n");
     out.push_str("    mov x24, #0\n");
     out.push_str(".L_arm64_join_buf_ok:\n");
     out.push_str("    add x25, x22, x24\n"); // write_ptr
@@ -133,7 +133,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x12, #16960\n");
     out.push_str("    movk x12, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x11, x12\n");
-    out.push_str("    b.lt .L_arm64_se1\n");
+    out.push_str("    b.lo .L_arm64_se1\n");
     out.push_str("    mov x11, #0\n");
     out.push_str(".L_arm64_se1:\n");
     out.push_str("    add x12, x9, x11\n"); // token ptr
@@ -173,7 +173,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x12, #16960\n");
     out.push_str("    movk x12, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x11, x12\n");
-    out.push_str("    b.lt .L_arm64_se2\n");
+    out.push_str("    b.lo .L_arm64_se2\n");
     out.push_str("    mov x11, #0\n");
     out.push_str(".L_arm64_se2:\n");
     out.push_str("    add x25, x9, x11\n"); // token ptr
@@ -203,7 +203,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x12, #16960\n");
     out.push_str("    movk x12, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x11, x12\n");
-    out.push_str("    b.lt .L_arm64_se3\n");
+    out.push_str("    b.lo .L_arm64_se3\n");
     out.push_str("    mov x11, #0\n");
     out.push_str(".L_arm64_se3:\n");
     out.push_str("    add x25, x9, x11\n"); // token ptr
