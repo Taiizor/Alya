@@ -128,6 +128,7 @@ impl CodeGen {
 
         arch::emit_function_prologue(&mut self.output, self.arch, name);
 
+        let mut heap_param_offsets = Vec::new();
         for (i, param) in params.iter().enumerate() {
             arch::emit_function_param_push(
                 &mut self.output,
@@ -187,14 +188,18 @@ impl CodeGen {
             let is_heap_param =
                 struct_type.is_some() || is_arr || is_str_arr || is_flt_arr || is_map;
             if is_heap_param {
-                arch::emit_load_var(
-                    &mut self.output,
-                    self.arch,
-                    self.ctx.stack_offset,
-                    self.ctx.stack_offset,
-                );
-                arch::emit_rc_retain(&mut self.output, self.arch, self.ctx.stack_offset, self.os);
+                heap_param_offsets.push(self.ctx.stack_offset);
             }
+        }
+
+        for offset in heap_param_offsets {
+            arch::emit_load_var(
+                &mut self.output,
+                self.arch,
+                offset,
+                self.ctx.stack_offset,
+            );
+            arch::emit_rc_retain(&mut self.output, self.arch, self.ctx.stack_offset, self.os);
         }
 
         for stmt in body {
