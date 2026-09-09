@@ -265,7 +265,11 @@ function main()
 
     say color_green("✓ Connection verified") + " (" + str(probe_lat) + " ms)."
     if len(probe_body) > 0
-        say "  " + style_bold("Server Payload") + "  : " + color_cyan(probe_body)
+        if len(probe_body) > 80
+            say "  " + style_bold("Server Payload") + "  : " + color_cyan(substring(probe_body, 0, 77) + "...")
+        else
+            say "  " + style_bold("Server Payload") + "  : " + color_cyan(probe_body)
+        end
     end
     say "  Starting benchmark...\n"
     let t_start = clock_ms()

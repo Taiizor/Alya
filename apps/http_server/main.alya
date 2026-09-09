@@ -115,7 +115,7 @@ function build_response(status_code, content_type, body, keep_alive)
     return resp
 end
 
-function handle_client(client_sock, start_time, quiet)
+function handle_client(client_sock, start_time, quiet, html_content)
     while 1
         # Use non-blocking event polling to wait for incoming HTTP request
         # 5000ms idle keep-alive timeout
@@ -147,16 +147,12 @@ function handle_client(client_sock, start_time, quiet)
         let ctype = "text/html; charset=utf-8"
         let body = ""
 
-        if p == "/" or p == "/json"
+        if p == "/" or p == "/index.html" or p == "/html"
+            ctype = "text/html; charset=utf-8"
+            body = html_content
+        elif p == "/json"
             ctype = "application/json"
             body = "{\"message\":\"Hello, World!\"}"
-        elif p == "/html" or p == "/index.html"
-            let file_path = "apps/http_server/public/index.html"
-            if file_exists(file_path) == 1
-                body = read_file(file_path)
-            else
-                body = "<!DOCTYPE html><html><body><h1>⚡ Alya HTTP Server</h1><p>Server running with Keep-Alive & Worker Pool!</p></body></html>"
-            end
         elif p == "/api/status"
             ctype = "application/json"
             body = "{\"status\": \"ok\", \"server\": \"Alya-Native-Server\", \"version\": \"0.0.5\", \"uptime_ms\": " + str(uptime) + ", \"timestamp\": " + str(now) + "}"
@@ -188,7 +184,7 @@ function handle_client(client_sock, start_time, quiet)
 end
 
 function worker_proc(ctx)
-    let ch, start_time, quiet = ctx
+    let ch, start_time, quiet, html_content = ctx
     while 1
         let client_sock = channel_recv(ch, 1000)
         if client_sock != null
@@ -196,7 +192,7 @@ function worker_proc(ctx)
                 break
             end
             if client_sock >= 0
-                handle_client(client_sock, start_time, quiet)
+                handle_client(client_sock, start_time, quiet, html_content)
             end
         end
     end
@@ -211,6 +207,15 @@ function main()
         return
     end
 
+    # Preload public/index.html in memory for maximum performance
+    let default_html = "<!DOCTYPE html><html><head><title>Alya HTTP Server</title></head><body><h1>⚡ Alya HTTP Server</h1><p>Server running with Keep-Alive & Worker Pool!</p></body></html>"
+    let file_path = "apps/http_server/public/index.html"
+    if file_exists(file_path) == 1
+        default_html = read_file(file_path)
+    elif file_exists("public/index.html") == 1
+        default_html = read_file("public/index.html")
+    end
+
     let start_time = clock_ms()
     say color_cyan("╔═════════════════════════════════════════════════╗")
     say color_cyan("║") + "         " + style_bold(color_yellow("⚡ ALYA NATIVE HTTP SERVER ⚡")) + "          " + color_cyan("║")
@@ -222,7 +227,7 @@ function main()
         say color_cyan("║") + "  Workers     : " + color_white("1 thread (single)") + "            " + color_cyan("║")
     end
     say color_cyan("║") + "  Features    : " + color_white("Keep-Alive, Non-blocking I/O") + "    " + color_cyan("║")
-    say color_cyan("║") + "  Endpoints   : " + color_white("/, /json, /html, /api/status") + "   " + color_cyan("║")
+    say color_cyan("║") + "  Endpoints   : " + color_white("/, /index.html, /json, /api/status") + " " + color_cyan("║")
     say color_cyan("║") + "  Press Ctrl+C to shutdown server                 " + color_cyan("║")
     say color_cyan("╚═════════════════════════════════════════════════╝")
     say ""
@@ -240,7 +245,7 @@ function main()
         ch = channel_new()
         let w = 0
         while w < cfg.workers
-            let t = thread_spawn(worker_proc, (ch, start_time, cfg.quiet))
+            let t = thread_spawn(worker_proc, (ch, start_time, cfg.quiet, default_html))
             threads.push(t)
             w += 1
         end
@@ -256,7 +261,7 @@ function main()
                 if cfg.workers > 1
                     channel_send(ch, client)
                 else
-                    handle_client(client, start_time, cfg.quiet)
+                    handle_client(client, start_time, cfg.quiet, default_html)
                 end
                 served += 1
                 if cfg.max_requests > 0 and served >= cfg.max_requests
