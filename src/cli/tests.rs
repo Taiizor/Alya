@@ -117,3 +117,18 @@ fn test_time_and_stats_flags() {
     assert!(parsed_bench.time);
     assert!(parsed_bench.stats);
 }
+
+#[test]
+fn test_run_with_program_flags_without_double_dash() {
+    let args = to_args(&[
+        "alyac",
+        "run",
+        "apps/http_server/main.alya",
+        "--port",
+        "8080",
+    ]);
+    let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
+    assert_eq!(parsed.command, CommandKind::Run);
+    assert_eq!(parsed.input_file, "apps/http_server/main.alya");
+    assert_eq!(parsed.run_args, vec!["--port", "8080"]);
+}

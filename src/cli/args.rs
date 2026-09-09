@@ -222,10 +222,22 @@ impl CliArgs {
                         }
                     } else {
                         input_file = Some(arg.to_string());
+                        if command == CommandKind::Run && i + 1 < args.len() {
+                            if args[i + 1] == "--" {
+                                run_args.extend(args[i + 2..].iter().cloned());
+                            } else {
+                                run_args.extend(args[i + 1..].iter().cloned());
+                            }
+                            break;
+                        }
                     }
                 }
                 other => {
-                    return Err(format!("Error: Unknown option '{}'", other));
+                    if command == CommandKind::Run && input_file.is_some() {
+                        run_args.push(other.to_string());
+                    } else {
+                        return Err(format!("Error: Unknown option '{}'", other));
+                    }
                 }
             }
             i += 1;
