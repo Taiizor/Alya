@@ -395,7 +395,8 @@ fn collect_string_vars_from_stmts(
                     for item in known_strings.clone() {
                         if item.starts_with(&prefix) {
                             if let Some(idx_str) = item.strip_prefix(&prefix) {
-                                known_strings.insert(format!("tuple_elem_str:{}:{}", name, idx_str));
+                                known_strings
+                                    .insert(format!("tuple_elem_str:{}:{}", name, idx_str));
                             }
                         }
                     }

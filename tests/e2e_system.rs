@@ -1565,10 +1565,25 @@ say "mutex: ok"
 "#;
     if let Some((code, output)) = run_alya_code_full(code) {
         assert_eq!(code, 0, "Execution failed: {}", output);
-        assert!(output.contains("sq: 81"), "Expected sq: 81, got: {}", output);
-        assert!(output.contains("sum: 42"), "Expected sum: 42, got: {}", output);
-        assert!(output.contains("tid: ok"), "Expected tid: ok, got: {}", output);
-        assert!(output.contains("mutex: ok"), "Expected mutex: ok, got: {}", output);
+        assert!(
+            output.contains("sq: 81"),
+            "Expected sq: 81, got: {}",
+            output
+        );
+        assert!(
+            output.contains("sum: 42"),
+            "Expected sum: 42, got: {}",
+            output
+        );
+        assert!(
+            output.contains("tid: ok"),
+            "Expected tid: ok, got: {}",
+            output
+        );
+        assert!(
+            output.contains("mutex: ok"),
+            "Expected mutex: ok, got: {}",
+            output
+        );
     }
 }
-

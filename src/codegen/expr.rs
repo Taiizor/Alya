@@ -85,18 +85,24 @@ impl CodeGen {
                     match self.arch {
                         Architecture::ARM64 => {
                             if matches!(self.os, OperatingSystem::MacOS) {
-                                self.output.push_str(&format!("    adrp x0, fn_{}@PAGE\n", mangled));
-                                self.output.push_str(&format!("    add x0, x0, fn_{}@PAGEOFF\n", mangled));
+                                self.output
+                                    .push_str(&format!("    adrp x0, fn_{}@PAGE\n", mangled));
+                                self.output
+                                    .push_str(&format!("    add x0, x0, fn_{}@PAGEOFF\n", mangled));
                             } else {
-                                self.output.push_str(&format!("    adrp x0, fn_{}\n", mangled));
-                                self.output.push_str(&format!("    add x0, x0, :lo12:fn_{}\n", mangled));
+                                self.output
+                                    .push_str(&format!("    adrp x0, fn_{}\n", mangled));
+                                self.output
+                                    .push_str(&format!("    add x0, x0, :lo12:fn_{}\n", mangled));
                             }
                         }
                         Architecture::X64 => {
-                            self.output.push_str(&format!("    leaq fn_{}(%rip), %rax\n", mangled));
+                            self.output
+                                .push_str(&format!("    leaq fn_{}(%rip), %rax\n", mangled));
                         }
                         Architecture::X86 => {
-                            self.output.push_str(&format!("    movl $fn_{}, %eax\n", mangled));
+                            self.output
+                                .push_str(&format!("    movl $fn_{}, %eax\n", mangled));
                         }
                     }
                 }

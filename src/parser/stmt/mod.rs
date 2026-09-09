@@ -319,11 +319,17 @@ impl Parser {
             _ => return false,
         }
 
-        if !matches!(self.tokens.get(idx).map(|t| &t.token_type), Some(TokenType::Comma)) {
+        if !matches!(
+            self.tokens.get(idx).map(|t| &t.token_type),
+            Some(TokenType::Comma)
+        ) {
             return false;
         }
 
-        while matches!(self.tokens.get(idx).map(|t| &t.token_type), Some(TokenType::Comma)) {
+        while matches!(
+            self.tokens.get(idx).map(|t| &t.token_type),
+            Some(TokenType::Comma)
+        ) {
             idx += 1;
             match self.tokens.get(idx).map(|t| &t.token_type) {
                 Some(TokenType::Identifier(_)) => idx += 1,
@@ -332,13 +338,19 @@ impl Parser {
         }
 
         if in_parens {
-            if !matches!(self.tokens.get(idx).map(|t| &t.token_type), Some(TokenType::RightParen)) {
+            if !matches!(
+                self.tokens.get(idx).map(|t| &t.token_type),
+                Some(TokenType::RightParen)
+            ) {
                 return false;
             }
             idx += 1;
         }
 
-        matches!(self.tokens.get(idx).map(|t| &t.token_type), Some(TokenType::Assign))
+        matches!(
+            self.tokens.get(idx).map(|t| &t.token_type),
+            Some(TokenType::Assign)
+        )
     }
 
     pub(super) fn parse_multi_assignment(&mut self) -> Result<Vec<Stmt>, String> {

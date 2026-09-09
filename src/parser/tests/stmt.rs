@@ -483,9 +483,19 @@ fn test_parse_let_tuple_destructuring() {
     let program = parse_code(code).expect("Parse failed");
     // Should desugar into tmp let and 2 indexed lets
     assert_eq!(program.statements.len(), 3);
-    assert!(matches!(&program.statements[0], Stmt::Let { value: Expr::Call { .. }, .. }));
-    assert!(matches!(&program.statements[1], Stmt::Let { name, value: Expr::Index { .. } } if name == "x"));
-    assert!(matches!(&program.statements[2], Stmt::Let { name, value: Expr::Index { .. } } if name == "y"));
+    assert!(matches!(
+        &program.statements[0],
+        Stmt::Let {
+            value: Expr::Call { .. },
+            ..
+        }
+    ));
+    assert!(
+        matches!(&program.statements[1], Stmt::Let { name, value: Expr::Index { .. } } if name == "x")
+    );
+    assert!(
+        matches!(&program.statements[2], Stmt::Let { name, value: Expr::Index { .. } } if name == "y")
+    );
 }
 
 #[test]
@@ -515,4 +525,3 @@ fn test_parse_parenthesized_multi_assignment() {
     assert!(matches!(&program.statements[1], Stmt::Assign { name, .. } if name == "a"));
     assert!(matches!(&program.statements[2], Stmt::Assign { name, .. } if name == "b"));
 }
-
