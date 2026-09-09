@@ -82,10 +82,16 @@ impl CodeGenContext {
                 || k.starts_with("fn_ret_str:")
                 || k.starts_with("fn_ret_flt:")
                 || k.starts_with("fn_ret_struct:")
+                || k.starts_with("fn_ret_tuple_str:")
+                || k.starts_with("tuple_elem_str:")
                 || k.starts_with("struct_field_str:")
                 || k.starts_with("struct_field_flt:")
                 || k.starts_with("struct_field_arr:")
                 || k.starts_with("struct_field_map:")
+                || k.starts_with("arr_is_str:")
+                || k.starts_with("arr_is_flt:")
+                || k.starts_with("fn_param_str:")
+                || k.starts_with("fn_param_str_arr:")
             {
                 fn_vars.insert(k.clone(), v.clone());
             }

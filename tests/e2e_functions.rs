@@ -214,3 +214,34 @@ say age
         );
     }
 }
+
+#[test]
+fn test_e2e_destructured_string_propagation() {
+    let code = r#"
+function extract_pair()
+    let x = "GET"
+    let y = "/api/status"
+    return x, y
+end
+
+function format_header(verb, path)
+    return "[" + verb + "] " + path
+end
+
+function handle()
+    let m, p = extract_pair()
+    if p == "/api/status"
+        let res = format_header(m, p)
+        say res
+    else
+        say "failed match"
+    end
+end
+
+handle()
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0);
+        assert_eq!(output, "[GET] /api/status\n");
+    }
+}

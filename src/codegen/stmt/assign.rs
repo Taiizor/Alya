@@ -322,6 +322,39 @@ impl CodeGen {
                         .variables
                         .insert(name.clone(), VarType::Number(self.ctx.stack_offset));
                 }
+
+                if let Expr::Call { name: cname, .. } = value {
+                    let bare = cname.rsplit("::").next().unwrap_or(cname.as_str());
+                    let bare = bare.rsplit("__").next().unwrap_or(bare);
+                    let prefix1 = format!("fn_ret_tuple_str:{}:", cname);
+                    let prefix2 = format!("fn_ret_tuple_str:{}:", bare);
+                    let matching: Vec<(String, String)> = self
+                        .ctx
+                        .variables
+                        .keys()
+                        .filter(|k| k.starts_with(&prefix1) || k.starts_with(&prefix2))
+                        .filter_map(|k| {
+                            k.strip_prefix(&prefix1)
+                                .or_else(|| k.strip_prefix(&prefix2))
+                                .map(|idx| (name.clone(), idx.to_string()))
+                        })
+                        .collect();
+                    for (arr_name, idx_str) in matching {
+                        self.ctx.variables.insert(
+                            format!("tuple_elem_str:{}:{}", arr_name, idx_str),
+                            VarType::StringOffset(0),
+                        );
+                    }
+                } else if let Expr::Array(elems) = value {
+                    for (i, elem) in elems.iter().enumerate() {
+                        if is_string_expr(elem, &self.ctx.variables) {
+                            self.ctx.variables.insert(
+                                format!("tuple_elem_str:{}:{}", name, i),
+                                VarType::StringOffset(0),
+                            );
+                        }
+                    }
+                }
             }
         }
     }
@@ -457,6 +490,39 @@ impl CodeGen {
                     }
                 }
                 VarType::StringLabel(_) => {}
+            }
+        }
+
+        if let Expr::Call { name: cname, .. } = value {
+            let bare = cname.rsplit("::").next().unwrap_or(cname.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            let prefix1 = format!("fn_ret_tuple_str:{}:", cname);
+            let prefix2 = format!("fn_ret_tuple_str:{}:", bare);
+            let matching: Vec<(String, String)> = self
+                .ctx
+                .variables
+                .keys()
+                .filter(|k| k.starts_with(&prefix1) || k.starts_with(&prefix2))
+                .filter_map(|k| {
+                    k.strip_prefix(&prefix1)
+                        .or_else(|| k.strip_prefix(&prefix2))
+                        .map(|idx| (name.clone(), idx.to_string()))
+                })
+                .collect();
+            for (arr_name, idx_str) in matching {
+                self.ctx.variables.insert(
+                    format!("tuple_elem_str:{}:{}", arr_name, idx_str),
+                    VarType::StringOffset(0),
+                );
+            }
+        } else if let Expr::Array(elems) = value {
+            for (i, elem) in elems.iter().enumerate() {
+                if is_string_expr(elem, &self.ctx.variables) {
+                    self.ctx.variables.insert(
+                        format!("tuple_elem_str:{}:{}", name, i),
+                        VarType::StringOffset(0),
+                    );
+                }
             }
         }
     }

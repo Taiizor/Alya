@@ -147,26 +147,35 @@ function main()
 
     # Check for non-interactive / automated smoke test mode
     let cli_args = args()
-    let single_run = 0
+    let smoke_test = 0
+    let max_requests = -1
     let i = 0
     while i < len(cli_args)
-        if cli_args[i] == "--test" or cli_args[i] == "--once"
-            single_run = 1
+        if cli_args[i] == "--test"
+            smoke_test = 1
+        elif cli_args[i] == "--once"
+            max_requests = 1
         end
         i += 1
     end
 
-    if single_run == 1
+    if smoke_test == 1
         say color_yellow("[SERVER]") + " Single-run test mode active. Port verified."
         tcp_close(server)
         say color_green("[SERVER]") + " Server shutdown cleanly."
         return
     end
 
+    let served = 0
     while 1
         let client = tcp_accept(server)
         if client >= 0
             handle_client(client, start_time)
+            served += 1
+            if max_requests > 0 and served >= max_requests
+                say color_yellow("[SERVER]") + " Reached max requests (" + str(served) + "). Shutting down."
+                break
+            end
         end
     end
     tcp_close(server)

@@ -54,6 +54,8 @@ impl CodeGen {
                 || s.starts_with("fn_ret_tuple_str:")
                 || s.starts_with("tuple_elem_str:")
                 || s.starts_with("struct_field_str:")
+                || s.starts_with("fn_param_str:")
+                || s.starts_with("fn_param_str_arr:")
             {
                 self.ctx
                     .variables

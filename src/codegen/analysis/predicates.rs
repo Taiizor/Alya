@@ -125,6 +125,7 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                 return true;
             }
             vars.contains_key(&format!("fn_ret_str:{}", name))
+                || vars.contains_key(&format!("fn_ret_str:{}", bare))
         }
         Expr::Identifier(name) => {
             if let Some(var_type) = vars.get(name) {
