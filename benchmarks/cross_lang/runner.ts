@@ -6,6 +6,7 @@ import * as path from "path";
 interface BenchConfig {
     id: string;
     name: string;
+    category: "Algorithms" | "Collections" | "Numeric" | "Strings";
     displayName: string;
     rootDisplayName: string;
     workload: string;
@@ -18,109 +19,124 @@ interface BenchConfig {
 }
 
 const BENCHMARKS: BenchConfig[] = [
+    // 1. Algorithms & Sorting
     {
         id: "fib",
         name: "Recursive Fibonacci (n=30)",
+        category: "Algorithms",
         displayName: "**Recursive Fibonacci**",
         rootDisplayName: "**Recursive Fibonacci (n=30)**",
         workload: "`fib(30)` (~2.69M calls)",
         expected: "832040",
         suite: "standard",
-        alyaSrc: "benchmarks/cross_lang/fibonacci.alya",
-        cSrc: "benchmarks/cross_lang/fibonacci.c",
-        pySrc: "benchmarks/cross_lang/fibonacci.py",
-        jsSrc: "benchmarks/cross_lang/fibonacci.js"
-    },
-    {
-        id: "mandelbrot",
-        name: "Mandelbrot Fractal (200x100x200)",
-        displayName: "**Mandelbrot Fractal**",
-        rootDisplayName: "**Mandelbrot Fractal (200×100)**",
-        workload: "200×100 grid, 200 iters",
-        expected: "767273",
-        suite: "standard",
-        alyaSrc: "benchmarks/cross_lang/mandelbrot.alya",
-        cSrc: "benchmarks/cross_lang/mandelbrot.c",
-        pySrc: "benchmarks/cross_lang/mandelbrot.py",
-        jsSrc: "benchmarks/cross_lang/mandelbrot.js"
-    },
-    {
-        id: "sieve",
-        name: "Sieve of Eratosthenes (50,000)",
-        displayName: "**Sieve of Eratosthenes**",
-        rootDisplayName: "**Sieve of Eratosthenes (50k)**",
-        workload: "Primes under 50,000",
-        expected: "5133",
-        suite: "standard",
-        alyaSrc: "benchmarks/cross_lang/sieve.alya",
-        cSrc: "benchmarks/cross_lang/sieve.c",
-        pySrc: "benchmarks/cross_lang/sieve.py",
-        jsSrc: "benchmarks/cross_lang/sieve.js"
-    },
-    {
-        id: "str_hash",
-        name: "FNV-1a String Hash (50,000 iters)",
-        displayName: "**FNV-1a String Hash**",
-        rootDisplayName: "**FNV-1a String Hash (50k)**",
-        workload: "50,000 hash calculations",
-        expected: "1736110778",
-        suite: "standard",
-        alyaSrc: "benchmarks/cross_lang/str_hash.alya",
-        cSrc: "benchmarks/cross_lang/str_hash.c",
-        pySrc: "benchmarks/cross_lang/str_hash.py",
-        jsSrc: "benchmarks/cross_lang/str_hash.js"
+        alyaSrc: "benchmarks/cross_lang/algorithms/fibonacci.alya",
+        cSrc: "benchmarks/cross_lang/algorithms/fibonacci.c",
+        pySrc: "benchmarks/cross_lang/algorithms/fibonacci.py",
+        jsSrc: "benchmarks/cross_lang/algorithms/fibonacci.js"
     },
     {
         id: "quicksort",
         name: "In-Place Quicksort (50,000 items)",
+        category: "Algorithms",
         displayName: "**In-Place Quicksort**",
         rootDisplayName: "**Quicksort (50k items)**",
         workload: "50,000 items in-place sort",
         expected: "1475860",
         suite: "comprehensive",
-        alyaSrc: "benchmarks/cross_lang/quicksort.alya",
-        cSrc: "benchmarks/cross_lang/quicksort.c",
-        pySrc: "benchmarks/cross_lang/quicksort.py",
-        jsSrc: "benchmarks/cross_lang/quicksort.js"
+        alyaSrc: "benchmarks/cross_lang/algorithms/quicksort.alya",
+        cSrc: "benchmarks/cross_lang/algorithms/quicksort.c",
+        pySrc: "benchmarks/cross_lang/algorithms/quicksort.py",
+        jsSrc: "benchmarks/cross_lang/algorithms/quicksort.js"
     },
+    {
+        id: "sieve",
+        name: "Sieve of Eratosthenes (50,000)",
+        category: "Algorithms",
+        displayName: "**Sieve of Eratosthenes**",
+        rootDisplayName: "**Sieve of Eratosthenes (50k)**",
+        workload: "Primes under 50,000",
+        expected: "5133",
+        suite: "standard",
+        alyaSrc: "benchmarks/cross_lang/algorithms/sieve.alya",
+        cSrc: "benchmarks/cross_lang/algorithms/sieve.c",
+        pySrc: "benchmarks/cross_lang/algorithms/sieve.py",
+        jsSrc: "benchmarks/cross_lang/algorithms/sieve.js"
+    },
+
+    // 2. Data Structures & Collections
     {
         id: "binary_trees",
         name: "Binary Trees (Depth 14)",
+        category: "Collections",
         displayName: "**Binary Trees**",
         rootDisplayName: "**Binary Trees (Depth 14)**",
         workload: "Heap tree allocation & traversal",
         expected: "-43682",
         suite: "comprehensive",
-        alyaSrc: "benchmarks/cross_lang/binary_trees.alya",
-        cSrc: "benchmarks/cross_lang/binary_trees.c",
-        pySrc: "benchmarks/cross_lang/binary_trees.py",
-        jsSrc: "benchmarks/cross_lang/binary_trees.js"
-    },
-    {
-        id: "matrix_mult",
-        name: "Matrix Multiplication (120x120)",
-        displayName: "**Matrix Multiply**",
-        rootDisplayName: "**Matrix Multiply (120×120)**",
-        workload: "120×120 dense integer matrix mult",
-        expected: "34992000",
-        suite: "comprehensive",
-        alyaSrc: "benchmarks/cross_lang/matrix_mult.alya",
-        cSrc: "benchmarks/cross_lang/matrix_mult.c",
-        pySrc: "benchmarks/cross_lang/matrix_mult.py",
-        jsSrc: "benchmarks/cross_lang/matrix_mult.js"
+        alyaSrc: "benchmarks/cross_lang/collections/binary_trees.alya",
+        cSrc: "benchmarks/cross_lang/collections/binary_trees.c",
+        pySrc: "benchmarks/cross_lang/collections/binary_trees.py",
+        jsSrc: "benchmarks/cross_lang/collections/binary_trees.js"
     },
     {
         id: "hash_map",
         name: "Hash Map Operations (20,000 items)",
+        category: "Collections",
         displayName: "**Hash Map**",
         rootDisplayName: "**Hash Map (20k entries)**",
         workload: "20k insertions, updates & lookups",
         expected: "799950000",
         suite: "comprehensive",
-        alyaSrc: "benchmarks/cross_lang/hash_map.alya",
-        cSrc: "benchmarks/cross_lang/hash_map.c",
-        pySrc: "benchmarks/cross_lang/hash_map.py",
-        jsSrc: "benchmarks/cross_lang/hash_map.js"
+        alyaSrc: "benchmarks/cross_lang/collections/hash_map.alya",
+        cSrc: "benchmarks/cross_lang/collections/hash_map.c",
+        pySrc: "benchmarks/cross_lang/collections/hash_map.py",
+        jsSrc: "benchmarks/cross_lang/collections/hash_map.js"
+    },
+
+    // 3. Numeric & Mathematical Computation
+    {
+        id: "mandelbrot",
+        name: "Mandelbrot Fractal (200x100x200)",
+        category: "Numeric",
+        displayName: "**Mandelbrot Fractal**",
+        rootDisplayName: "**Mandelbrot Fractal (200×100)**",
+        workload: "200×100 grid, 200 iters",
+        expected: "767273",
+        suite: "standard",
+        alyaSrc: "benchmarks/cross_lang/numeric/mandelbrot.alya",
+        cSrc: "benchmarks/cross_lang/numeric/mandelbrot.c",
+        pySrc: "benchmarks/cross_lang/numeric/mandelbrot.py",
+        jsSrc: "benchmarks/cross_lang/numeric/mandelbrot.js"
+    },
+    {
+        id: "matrix_mult",
+        name: "Matrix Multiplication (120x120)",
+        category: "Numeric",
+        displayName: "**Matrix Multiply**",
+        rootDisplayName: "**Matrix Multiply (120×120)**",
+        workload: "120×120 dense integer matrix mult",
+        expected: "34992000",
+        suite: "comprehensive",
+        alyaSrc: "benchmarks/cross_lang/numeric/matrix_mult.alya",
+        cSrc: "benchmarks/cross_lang/numeric/matrix_mult.c",
+        pySrc: "benchmarks/cross_lang/numeric/matrix_mult.py",
+        jsSrc: "benchmarks/cross_lang/numeric/matrix_mult.js"
+    },
+
+    // 4. Strings & Hashing
+    {
+        id: "str_hash",
+        name: "FNV-1a String Hash (50,000 iters)",
+        category: "Strings",
+        displayName: "**FNV-1a String Hash**",
+        rootDisplayName: "**FNV-1a String Hash (50k)**",
+        workload: "50,000 hash calculations",
+        expected: "1736110778",
+        suite: "standard",
+        alyaSrc: "benchmarks/cross_lang/strings/str_hash.alya",
+        cSrc: "benchmarks/cross_lang/strings/str_hash.c",
+        pySrc: "benchmarks/cross_lang/strings/str_hash.py",
+        jsSrc: "benchmarks/cross_lang/strings/str_hash.js"
     }
 ];
 
@@ -261,6 +277,7 @@ function runCompilerBenchmarks(): string[] {
 interface DetailedBenchResult {
     id: string;
     name: string;
+    category: string;
     displayName: string;
     rootDisplayName: string;
     workload: string;
@@ -292,10 +309,10 @@ function updateBenchReadme(results: DetailedBenchResult[], compilerRows?: string
     const envBlock = `### Test Environment\n* **Operating System:** ${env.os}\n* **C Compiler:** ${env.gcc}\n* **JavaScript Engine:** ${env.bun}\n* **Python Runtime:** ${env.python}\n* **Alya Version:** ${env.alya} (Compiled with \`alyac build\` in Release mode)\n* **Measurement Methodology:** ${env.methodology}`;
     content = content.replace(/### Test Environment[\s\S]*?(?=\r?\n\r?\n---)/, envBlock);
 
-    // 2. Update Scoreboard Table
-    const tableHeader = "| Benchmark | Target Workload | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs C | Alya vs Python | Alya vs Bun |\n| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |";
+    // 2. Update Scoreboard Table with Category Column
+    const tableHeader = "| Category | Benchmark | Target Workload | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs C | Alya vs Python | Alya vs Bun |\n| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |";
     const scoreboardRows = results.map(r =>
-        `| ${r.displayName} | ${r.workload} | \`${r.cMs} ms\` | **\`${r.alyaMs} ms\`** | \`${r.bunMs} ms\` | \`${r.pyMs} ms\` | **${r.vsC}** | **${r.vsPy}** | ${r.vsBunMarkdown} |`
+        `| \`${r.category}\` | ${r.displayName} | ${r.workload} | \`${r.cMs} ms\` | **\`${r.alyaMs} ms\`** | \`${r.bunMs} ms\` | \`${r.pyMs} ms\` | **${r.vsC}** | **${r.vsPy}** | ${r.vsBunMarkdown} |`
     );
     const newTable = `### Benchmark Scoreboard\n\n${tableHeader}\n${scoreboardRows.join("\n")}`;
     content = content.replace(/### Benchmark Scoreboard[\s\S]*?(?=\r?\n\r?\n---)/, newTable);
@@ -362,9 +379,9 @@ function updateRootReadme(results: DetailedBenchResult[], iters: number = 5) {
     }
     let content = fs.readFileSync(rootReadmePath, "utf-8");
 
-    const header = "| Benchmark | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs Bun | Alya vs Python |\n| :--- | :---: | :---: | :---: | :---: | :---: | :---: |";
+    const header = "| Category | Benchmark | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs Bun | Alya vs Python |\n| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |";
     const rows = results.map(r =>
-        `| ${r.rootDisplayName} | \`${r.cMs} ms\` | **\`${r.alyaMs} ms\`** | \`${r.bunMs} ms\` | \`${r.pyMs} ms\` | ${r.vsBunMarkdown} | **${r.vsPy}** |`
+        `| \`${r.category}\` | ${r.rootDisplayName} | \`${r.cMs} ms\` | **\`${r.alyaMs} ms\`** | \`${r.bunMs} ms\` | \`${r.pyMs} ms\` | ${r.vsBunMarkdown} | **${r.vsPy}** |`
     );
     const newSection = `### Cross-Language Execution Benchmark (Median of ${iters} runs)\n\n${header}\n${rows.join("\n")}`;
 
@@ -384,6 +401,15 @@ async function main() {
         suiteMode = process.argv[suiteIdx + 1].toLowerCase();
     }
 
+    // Category selection: algorithms | collections | numeric | strings | all
+    let categoryFilter = "all";
+    const catIdx = process.argv.indexOf("--category") !== -1
+        ? process.argv.indexOf("--category")
+        : process.argv.indexOf("-c");
+    if (catIdx !== -1 && process.argv[catIdx + 1]) {
+        categoryFilter = process.argv[catIdx + 1].toLowerCase();
+    }
+
     // Iterations: default 5
     let iterations = 5;
     const iterIdx = process.argv.indexOf("--iterations") !== -1
@@ -395,6 +421,9 @@ async function main() {
     }
 
     const activeBenchmarks = BENCHMARKS.filter(b => {
+        if (categoryFilter !== "all" && b.category.toLowerCase() !== categoryFilter) {
+            return false;
+        }
         if (suiteMode === "standard") return b.suite === "standard";
         return true; // "comprehensive" or "all" runs all benchmarks
     });
@@ -402,7 +431,7 @@ async function main() {
     console.log("=========================================================================================");
     console.log("             CROSS-LANGUAGE PERFORMANCE BENCHMARK SUITE                                ");
     console.log("             Alya vs C (GCC -O2) vs Bun (JavaScript JIT) vs Python 3.12                 ");
-    console.log(`             Suite: ${suiteMode.toUpperCase()} (${activeBenchmarks.length} benchmarks) | Iterations: ${iterations}`);
+    console.log(`             Suite: ${suiteMode.toUpperCase()} | Category: ${categoryFilter.toUpperCase()} (${activeBenchmarks.length} benchmarks) | Iterations: ${iterations}`);
     console.log("=========================================================================================\n");
 
     const exeExt = process.platform === "win32" ? ".exe" : "";
@@ -421,7 +450,7 @@ async function main() {
     const benchResults: DetailedBenchResult[] = [];
 
     for (const b of activeBenchmarks) {
-        process.stdout.write(`Benchmarking ${b.name}... `);
+        process.stdout.write(`Benchmarking [${b.category}] ${b.name}... `);
 
         // 1. Compile Alya to binary
         const alyaExe = path.resolve(b.alyaSrc.replace(".alya", `_alya${exeExt}`));
@@ -474,6 +503,7 @@ async function main() {
         benchResults.push({
             id: b.id,
             name: b.name,
+            category: b.category,
             displayName: b.displayName,
             rootDisplayName: b.rootDisplayName,
             workload: b.workload,
@@ -495,22 +525,22 @@ async function main() {
         console.log("Done.");
     }
 
-    console.log(`\n=========================================================================================`);
+    console.log(`\n=========================================================================================================`);
     console.log(`                               BENCHMARK RESULTS (Median of ${iterations} runs)                      `);
-    console.log("=========================================================================================");
+    console.log("=========================================================================================================");
     console.log(
-        "| Benchmark                         | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | vs C (Ratio) | vs Python (Speedup) |"
+        "| Category     | Benchmark                         | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | vs C (Ratio) | vs Python (Speedup) |"
     );
     console.log(
-        "|:----------------------------------|------------:|--------------:|-------------:|------------:|-------------:|--------------------:|"
+        "|:-------------|:----------------------------------|------------:|--------------:|-------------:|------------:|-------------:|--------------------:|"
     );
 
     for (const r of benchResults) {
         console.log(
-            `| ${r.name.padEnd(33)} | ${(`${r.cMs} ms`).padStart(11)} | ${(`${r.alyaMs} ms`).padStart(13)} | ${(`${r.bunMs} ms`).padStart(12)} | ${(`${r.pyMs} ms`).padStart(11)} | ${r.vsC.padStart(12)} | ${r.vsPy.padStart(19)} |`
+            `| ${r.category.padEnd(12)} | ${r.name.padEnd(33)} | ${(`${r.cMs} ms`).padStart(11)} | ${(`${r.alyaMs} ms`).padStart(13)} | ${(`${r.bunMs} ms`).padStart(12)} | ${(`${r.pyMs} ms`).padStart(11)} | ${r.vsC.padStart(12)} | ${r.vsPy.padStart(19)} |`
         );
     }
-    console.log("=========================================================================================\n");
+    console.log("=========================================================================================================\n");
 
     if (shouldUpdateReadme) {
         let compilerRows: string[] | undefined;
