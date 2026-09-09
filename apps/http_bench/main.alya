@@ -143,13 +143,34 @@ function run_worker_task(args_tuple)
             continue
         end
 
-        let resp_str = tcp_recv(sock, 4096)
+        let resp_str = tcp_recv(sock, 65536)
         if len(resp_str) == 0
             tcp_close(sock)
             sock = -1
             fail_count += 1
             i += 1
             continue
+        end
+
+        # Ensure complete HTTP body is drained to prevent socket desynchronization in keep-alive
+        let sep = index_of(resp_str, "\r\n\r\n")
+        if sep >= 0
+            let cl_idx = index_of(lower(resp_str), "content-length:")
+            if cl_idx >= 0
+                let val_start = cl_idx + 15
+                let val_end = index_of(resp_str, "\r\n", val_start)
+                if val_end >= 0
+                    let cl = int(trim(substring(resp_str, val_start, val_end - val_start)))
+                    let expected_total = sep + 4 + cl
+                    while len(resp_str) < expected_total
+                        let chunk = tcp_recv(sock, 65536)
+                        if len(chunk) == 0
+                            break
+                        end
+                        resp_str = resp_str + chunk
+                    end
+                end
+            end
         end
 
         let elapsed = clock_ms() - t0
@@ -296,9 +317,15 @@ function main()
     let overall_max_lat = 0
     let sum_latencies = 0
 
+    let ti = 0
+    while ti < len(threads)
+        thread_join(threads[ti])
+        ti += 1
+    end
+
     let recvd = 0
     while recvd < cfg.concurrency
-        let res_tuple = channel_recv(ch_res, cfg.timeout_ms + 10000)
+        let res_tuple = channel_recv(ch_res, 1000)
         if res_tuple != null
             let ok_c, fail_c, min_l, max_l, tot_l = res_tuple
             total_ok += ok_c
@@ -312,12 +339,6 @@ function main()
             sum_latencies += tot_l
         end
         recvd += 1
-    end
-
-    let ti = 0
-    while ti < len(threads)
-        thread_join(threads[ti])
-        ti += 1
     end
     channel_free(ch_res)
 
