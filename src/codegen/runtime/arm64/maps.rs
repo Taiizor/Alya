@@ -34,9 +34,9 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("alya_map_key_eq:\n");
     out.push_str("    cmp x0, x1\n");
     out.push_str("    b.eq .L_arm64_mkeq_true\n");
-    out.push_str("    cmp x0, #256\n");
+    out.push_str("    cmp x0, #65536\n");
     out.push_str("    b.lo .L_arm64_mkeq_false\n");
-    out.push_str("    cmp x1, #256\n");
+    out.push_str("    cmp x1, #65536\n");
     out.push_str("    b.lo .L_arm64_mkeq_false\n");
     out.push_str(".L_arm64_mkeq_str:\n");
     out.push_str("    ldrb w9, [x0], #1\n");

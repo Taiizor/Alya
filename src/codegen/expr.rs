@@ -116,7 +116,12 @@ impl CodeGen {
                     return;
                 }
 
+                let left_is_num = matches!(**left, Expr::Number(_) | Expr::Float(_));
+                let right_is_num = matches!(**right, Expr::Number(_) | Expr::Float(_));
+
                 if matches!(op, BinaryOp::Equal | BinaryOp::NotEqual)
+                    && !left_is_num
+                    && !right_is_num
                     && (is_string_expr(left, &self.ctx.variables)
                         || is_string_expr(right, &self.ctx.variables))
                 {

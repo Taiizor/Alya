@@ -50,6 +50,9 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_len:\n");
     out.push_str("    mov x1, x0\n");
     out.push_str("    mov x0, #0\n");
+    out.push_str("    mov x2, #65536\n");
+    out.push_str("    cmp x1, x2\n");
+    out.push_str("    b.lo .L_arm_len_end\n");
     out.push_str(".L_arm_len_loop:\n");
     out.push_str("    ldrb w2, [x1, x0]\n");
     out.push_str("    cbz w2, .L_arm_len_end\n");

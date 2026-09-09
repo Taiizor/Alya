@@ -61,6 +61,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov %esp, %ebp\n");
     out.push_str("    mov 8(%ebp), %edx\n");
     out.push_str("    xor %eax, %eax\n");
+    out.push_str("    cmp $65536, %edx\n");
+    out.push_str("    jb .L_x86_len_end\n");
     out.push_str(".L_x86_len_loop:\n");
     out.push_str("    cmpb $0, (%edx, %eax)\n");
     out.push_str("    je .L_x86_len_end\n");

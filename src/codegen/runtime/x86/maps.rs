@@ -46,9 +46,9 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov 12(%ebp), %edi\n");
     out.push_str("    cmp %esi, %edi\n");
     out.push_str("    je .L_x86_mkeq_true\n");
-    out.push_str("    cmp $256, %esi\n");
+    out.push_str("    cmp $65536, %esi\n");
     out.push_str("    jb .L_x86_mkeq_false\n");
-    out.push_str("    cmp $256, %edi\n");
+    out.push_str("    cmp $65536, %edi\n");
     out.push_str("    jb .L_x86_mkeq_false\n");
     out.push_str(".L_x86_mkeq_str:\n");
     out.push_str("    movb (%esi), %al\n");

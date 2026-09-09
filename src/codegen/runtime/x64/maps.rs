@@ -52,9 +52,9 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     }
     out.push_str("    cmp %r8, %r9\n");
     out.push_str("    je .L_x64_mkeq_true\n");
-    out.push_str("    cmp $256, %r8\n");
+    out.push_str("    cmp $65536, %r8\n");
     out.push_str("    jb .L_x64_mkeq_false\n");
-    out.push_str("    cmp $256, %r9\n");
+    out.push_str("    cmp $65536, %r9\n");
     out.push_str("    jb .L_x64_mkeq_false\n");
     out.push_str(".L_x64_mkeq_str:\n");
     out.push_str("    movb (%r8), %al\n");

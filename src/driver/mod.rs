@@ -128,7 +128,13 @@ pub fn run(args: CliArgs) -> Result<(), String> {
     let (asm_file, final_output) = if is_binary {
         let temp_asm = format!("temp_{}_{}.s", default_stem, std::process::id());
         let exe_name = args.output_file.clone().unwrap_or_else(|| {
-            if matches!(args.os, OperatingSystem::Windows) {
+            if args.command == CommandKind::Run {
+                if matches!(args.os, OperatingSystem::Windows) {
+                    format!("temp_{}_{}.exe", default_stem, std::process::id())
+                } else {
+                    format!("temp_{}_{}", default_stem, std::process::id())
+                }
+            } else if matches!(args.os, OperatingSystem::Windows) {
                 format!("{}.exe", default_stem)
             } else {
                 default_stem.to_string()

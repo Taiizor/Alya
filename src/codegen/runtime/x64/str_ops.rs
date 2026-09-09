@@ -20,7 +20,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     }
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    mov alya_str_idx(%rip), %rbx\n");
-    out.push_str("    cmp $48000, %rbx\n");
+    out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_concat_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_concat_ok:\n");
@@ -60,15 +60,24 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_len:\n");
     out.push_str("    push %rbp\n");
     out.push_str("    mov %rsp, %rbp\n");
-    if matches!(os, OperatingSystem::Windows) {
-        out.push_str("    mov %rcx, %rdi\n");
-    }
     out.push_str("    xor %rax, %rax\n");
-    out.push_str(".L_x64_len_loop:\n");
-    out.push_str("    cmpb $0, (%rdi, %rax)\n");
-    out.push_str("    je .L_x64_len_end\n");
-    out.push_str("    inc %rax\n");
-    out.push_str("    jmp .L_x64_len_loop\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    cmp $65536, %rcx\n");
+        out.push_str("    jb .L_x64_len_end\n");
+        out.push_str(".L_x64_len_loop:\n");
+        out.push_str("    cmpb $0, (%rcx, %rax)\n");
+        out.push_str("    je .L_x64_len_end\n");
+        out.push_str("    inc %rax\n");
+        out.push_str("    jmp .L_x64_len_loop\n");
+    } else {
+        out.push_str("    cmp $65536, %rdi\n");
+        out.push_str("    jb .L_x64_len_end\n");
+        out.push_str(".L_x64_len_loop:\n");
+        out.push_str("    cmpb $0, (%rdi, %rax)\n");
+        out.push_str("    je .L_x64_len_end\n");
+        out.push_str("    inc %rax\n");
+        out.push_str("    jmp .L_x64_len_loop\n");
+    }
     out.push_str(".L_x64_len_end:\n");
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
@@ -78,6 +87,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_upper:\n");
     out.push_str("    push %rbp\n");
     out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rsi\n");
+    out.push_str("    push %rdi\n");
     out.push_str("    push %rbx\n");
     out.push_str("    push %r12\n");
     out.push_str("    push %r13\n");
@@ -86,7 +97,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     }
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    mov alya_str_idx(%rip), %rbx\n");
-    out.push_str("    cmp $48000, %rbx\n");
+    out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_upper_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_upper_buf_ok:\n");
@@ -117,6 +128,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
     out.push_str("    pop %rbx\n");
+    out.push_str("    pop %rdi\n");
+    out.push_str("    pop %rsi\n");
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
@@ -125,6 +138,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_lower:\n");
     out.push_str("    push %rbp\n");
     out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rsi\n");
+    out.push_str("    push %rdi\n");
     out.push_str("    push %rbx\n");
     out.push_str("    push %r12\n");
     out.push_str("    push %r13\n");
@@ -133,7 +148,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     }
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    mov alya_str_idx(%rip), %rbx\n");
-    out.push_str("    cmp $48000, %rbx\n");
+    out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_lower_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_lower_buf_ok:\n");
@@ -164,6 +179,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
     out.push_str("    pop %rbx\n");
+    out.push_str("    pop %rdi\n");
+    out.push_str("    pop %rsi\n");
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
@@ -172,6 +189,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_trim:\n");
     out.push_str("    push %rbp\n");
     out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rsi\n");
+    out.push_str("    push %rdi\n");
     out.push_str("    push %rbx\n");
     out.push_str("    push %r12\n");
     out.push_str("    push %r13\n");
@@ -220,7 +239,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x64_trim_copy_start:\n");
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    mov alya_str_idx(%rip), %rbx\n");
-    out.push_str("    cmp $48000, %rbx\n");
+    out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_trim_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_trim_buf_ok:\n");
@@ -246,6 +265,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
     out.push_str("    pop %rbx\n");
+    out.push_str("    pop %rdi\n");
+    out.push_str("    pop %rsi\n");
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
@@ -255,6 +276,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_substring:\n");
     out.push_str("    push %rbp\n");
     out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rsi\n");
+    out.push_str("    push %rdi\n");
     out.push_str("    push %rbx\n");
     out.push_str("    push %r12\n");
     out.push_str("    push %r13\n");
@@ -277,7 +300,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x64_sub_adv_done:\n");
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    mov alya_str_idx(%rip), %rbx\n");
-    out.push_str("    cmp $48000, %rbx\n");
+    out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_sub_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_sub_buf_ok:\n");
@@ -307,6 +330,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
     out.push_str("    pop %rbx\n");
+    out.push_str("    pop %rdi\n");
+    out.push_str("    pop %rsi\n");
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
@@ -315,6 +340,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_char_at:\n");
     out.push_str("    push %rbp\n");
     out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rsi\n");
+    out.push_str("    push %rdi\n");
     out.push_str("    push %rbx\n");
     out.push_str("    push %r12\n");
     out.push_str("    push %r13\n");
@@ -341,7 +368,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jz .L_x64_char_at_end\n");
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    mov alya_str_idx(%rip), %rbx\n");
-    out.push_str("    cmp $48000, %rbx\n");
+    out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_char_at_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_char_at_buf_ok:\n");
@@ -358,6 +385,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
     out.push_str("    pop %rbx\n");
+    out.push_str("    pop %rdi\n");
+    out.push_str("    pop %rsi\n");
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
@@ -405,7 +434,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jz .L_x64_chr_end\n");
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    mov alya_str_idx(%rip), %rbx\n");
-    out.push_str("    cmp $48000, %rbx\n");
+    out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_chr_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_chr_buf_ok:\n");
@@ -441,7 +470,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     }
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    mov alya_str_idx(%rip), %rbx\n");
-    out.push_str("    cmp $48000, %rbx\n");
+    out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_str_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_str_buf_ok:\n");

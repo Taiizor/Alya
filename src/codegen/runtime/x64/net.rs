@@ -351,6 +351,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    xor %rcx, %rcx\n");
         out.push_str(&format!("    call {}send\n", p));
     }
+    out.push_str("    cltq\n");
     out.push_str("    jmp .L_x64_send_ret\n");
     out.push_str(".L_x64_send_zero:\n");
     out.push_str("    xor %rax, %rax\n");
@@ -412,15 +413,16 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    xor %rcx, %rcx\n");
         out.push_str(&format!("    call {}recv\n", p));
     }
-    out.push_str("    cmp $0, %rax\n");
+    out.push_str("    cmp $0, %eax\n");
     out.push_str("    jle .L_x64_recv_empty\n");
+    out.push_str("    cltq\n");
     out.push_str("    movb $0, (%r12, %rax)\n");
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    lea 1(%rax, %r12), %rdi\n");
-    out.push_str("    sub %r8, %rdi\n");
-    out.push_str("    add $7, %rdi\n");
-    out.push_str("    and $-8, %rdi\n");
-    out.push_str("    mov %rdi, alya_str_idx(%rip)\n");
+    out.push_str("    lea 1(%rax, %r12), %r10\n");
+    out.push_str("    sub %r8, %r10\n");
+    out.push_str("    add $7, %r10\n");
+    out.push_str("    and $-8, %r10\n");
+    out.push_str("    mov %r10, alya_str_idx(%rip)\n");
     out.push_str("    mov %r12, %rax\n");
     out.push_str("    jmp .L_x64_recv_done\n");
     out.push_str(".L_x64_recv_empty:\n");
@@ -551,29 +553,29 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     }
     out.push_str("    test %rax, %rax\n");
     out.push_str("    jz .L_x64_peer_ip_empty\n");
-    out.push_str("    mov %rax, %rsi\n");
+    out.push_str("    mov %rax, %r10\n");
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    mov alya_str_idx(%rip), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_peer_ip_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_peer_ip_buf_ok:\n");
-    out.push_str("    lea (%r8, %rbx), %rdi\n");
-    out.push_str("    mov %rdi, %r12\n");
+    out.push_str("    lea (%r8, %rbx), %r11\n");
+    out.push_str("    mov %r11, %r12\n");
     out.push_str(".L_x64_peer_ip_copy:\n");
-    out.push_str("    movb (%rsi), %al\n");
-    out.push_str("    movb %al, (%rdi)\n");
+    out.push_str("    movb (%r10), %al\n");
+    out.push_str("    movb %al, (%r11)\n");
     out.push_str("    test %al, %al\n");
     out.push_str("    jz .L_x64_peer_ip_copy_done\n");
-    out.push_str("    inc %rsi\n");
-    out.push_str("    inc %rdi\n");
+    out.push_str("    inc %r10\n");
+    out.push_str("    inc %r11\n");
     out.push_str("    jmp .L_x64_peer_ip_copy\n");
     out.push_str(".L_x64_peer_ip_copy_done:\n");
-    out.push_str("    inc %rdi\n");
-    out.push_str("    sub %r8, %rdi\n");
-    out.push_str("    add $7, %rdi\n");
-    out.push_str("    and $-8, %rdi\n");
-    out.push_str("    mov %rdi, alya_str_idx(%rip)\n");
+    out.push_str("    inc %r11\n");
+    out.push_str("    sub %r8, %r11\n");
+    out.push_str("    add $7, %r11\n");
+    out.push_str("    and $-8, %r11\n");
+    out.push_str("    mov %r11, alya_str_idx(%rip)\n");
     out.push_str("    mov %r12, %rax\n");
     out.push_str("    jmp .L_x64_peer_ip_ret\n");
     out.push_str(".L_x64_peer_ip_empty:\n");
@@ -784,6 +786,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    mov $16, %r9d\n");
         out.push_str(&format!("    call {}sendto\n", p));
     }
+    out.push_str("    cltq\n");
     out.push_str("    jmp .L_x64_usend_ret\n");
     out.push_str(".L_x64_usend_fail:\n");
     out.push_str("    mov $-1, %rax\n");
@@ -849,15 +852,16 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    xor %r9, %r9\n");
         out.push_str(&format!("    call {}recvfrom\n", p));
     }
-    out.push_str("    cmp $0, %rax\n");
+    out.push_str("    cmp $0, %eax\n");
     out.push_str("    jle .L_x64_urecv_empty\n");
+    out.push_str("    cltq\n");
     out.push_str("    movb $0, (%r12, %rax)\n");
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    lea 1(%rax, %r12), %rdi\n");
-    out.push_str("    sub %r8, %rdi\n");
-    out.push_str("    add $7, %rdi\n");
-    out.push_str("    and $-8, %rdi\n");
-    out.push_str("    mov %rdi, alya_str_idx(%rip)\n");
+    out.push_str("    lea 1(%rax, %r12), %r10\n");
+    out.push_str("    sub %r8, %r10\n");
+    out.push_str("    add $7, %r10\n");
+    out.push_str("    and $-8, %r10\n");
+    out.push_str("    mov %r10, alya_str_idx(%rip)\n");
     out.push_str("    mov %r12, %rax\n");
     out.push_str("    jmp .L_x64_urecv_done\n");
     out.push_str(".L_x64_urecv_empty:\n");

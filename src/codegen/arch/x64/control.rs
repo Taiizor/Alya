@@ -41,26 +41,31 @@ pub fn emit_function_param_push(
     os: OperatingSystem,
 ) {
     *stack_offset += 8;
-    let reg = if matches!(os, OperatingSystem::Windows) {
+    if matches!(os, OperatingSystem::Windows) {
         match param_idx {
-            0 => "%rcx",
-            1 => "%rdx",
-            2 => "%r8",
-            3 => "%r9",
-            _ => "%rcx",
+            0 => out.push_str("    push %rcx\n"),
+            1 => out.push_str("    push %rdx\n"),
+            2 => out.push_str("    push %r8\n"),
+            3 => out.push_str("    push %r9\n"),
+            _ => {
+                let src_offset = 48 + (param_idx - 4) * 8;
+                out.push_str(&format!("    push {}(%rbp)\n", src_offset));
+            }
         }
     } else {
         match param_idx {
-            0 => "%rdi",
-            1 => "%rsi",
-            2 => "%rdx",
-            3 => "%rcx",
-            4 => "%r8",
-            5 => "%r9",
-            _ => "%rdi",
+            0 => out.push_str("    push %rdi\n"),
+            1 => out.push_str("    push %rsi\n"),
+            2 => out.push_str("    push %rdx\n"),
+            3 => out.push_str("    push %rcx\n"),
+            4 => out.push_str("    push %r8\n"),
+            5 => out.push_str("    push %r9\n"),
+            _ => {
+                let src_offset = 16 + (param_idx - 6) * 8;
+                out.push_str(&format!("    push {}(%rbp)\n", src_offset));
+            }
         }
-    };
-    out.push_str(&format!("    push {}\n", reg));
+    }
 }
 
 pub fn emit_function_call(
@@ -71,21 +76,47 @@ pub fn emit_function_call(
     os: OperatingSystem,
 ) {
     if matches!(os, OperatingSystem::Windows) {
-        for i in (0..args_count).rev() {
-            let reg = match i {
-                0 => "%rcx",
-                1 => "%rdx",
-                2 => "%r8",
-                3 => "%r9",
-                _ => "%rcx",
+        if args_count <= 4 {
+            for i in (0..args_count).rev() {
+                let reg = match i {
+                    0 => "%rcx",
+                    1 => "%rdx",
+                    2 => "%r8",
+                    3 => "%r9",
+                    _ => unreachable!(),
+                };
+                out.push_str(&format!("    pop {}\n", reg));
+            }
+            let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
+            out.push_str(&format!("    sub ${}, %rsp\n", padding));
+            out.push_str(&format!("    call fn_{}\n", name));
+            out.push_str(&format!("    add ${}, %rsp\n", padding));
+        } else {
+            let extra_args = args_count - 4;
+            let needed = 32 + extra_args as i32 * 8;
+            let total_alloc = if (stack_offset + needed) % 16 == 0 {
+                needed
+            } else {
+                needed + 8
             };
-            out.push_str(&format!("    pop {}\n", reg));
+            out.push_str(&format!("    mov {}(%rsp), %rcx\n", (args_count - 1) * 8));
+            out.push_str(&format!("    mov {}(%rsp), %rdx\n", (args_count - 2) * 8));
+            out.push_str(&format!("    mov {}(%rsp), %r8\n", (args_count - 3) * 8));
+            out.push_str(&format!("    mov {}(%rsp), %r9\n", (args_count - 4) * 8));
+            out.push_str(&format!("    sub ${}, %rsp\n", total_alloc));
+            for k in 4..args_count {
+                let src_off = total_alloc + ((args_count - 1 - k) * 8) as i32;
+                let dst_off = 32 + ((k - 4) * 8) as i32;
+                out.push_str(&format!("    mov {}(%rsp), %rax\n", src_off));
+                out.push_str(&format!("    mov %rax, {}(%rsp)\n", dst_off));
+            }
+            out.push_str(&format!("    call fn_{}\n", name));
+            out.push_str(&format!(
+                "    add ${}, %rsp\n",
+                total_alloc + args_count as i32 * 8
+            ));
         }
-        let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
-        out.push_str(&format!("    sub ${}, %rsp\n", padding));
-        out.push_str(&format!("    call fn_{}\n", name));
-        out.push_str(&format!("    add ${}, %rsp\n", padding));
-    } else {
+    } else if args_count <= 6 {
         for i in (0..args_count).rev() {
             let reg = match i {
                 0 => "%rdi",
@@ -94,7 +125,7 @@ pub fn emit_function_call(
                 3 => "%rcx",
                 4 => "%r8",
                 5 => "%r9",
-                _ => "%rdi",
+                _ => unreachable!(),
             };
             out.push_str(&format!("    pop {}\n", reg));
         }
@@ -106,6 +137,32 @@ pub fn emit_function_call(
         if misaligned {
             out.push_str("    add $8, %rsp\n");
         }
+    } else {
+        let extra_args = args_count - 6;
+        let needed = extra_args as i32 * 8;
+        let total_alloc = if (stack_offset + needed) % 16 == 0 {
+            needed
+        } else {
+            needed + 8
+        };
+        out.push_str(&format!("    mov {}(%rsp), %rdi\n", (args_count - 1) * 8));
+        out.push_str(&format!("    mov {}(%rsp), %rsi\n", (args_count - 2) * 8));
+        out.push_str(&format!("    mov {}(%rsp), %rdx\n", (args_count - 3) * 8));
+        out.push_str(&format!("    mov {}(%rsp), %rcx\n", (args_count - 4) * 8));
+        out.push_str(&format!("    mov {}(%rsp), %r8\n", (args_count - 5) * 8));
+        out.push_str(&format!("    mov {}(%rsp), %r9\n", (args_count - 6) * 8));
+        out.push_str(&format!("    sub ${}, %rsp\n", total_alloc));
+        for k in 6..args_count {
+            let src_off = total_alloc + ((args_count - 1 - k) * 8) as i32;
+            let dst_off = ((k - 6) * 8) as i32;
+            out.push_str(&format!("    mov {}(%rsp), %rax\n", src_off));
+            out.push_str(&format!("    mov %rax, {}(%rsp)\n", dst_off));
+        }
+        out.push_str(&format!("    call fn_{}\n", name));
+        out.push_str(&format!(
+            "    add ${}, %rsp\n",
+            total_alloc + args_count as i32 * 8
+        ));
     }
 }
 

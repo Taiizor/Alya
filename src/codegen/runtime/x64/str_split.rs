@@ -10,6 +10,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_contains:\n");
     out.push_str("    push %rbp\n");
     out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rsi\n");
+    out.push_str("    push %rdi\n");
     if matches!(os, OperatingSystem::Windows) {
         out.push_str("    mov %rcx, %rdi\n");
         out.push_str("    mov %rdx, %rsi\n");
@@ -40,6 +42,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x64_contains_nomatch:\n");
     out.push_str("    xor %rax, %rax\n");
     out.push_str(".L_x64_contains_end:\n");
+    out.push_str("    pop %rdi\n");
+    out.push_str("    pop %rsi\n");
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
@@ -49,6 +53,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_join:\n");
     out.push_str("    push %rbp\n");
     out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rsi\n");
+    out.push_str("    push %rdi\n");
     out.push_str("    push %rbx\n");
     out.push_str("    push %r12\n");
     out.push_str("    push %r13\n");
@@ -69,7 +75,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jz .L_x64_join_empty\n");
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    movq alya_str_idx(%rip), %rbx\n");
-    out.push_str("    cmpq $48000, %rbx\n");
+    out.push_str("    cmpq $950000, %rbx\n");
     out.push_str("    jl .L_x64_join_buf_ok\n");
     out.push_str("    xorq %rbx, %rbx\n");
     out.push_str(".L_x64_join_buf_ok:\n");
@@ -122,6 +128,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
     out.push_str("    pop %rbx\n");
+    out.push_str("    pop %rdi\n");
+    out.push_str("    pop %rsi\n");
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
@@ -131,6 +139,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_split:\n");
     out.push_str("    push %rbp\n");
     out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rsi\n");
+    out.push_str("    push %rdi\n");
     out.push_str("    push %rbx\n");
     out.push_str("    push %r12\n");
     out.push_str("    push %r13\n");
@@ -167,7 +177,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jz .L_x64_split_ret\n");
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    movq alya_str_idx(%rip), %rbx\n");
-    out.push_str("    cmpq $48000, %rbx\n");
+    out.push_str("    cmpq $950000, %rbx\n");
     out.push_str("    jl .L_x64_se1\n");
     out.push_str("    xorq %rbx, %rbx\n");
     out.push_str(".L_x64_se1:\n");
@@ -214,7 +224,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x64_split_matched:\n");
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    movq alya_str_idx(%rip), %rbx\n");
-    out.push_str("    cmpq $48000, %rbx\n");
+    out.push_str("    cmpq $950000, %rbx\n");
     out.push_str("    jl .L_x64_se2\n");
     out.push_str("    xorq %rbx, %rbx\n");
     out.push_str(".L_x64_se2:\n");
@@ -253,7 +263,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x64_split_emit_final:\n");
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    movq alya_str_idx(%rip), %rbx\n");
-    out.push_str("    cmpq $48000, %rbx\n");
+    out.push_str("    cmpq $950000, %rbx\n");
     out.push_str("    jl .L_x64_se3\n");
     out.push_str("    xorq %rbx, %rbx\n");
     out.push_str(".L_x64_se3:\n");
@@ -293,6 +303,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");
     out.push_str("    pop %rbx\n");
+    out.push_str("    pop %rdi\n");
+    out.push_str("    pop %rsi\n");
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");

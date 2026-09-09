@@ -38,7 +38,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x64_ask_read:\n");
     out.push_str("    lea alya_str_buf(%rip), %rbx\n");
     out.push_str("    mov alya_str_idx(%rip), %rsi\n");
-    out.push_str("    cmp $48000, %rsi\n");
+    out.push_str("    cmp $950000, %rsi\n");
     out.push_str("    jl .L_x64_ask_buf_ok\n");
     out.push_str("    xor %rsi, %rsi\n");
     out.push_str(".L_x64_ask_buf_ok:\n");
@@ -102,7 +102,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov %rax, %rsi\n");
     out.push_str("    lea alya_str_buf(%rip), %r8\n");
     out.push_str("    mov alya_str_idx(%rip), %rbx\n");
-    out.push_str("    cmp $48000, %rbx\n");
+    out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_getenv_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_getenv_buf_ok:\n");

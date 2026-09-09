@@ -293,6 +293,17 @@ function _http_curl_bridge(method, url_str, extra_headers, body)
     return http_parse_response(raw_resp)
 end
 
+function _net_url_port(port_str, default_port)
+    if port_str == null or len(port_str) == 0
+        return default_port
+    end
+    let p = to_int(port_str)
+    if p <= 0
+        return default_port
+    end
+    return p
+end
+
 # Performs an HTTP request with method, host, port, path, extra_headers, and body.
 function http_request(method, host, port, path, extra_headers, body)
     if port == null or port <= 0
@@ -408,10 +419,7 @@ function http_get(url_str)
         return _http_curl_bridge("GET", url_str, {}, "")
     end
 
-    let port = parsed.url_port
-    if port <= 0
-        port = 80
-    end
+    let port = _net_url_port(parsed.url_port, 80)
     let path = parsed.url_path
     if path == ""
         path = "/"
@@ -440,10 +448,7 @@ function http_post(url_str, body, content_type)
         return _http_curl_bridge("POST", url_str, headers, body)
     end
 
-    let port = parsed.url_port
-    if port <= 0
-        port = 80
-    end
+    let port = _net_url_port(parsed.url_port, 80)
     let path = parsed.url_path
     if path == ""
         path = "/"
@@ -472,10 +477,7 @@ function http_put(url_str, body, content_type)
         return _http_curl_bridge("PUT", url_str, headers, body)
     end
 
-    let port = parsed.url_port
-    if port <= 0
-        port = 80
-    end
+    let port = _net_url_port(parsed.url_port, 80)
     let path = parsed.url_path
     if path == ""
         path = "/"
@@ -504,10 +506,7 @@ function http_patch(url_str, body, content_type)
         return _http_curl_bridge("PATCH", url_str, headers, body)
     end
 
-    let port = parsed.url_port
-    if port <= 0
-        port = 80
-    end
+    let port = _net_url_port(parsed.url_port, 80)
     let path = parsed.url_path
     if path == ""
         path = "/"
@@ -531,10 +530,7 @@ function http_delete(url_str)
         return _http_curl_bridge("DELETE", url_str, {}, "")
     end
 
-    let port = parsed.url_port
-    if port <= 0
-        port = 80
-    end
+    let port = _net_url_port(parsed.url_port, 80)
     let path = parsed.url_path
     if path == ""
         path = "/"
@@ -558,10 +554,7 @@ function http_head(url_str)
         return _http_curl_bridge("HEAD", url_str, {}, "")
     end
 
-    let port = parsed.url_port
-    if port <= 0
-        port = 80
-    end
+    let port = _net_url_port(parsed.url_port, 80)
     let path = parsed.url_path
     if path == ""
         path = "/"
