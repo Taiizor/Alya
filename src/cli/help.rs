@@ -14,9 +14,10 @@ pub fn print_usage() {
     );
     println!("A modern, simple, compiled programming language.\n");
     println!("USAGE:");
-    println!("  alyac <COMMAND> <file> [OPTIONS]");
-    println!("  alyac <file> [OPTIONS]\n");
+    println!("  alyac [COMMAND] [file] [OPTIONS]");
+    println!("  alyac                                # Starts interactive REPL\n");
     println!("COMMANDS:");
+    println!("  repl                  Start interactive REPL console (default when no args)");
     println!("  run <file>            Compile and execute program immediately");
     println!("  build <file>          Compile program directly to an executable binary (-b, -c)");
     println!("  check <file>          Verify syntax and structure without generating code");
@@ -42,6 +43,8 @@ pub fn print_usage() {
     println!("  -v, --version         Show compiler version");
     println!("  -h, --help            Show this help message\n");
     println!("EXAMPLES:");
+    println!("  alyac                                # Start interactive REPL");
+    println!("  alyac repl                           # Start interactive REPL");
     println!("  alyac run hello.alya                 # Compile & run in one step");
     println!("  alyac build hello.alya               # Produce executable (hello.exe / hello)");
     println!("  alyac hello.alya                     # Produce assembly (hello.s)");

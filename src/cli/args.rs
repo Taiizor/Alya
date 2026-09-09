@@ -11,6 +11,7 @@ pub enum CommandKind {
     EmitAst,
     Fmt,
     Test,
+    Repl,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,8 +45,33 @@ impl CliArgs {
 
     pub fn parse_from(args: &[String]) -> Result<Option<Self>, String> {
         if args.len() < 2 {
-            Self::print_usage();
-            return Ok(None);
+            let arch = if cfg!(target_arch = "aarch64") {
+                Architecture::ARM64
+            } else if cfg!(target_arch = "x86") {
+                Architecture::X86
+            } else {
+                Architecture::X64
+            };
+            let os = if cfg!(target_os = "windows") {
+                OperatingSystem::Windows
+            } else if cfg!(target_os = "macos") {
+                OperatingSystem::MacOS
+            } else {
+                OperatingSystem::Linux
+            };
+            return Ok(Some(Self {
+                command: CommandKind::Repl,
+                input_file: String::new(),
+                output_file: None,
+                output_binary: false,
+                arch,
+                os,
+                quiet: false,
+                time: false,
+                stats: false,
+                check_only: false,
+                run_args: Vec::new(),
+            }));
         }
 
         let first = args[1].as_str();
@@ -63,6 +89,10 @@ impl CliArgs {
         let mut start_idx = 1;
 
         match first {
+            "repl" => {
+                command = CommandKind::Repl;
+                start_idx = 2;
+            }
             "run" => {
                 command = CommandKind::Run;
                 output_binary = true;
@@ -248,6 +278,8 @@ impl CliArgs {
             None => {
                 if matches!(command, CommandKind::Fmt | CommandKind::Test) {
                     ".".to_string()
+                } else if command == CommandKind::Repl {
+                    String::new()
                 } else {
                     return Err("Error: No input source file specified.".to_string());
                 }

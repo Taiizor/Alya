@@ -37,6 +37,7 @@ impl Parser {
             TokenType::Throw => self.parse_throw().map(|s| vec![s]),
             TokenType::Identifier(_) => {
                 // Could be assignment or function call
+                let start_pos = self.position;
                 let ident = match &self.current_token().token_type {
                     TokenType::Identifier(s) => s.clone(),
                     _ => unreachable!(),
@@ -169,7 +170,11 @@ impl Parser {
                                 _ => unreachable!(),
                             }
                         }
-                        _ => return Ok(vec![Stmt::Expr(target)]),
+                        _ => {
+                            self.position = start_pos;
+                            let expr = self.parse_expression()?;
+                            return Ok(vec![Stmt::Expr(expr)]);
+                        }
                     }
                 }
 
@@ -289,7 +294,7 @@ impl Parser {
                     }
                     _ => {
                         // Put the identifier back into an expression
-                        self.position -= 1;
+                        self.position = start_pos;
                         let expr = self.parse_expression()?;
                         Ok(vec![Stmt::Expr(expr)])
                     }

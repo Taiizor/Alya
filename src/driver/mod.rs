@@ -18,6 +18,11 @@ pub fn run(args: CliArgs) -> Result<(), String> {
         return Ok(());
     }
 
+    if args.command == CommandKind::Repl {
+        crate::tools::repl::start_repl(args.arch, args.os)?;
+        return Ok(());
+    }
+
     let total_start = Instant::now();
 
     let source = fs::read_to_string(&args.input_file)
