@@ -9,7 +9,7 @@ Comprehensive performance benchmarks evaluating both the **Alya Compiler (throug
 All implementations solve the exact same algorithmic problem on identical inputs, with mathematically verified outputs across all targets.
 
 ### Test Environment
-* **Operating System:** Ubuntu 24.04.4 LTS (x64)
+* **Operating System:** Ubuntu 24.04.5 LTS (x64)
 * **C Compiler:** gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0 (`-O2` optimization)
 * **JavaScript Engine:** Bun 1.4.2 (JavaScriptCore JIT)
 * **Python Runtime:** Python 3.12.14
@@ -22,10 +22,10 @@ All implementations solve the exact same algorithmic problem on identical inputs
 
 | Benchmark | Target Workload | C (GCC -O2) | Alya (Native) | Bun (JS JIT) | Python 3.12 | Alya vs C | Alya vs Python | Alya vs Bun |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Recursive Fibonacci** | `fib(30)` (~2.69M calls) | `2.3 ms` | **`8.9 ms`** | `13.0 ms` | `121.2 ms` | **3.8x** | **13.6x faster** | **1.5x faster** |
-| **Mandelbrot Fractal** | 200×100 grid, 200 iters | `3.2 ms` | **`8.1 ms`** | `9.4 ms` | `122.3 ms` | **2.5x** | **15.2x faster** | **1.2x faster** |
-| **Sieve of Eratosthenes** | Primes under 50,000 | `1.0 ms` | **`1.5 ms`** | `6.6 ms` | `17.0 ms` | **1.6x** | **11.1x faster** | **4.3x faster** |
-| **FNV-1a String Hash** | 50,000 hash calculations | `4.7 ms` | **`8.7 ms`** | `12.8 ms` | `427.2 ms` | **1.8x** | **49.4x faster** | **1.5x faster** |
+| **Recursive Fibonacci** | `fib(30)` (~2.69M calls) | `2.1 ms` | **`8.3 ms`** | `12.1 ms` | `113.6 ms` | **3.9x** | **13.6x faster** | **1.5x faster** |
+| **Mandelbrot Fractal** | 200×100 grid, 200 iters | `3.7 ms` | **`6.2 ms`** | `9.4 ms` | `99.0 ms` | **1.7x** | **15.9x faster** | **1.5x faster** |
+| **Sieve of Eratosthenes** | Primes under 50,000 | `0.8 ms` | **`1.4 ms`** | `5.8 ms` | `15.3 ms` | **1.7x** | **11.2x faster** | **4.3x faster** |
+| **FNV-1a String Hash** | 50,000 hash calculations | `4.1 ms` | **`11.7 ms`** | `12.0 ms` | `402.8 ms` | **2.9x** | **34.4x faster** | **1.0x faster** |
 
 ---
 
@@ -34,22 +34,22 @@ All implementations solve the exact same algorithmic problem on identical inputs
 ### 1. Recursive Fibonacci (`fib(30)`)
 * **Measures:** Function call overhead, standard ABI calling conventions, stack frame push/pop.
 * **Why Alya is Fast:** Alya emits native assembly (ARM64, x64, x86) adhering strictly to platform ABIs with direct branch and link (`bl` / `call`) and return instructions. There are no virtual machine dispatch loops, garbage collection pauses, or interpreter frames.
-* **Result:** **3.8x of C (-O2)**, **1.5x faster than Bun**, and **13.6x faster than Python**.
+* **Result:** **3.9x of C (-O2)**, **1.5x faster than Bun**, and **13.6x faster than Python**.
 
 ### 2. Mandelbrot Fractal (`200x100x200`)
 * **Measures:** Double-precision floating-point arithmetic (`f64`), tight nested loops, register persistence.
 * **Why Alya is Fast:** Alya binds 64-bit float operations directly to hardware floating-point registers (`d0-d2` on ARM64, `xmm0-xmm1` on x64/x86) and fuses loop comparisons directly into single conditional branches.
-* **Result:** **2.5x of C (-O2)**, **1.2x faster than Bun**, and **15.2x faster than Python**.
+* **Result:** **1.7x of C (-O2)**, **1.5x faster than Bun**, and **15.9x faster than Python**.
 
 ### 3. Sieve of Eratosthenes (50,000 elements)
 * **Measures:** Memory allocation, dynamic array indexing, bounds safety overhead.
 * **Why Alya is Fast:** Alya performs single-comparison unsigned bounds checks (`b.hs` / `jae`) and calculates element addresses with native scaled base + index pointer arithmetic (`[x0, x1, lsl #3]` / `[rax + rbx*8]`).
-* **Result:** **1.6x of C (-O2)**, **4.3x faster than Bun**, and **11.1x faster than Python**.
+* **Result:** **1.7x of C (-O2)**, **4.3x faster than Bun**, and **11.2x faster than Python**.
 
 ### 4. FNV-1a String Hashing (50,000 iterations)
 * **Measures:** String iteration, character lookup (`char_at`, `ord`), bitwise XOR and integer multiplication.
 * **Why Alya is Fast:** Direct string index intrinsics bypass runtime function call overhead; bitwise masking is optimized natively (`ubfx` on ARM64, direct immediate bitwise ops on x64/x86); and loop conditions use zero-overhead branch fusion.
-* **Result:** **1.8x of C (-O2)**, **1.5x faster than Bun**, and **49.4x faster than Python**.
+* **Result:** **2.9x of C (-O2)**, **1.0x faster than Bun**, and **34.4x faster than Python**.
 
 ---
 
@@ -61,11 +61,11 @@ Alya features a lightweight single-pass frontend with immediate native x64 assem
 
 | Benchmark Stage | Iterations | Mean | Error | StdDev | Min | Max | Allocated | Alloc Ratio | Measured Throughput |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **`Lexer::tokenize`** | 1372 | `291.67 µs` | `721.00 ns` | `8.11 µs` | `283.26 µs` | `415.90 µs` | **`508.73 KB`** | `1.00` | **74.5 MB/s** |
-| **`Parser::parse`** | 531 | `753.93 µs` | `1.65 µs` | `11.56 µs` | `685.63 µs` | `811.47 µs` | **`1.03 MB`** | `2.08` | **1561144 lines/s** |
-| **`ProgramInference::analyze`** | 49 | `8.25 ms` | `43.40 µs` | `87.80 µs` | `8.19 ms` | `8.66 ms` | **`74.86 KB`** | `0.15` | **121 ops/s** |
-| **`CodeGen::generate (x64)`** | 11 | `39.83 ms` | `136.14 µs` | `109.06 µs` | `39.71 ms` | `40.04 ms` | **`2.78 MB`** | `5.59` | **243276 asm lines/s** |
-| **`Full Frontend Pipeline`** | 13 | `41.32 ms` | `428.54 µs` | `373.22 µs` | `40.82 ms` | `41.92 ms` | **`3.98 MB`** | `8.01` | **24.2 files/s** |
+| **`Lexer::tokenize`** | 1384 | `289.14 µs` | `433.00 ns` | `4.90 µs` | `282.21 µs` | `351.90 µs` | **`508.73 KB`** | `1.00` | **75.1 MB/s** |
+| **`Parser::parse`** | 593 | `675.17 µs` | `2.54 µs` | `18.78 µs` | `617.90 µs` | `762.79 µs` | **`1.03 MB`** | `2.08` | **1743270 lines/s** |
+| **`ProgramInference::analyze`** | 66 | `6.11 ms` | `19.52 µs` | `48.19 µs` | `6.05 ms` | `6.29 ms` | **`74.86 KB`** | `0.15` | **164 ops/s** |
+| **`CodeGen::generate (x64)`** | 14 | `30.64 ms` | `102.48 µs` | `92.62 µs` | `30.50 ms` | `30.80 ms` | **`2.78 MB`** | `5.60` | **327432 asm lines/s** |
+| **`Full Frontend Pipeline`** | 16 | `31.63 ms` | `100.14 µs` | `103.16 µs` | `31.48 ms` | `31.87 ms` | **`3.98 MB`** | `8.01` | **31.6 files/s** |
 
 ---
 
