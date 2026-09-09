@@ -193,12 +193,7 @@ impl CodeGen {
         }
 
         for offset in heap_param_offsets {
-            arch::emit_load_var(
-                &mut self.output,
-                self.arch,
-                offset,
-                self.ctx.stack_offset,
-            );
+            arch::emit_load_var(&mut self.output, self.arch, offset, self.ctx.stack_offset);
             arch::emit_rc_retain(&mut self.output, self.arch, self.ctx.stack_offset, self.os);
         }
 
