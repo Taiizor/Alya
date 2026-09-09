@@ -30,9 +30,9 @@ function stack_is_empty(s)
     return len(s) == 0
 end
 
-# 2. Queue (FIFO)
+# 2. Queue (FIFO) - O(1) amortized queue using head pointer and compaction
 function queue_new()
-    return []
+    return [1]
 end
 
 function queue_push(q, val)
@@ -40,34 +40,66 @@ function queue_push(q, val)
 end
 
 function queue_pop(q)
+    let head = q[0]
     let total = len(q)
-    if total == 0
+    if head >= total
         return 0
     end
-    let first = q[0]
-    let i = 1
-    while i < total
-        q[i - 1] = q[i]
-        i += 1
+    let first = q[head]
+    head += 1
+    q[0] = head
+    if head > 32 and (head * 2) >= total
+        let count = total - head
+        let i = 0
+        while i < count
+            q[i + 1] = q[head + i]
+            i += 1
+        end
+        q[0] = 1
+        while len(q) > count + 1
+            q.pop()
+        end
     end
-    q.pop()
     return first
 end
 
 function queue_peek(q)
-    let total = len(q)
-    if total == 0
+    let head = q[0]
+    if head >= len(q)
         return 0
     end
-    return q[0]
+    return q[head]
 end
 
 function queue_size(q)
-    return len(q)
+    let sz = len(q) - q[0]
+    if sz < 0
+        return 0
+    end
+    return sz
 end
 
 function queue_is_empty(q)
-    return len(q) == 0
+    return q[0] >= len(q)
+end
+
+function queue_clear(q)
+    while len(q) > 1
+        q.pop()
+    end
+    q[0] = 1
+end
+
+function queue_to_array(q)
+    let res = []
+    let head = q[0]
+    let total = len(q)
+    let i = head
+    while i < total
+        res.push(q[i])
+        i += 1
+    end
+    return res
 end
 
 # 3. Set (Unique items)

@@ -186,6 +186,10 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "set_to_array"
                     | "stack_new"
                     | "queue_new"
+                    | "queue_to_array"
+                    | "deque_new"
+                    | "pq_new"
+                    | "priority_queue_new"
                     | "array_slice"
                     | "array_clone"
                     | "array_concat"
@@ -217,6 +221,9 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "glob"
                     | "glob_dir"
                     | "glob_filter"
+                    | "list_dir"
+                    | "read_dir"
+                    | "json_parse_array"
             )
         }
         Expr::FieldAccess { object, field } => {
@@ -272,6 +279,8 @@ pub fn is_map_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "map_merge"
                     | "map_from_entries"
                     | "url_parse_query"
+                    | "json_parse"
+                    | "json_parse_object"
             )
         }
         Expr::Map(_) => true,
@@ -411,6 +420,37 @@ pub fn is_float_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "rand_float"
                     | "rand_float_range"
                     | "rand_rng_float"
+                    | "native_sin"
+                    | "native_cos"
+                    | "native_tan"
+                    | "native_asin"
+                    | "native_acos"
+                    | "native_atan"
+                    | "native_atan2"
+                    | "native_sinh"
+                    | "native_cosh"
+                    | "native_tanh"
+                    | "native_log"
+                    | "native_log2"
+                    | "native_log10"
+                    | "native_exp"
+                    | "native_sqrt"
+                    | "native_ceil"
+                    | "native_floor"
+                    | "native_fmod"
+                    | "asin"
+                    | "acos"
+                    | "atan"
+                    | "atan2"
+                    | "sinh"
+                    | "cosh"
+                    | "tanh"
+                    | "log_n"
+                    | "log2"
+                    | "log10"
+                    | "exp_f"
+                    | "fmod"
+                    | "sqrt_f"
             ) || vars.contains_key(&format!("fn_ret_flt:{}", name))
                 || vars.contains_key(&format!("fn_ret_flt:{}", bare))
         }

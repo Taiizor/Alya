@@ -49,8 +49,14 @@ function is_odd(n)
     return n % 2 != 0
 end
 
+function sqrt_f(x)
+    return native_sqrt(float(x))
+end
+
 function hypot(a, b)
-    return sqrt(a * a + b * b)
+    let fa = float(a)
+    let fb = float(b)
+    return native_sqrt(fa * fa + fb * fb)
 end
 
 function round(val)
@@ -97,23 +103,63 @@ function _normalize_angle(rad)
 end
 
 function sin(x)
-    let norm = _normalize_angle(x)
-    let x2 = norm * norm
-    let x3 = norm * x2
-    let x5 = x3 * x2
-    let x7 = x5 * x2
-    let x9 = x7 * x2
-    let x11 = x9 * x2
-    let x13 = x11 * x2
-    return norm - (x3 / 6.0) + (x5 / 120.0) - (x7 / 5040.0) + (x9 / 362880.0) - (x11 / 39916800.0) + (x13 / 6227020800.0)
+    return native_sin(float(x))
 end
 
 function cos(x)
-    return sin(x + 1.5707963267948966)
+    return native_cos(float(x))
 end
 
 function tan(x)
-    return sin(x) / cos(x)
+    return native_tan(float(x))
+end
+
+function asin(x)
+    return native_asin(float(x))
+end
+
+function acos(x)
+    return native_acos(float(x))
+end
+
+function atan(x)
+    return native_atan(float(x))
+end
+
+function atan2(y, x)
+    return native_atan2(float(y), float(x))
+end
+
+function sinh(x)
+    return native_sinh(float(x))
+end
+
+function cosh(x)
+    return native_cosh(float(x))
+end
+
+function tanh(x)
+    return native_tanh(float(x))
+end
+
+function log_n(x)
+    return native_log(float(x))
+end
+
+function log2(x)
+    return native_log2(float(x))
+end
+
+function log10(x)
+    return native_log10(float(x))
+end
+
+function exp_f(x)
+    return native_exp(float(x))
+end
+
+function fmod(a, b)
+    return native_fmod(float(a), float(b))
 end
 
 function rand_range(min_val, max_val)
@@ -186,7 +232,7 @@ function variance(arr)
 end
 
 function std_dev(arr)
-    return sqrt(int(variance(arr)))
+    return native_sqrt(variance(arr))
 end
 
 function lerp(a, b, t)

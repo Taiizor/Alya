@@ -191,4 +191,57 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    udiv x0, x0, x1\n");
     }
     out.push_str("    ret\n\n");
+
+    // Native libc floating-point math functions (single argument)
+    let single_arg_math = [
+        ("native_sin", "sin"),
+        ("native_cos", "cos"),
+        ("native_tan", "tan"),
+        ("native_asin", "asin"),
+        ("native_acos", "acos"),
+        ("native_atan", "atan"),
+        ("native_sinh", "sinh"),
+        ("native_cosh", "cosh"),
+        ("native_tanh", "tanh"),
+        ("native_log", "log"),
+        ("native_log2", "log2"),
+        ("native_log10", "log10"),
+        ("native_exp", "exp"),
+        ("native_sqrt", "sqrt"),
+        ("native_ceil", "ceil"),
+        ("native_floor", "floor"),
+    ];
+
+    for (fn_name, c_name) in single_arg_math {
+        out.push_str(".align 2\n");
+        out.push_str(&format!(".global fn_{}\n", fn_name));
+        out.push_str(&format!("fn_{}:\n", fn_name));
+        out.push_str("    stp x29, x30, [sp, #-16]!\n");
+        out.push_str("    mov x29, sp\n");
+        out.push_str("    fmov d0, x0\n");
+        out.push_str(&format!("    bl {}{}\n", p, c_name));
+        out.push_str("    fmov x0, d0\n");
+        out.push_str("    ldp x29, x30, [sp], #16\n");
+        out.push_str("    ret\n\n");
+    }
+
+    // Native libc floating-point math functions (two arguments: arg0, arg1)
+    let two_arg_math = [
+        ("native_atan2", "atan2"),
+        ("native_fmod", "fmod"),
+    ];
+
+    for (fn_name, c_name) in two_arg_math {
+        out.push_str(".align 2\n");
+        out.push_str(&format!(".global fn_{}\n", fn_name));
+        out.push_str(&format!("fn_{}:\n", fn_name));
+        out.push_str("    stp x29, x30, [sp, #-16]!\n");
+        out.push_str("    mov x29, sp\n");
+        out.push_str("    fmov d0, x0\n");
+        out.push_str("    fmov d1, x1\n");
+        out.push_str(&format!("    bl {}{}\n", p, c_name));
+        out.push_str("    fmov x0, d0\n");
+        out.push_str("    ldp x29, x30, [sp], #16\n");
+        out.push_str("    ret\n\n");
+    }
 }

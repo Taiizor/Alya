@@ -288,16 +288,7 @@ end
 
 function glob_dir(pattern, dir_path)
     let d = str_from_ptr(dir_path)
-    let tmp = "temp_glob_" + str(clock_ms()) + ".tmp"
-    let cmd = ""
-    if target_os() == "windows"
-        cmd = "cmd /c dir /b \"" + d + "\" > " + tmp + " 2>NUL"
-    else
-        cmd = "ls -1 \"" + d + "\" > " + tmp + " 2>/dev/null"
-    end
-    system_exec(cmd)
-    let raw_lines = _glob_read_lines(tmp)
-    remove_file(tmp)
+    let raw_lines = list_dir(d)
     return glob_filter(pattern, raw_lines)
 end
 

@@ -386,3 +386,218 @@ function json_get_number(json_str, key)
     end
     return 0
 end
+
+# --- Full Recursive-Descent JSON Parser ---
+
+function _json_hex_val(ch)
+    let c = ord(ch)
+    if c >= 48 and c <= 57
+        return c - 48
+    elif c >= 65 and c <= 70
+        return c - 55
+    elif c >= 97 and c <= 102
+        return c - 87
+    end
+    return 0
+end
+
+function _json_skip_ws(s, pos, slen)
+    while pos[0] < slen
+        let ch = char_at(s, pos[0])
+        if ch == " " or ch == "\t" or ch == "\n" or ch == "\r"
+            pos[0] = pos[0] + 1
+        else
+            break
+        end
+    end
+end
+
+function _json_parse_string(s, pos, slen)
+    pos[0] = pos[0] + 1
+    let res = ""
+    while pos[0] < slen
+        let ch = char_at(s, pos[0])
+        if ch == "\""
+            pos[0] = pos[0] + 1
+            return res
+        elif ch == "\\"
+            pos[0] = pos[0] + 1
+            if pos[0] < slen
+                let esc = char_at(s, pos[0])
+                when esc
+                    is "\"" then res = res + "\""
+                    is "\\" then res = res + "\\"
+                    is "/"  then res = res + "/"
+                    is "n"  then res = res + "\n"
+                    is "r"  then res = res + "\r"
+                    is "t"  then res = res + "\t"
+                    is "b"  then res = res + chr(8)
+                    is "f"  then res = res + chr(12)
+                    is "u"  then
+                        if pos[0] + 4 < slen
+                            let h0 = _json_hex_val(char_at(s, pos[0] + 1))
+                            let h1 = _json_hex_val(char_at(s, pos[0] + 2))
+                            let h2 = _json_hex_val(char_at(s, pos[0] + 3))
+                            let h3 = _json_hex_val(char_at(s, pos[0] + 4))
+                            let code = h0 * 4096 + h1 * 256 + h2 * 16 + h3
+                            res = res + chr(code)
+                            pos[0] = pos[0] + 4
+                        end
+                    else
+                        res = res + esc
+                end
+            end
+        else
+            res = res + ch
+        end
+        pos[0] = pos[0] + 1
+    end
+    return res
+end
+
+function _json_parse_number(s, pos, slen)
+    let start = pos[0]
+    let is_flt = 0
+    while pos[0] < slen
+        let ch = char_at(s, pos[0])
+        let c = ord(ch)
+        if (c >= 48 and c <= 57) or ch == "-" or ch == "+"
+            pos[0] = pos[0] + 1
+        elif ch == "." or ch == "e" or ch == "E"
+            is_flt = 1
+            pos[0] = pos[0] + 1
+        else
+            break
+        end
+    end
+    let num_str = substring(s, start, pos[0] - start)
+    if is_flt == 1
+        return float(num_str)
+    else
+        return int(num_str)
+    end
+end
+
+function _json_parse_array(s, pos, slen)
+    pos[0] = pos[0] + 1
+    let arr = []
+    _json_skip_ws(s, pos, slen)
+    if pos[0] < slen and char_at(s, pos[0]) == "]"
+        pos[0] = pos[0] + 1
+        return arr
+    end
+    while pos[0] < slen
+        let val = _json_parse_val(s, pos, slen)
+        arr.push(val)
+        _json_skip_ws(s, pos, slen)
+        if pos[0] >= slen
+            break
+        end
+        let ch = char_at(s, pos[0])
+        if ch == ","
+            pos[0] = pos[0] + 1
+        elif ch == "]"
+            pos[0] = pos[0] + 1
+            break
+        else
+            break
+        end
+    end
+    return arr
+end
+
+function _json_parse_object(s, pos, slen)
+    pos[0] = pos[0] + 1
+    let obj = {}
+    _json_skip_ws(s, pos, slen)
+    if pos[0] < slen and char_at(s, pos[0]) == "}"
+        pos[0] = pos[0] + 1
+        return obj
+    end
+    while pos[0] < slen
+        _json_skip_ws(s, pos, slen)
+        if pos[0] >= slen or char_at(s, pos[0]) != "\""
+            break
+        end
+        let key = _json_parse_string(s, pos, slen)
+        _json_skip_ws(s, pos, slen)
+        if pos[0] < slen and char_at(s, pos[0]) == ":"
+            pos[0] = pos[0] + 1
+        end
+        let val = _json_parse_val(s, pos, slen)
+        obj[key] = val
+        _json_skip_ws(s, pos, slen)
+        if pos[0] >= slen
+            break
+        end
+        let ch = char_at(s, pos[0])
+        if ch == ","
+            pos[0] = pos[0] + 1
+        elif ch == "}"
+            pos[0] = pos[0] + 1
+            break
+        else
+            break
+        end
+    end
+    return obj
+end
+
+function _json_parse_val(s, pos, slen)
+    _json_skip_ws(s, pos, slen)
+    if pos[0] >= slen
+        return null
+    end
+    let ch = char_at(s, pos[0])
+    if ch == "{"
+        return _json_parse_object(s, pos, slen)
+    elif ch == "["
+        return _json_parse_array(s, pos, slen)
+    elif ch == "\""
+        return _json_parse_string(s, pos, slen)
+    elif ch == "t"
+        pos[0] = pos[0] + 4
+        return 1
+    elif ch == "f"
+        pos[0] = pos[0] + 5
+        return 0
+    elif ch == "n"
+        pos[0] = pos[0] + 4
+        return null
+    else
+        return _json_parse_number(s, pos, slen)
+    end
+end
+
+function json_parse(text)
+    let s = str_from_ptr(text)
+    let slen = len(s)
+    if slen == 0
+        return null
+    end
+    let pos = [0]
+    return _json_parse_val(s, pos, slen)
+end
+
+function json_parse_object(text)
+    return json_parse(text)
+end
+
+function json_parse_array(text)
+    return json_parse(text)
+end
+
+function json_is_valid(text)
+    let s = str_from_ptr(text)
+    let slen = len(s)
+    if slen == 0
+        return 0
+    end
+    let pos = [0]
+    let res = _json_parse_val(s, pos, slen)
+    _json_skip_ws(s, pos, slen)
+    if pos[0] == slen and res != null
+        return 1
+    end
+    return 0
+end

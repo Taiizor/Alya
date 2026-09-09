@@ -285,4 +285,70 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    div %rcx\n");
     }
     out.push_str("    ret\n\n");
+
+    // Native libc floating-point math functions (single argument)
+    let single_arg_math = [
+        ("native_sin", "sin"),
+        ("native_cos", "cos"),
+        ("native_tan", "tan"),
+        ("native_asin", "asin"),
+        ("native_acos", "acos"),
+        ("native_atan", "atan"),
+        ("native_sinh", "sinh"),
+        ("native_cosh", "cosh"),
+        ("native_tanh", "tanh"),
+        ("native_log", "log"),
+        ("native_log2", "log2"),
+        ("native_log10", "log10"),
+        ("native_exp", "exp"),
+        ("native_sqrt", "sqrt"),
+        ("native_ceil", "ceil"),
+        ("native_floor", "floor"),
+    ];
+
+    for (fn_name, c_name) in single_arg_math {
+        out.push_str(&format!(".global fn_{}\n", fn_name));
+        out.push_str(&format!("fn_{}:\n", fn_name));
+        out.push_str("    push %rbp\n");
+        out.push_str("    mov %rsp, %rbp\n");
+        out.push_str("    sub $32, %rsp\n");
+        if is_win {
+            out.push_str("    movq %rcx, %xmm0\n");
+        } else {
+            out.push_str("    movq %rdi, %xmm0\n");
+        }
+        out.push_str(&format!("    call {}{}\n", p, c_name));
+        out.push_str("    movq %xmm0, %rax\n");
+        out.push_str("    add $32, %rsp\n");
+        out.push_str("    mov %rbp, %rsp\n");
+        out.push_str("    pop %rbp\n");
+        out.push_str("    ret\n\n");
+    }
+
+    // Native libc floating-point math functions (two arguments: arg0, arg1)
+    let two_arg_math = [
+        ("native_atan2", "atan2"),
+        ("native_fmod", "fmod"),
+    ];
+
+    for (fn_name, c_name) in two_arg_math {
+        out.push_str(&format!(".global fn_{}\n", fn_name));
+        out.push_str(&format!("fn_{}:\n", fn_name));
+        out.push_str("    push %rbp\n");
+        out.push_str("    mov %rsp, %rbp\n");
+        out.push_str("    sub $32, %rsp\n");
+        if is_win {
+            out.push_str("    movq %rcx, %xmm0\n");
+            out.push_str("    movq %rdx, %xmm1\n");
+        } else {
+            out.push_str("    movq %rdi, %xmm0\n");
+            out.push_str("    movq %rsi, %xmm1\n");
+        }
+        out.push_str(&format!("    call {}{}\n", p, c_name));
+        out.push_str("    movq %xmm0, %rax\n");
+        out.push_str("    add $32, %rsp\n");
+        out.push_str("    mov %rbp, %rsp\n");
+        out.push_str("    pop %rbp\n");
+        out.push_str("    ret\n\n");
+    }
 }

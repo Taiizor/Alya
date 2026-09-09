@@ -734,7 +734,16 @@ say round(smoothstep(0.0, 1.0, 0.5) * 100.0)
 
 let data = [2, 4, 4, 4, 5, 5, 7, 9]
 say round(variance(data))
-say std_dev(data)
+say round(std_dev(data))
+
+say round(sin(0.0))
+say round(cos(0.0))
+say round(tan(0.0))
+say round(atan2(0.0, 1.0))
+say round(log2(8.0))
+say round(log10(100.0))
+say round(sqrt_f(16.0))
+say round(hypot(3.0, 4.0))
 "#;
     if let Some((code, output)) = run_alya_code_full(code) {
         assert_eq!(
@@ -744,7 +753,12 @@ say std_dev(data)
         );
         assert_eq!(
             output,
-            concat!("6\n1\n36\n120\n1\n1\n0\n0\n", "180\n15\n50\n50\n", "4\n2\n")
+            concat!(
+                "6\n1\n36\n120\n1\n1\n0\n0\n",
+                "180\n15\n50\n50\n",
+                "4\n2\n",
+                "0\n1\n0\n0\n3\n2\n4\n5\n"
+            )
         );
     }
 }
@@ -806,6 +820,26 @@ let m2 = map_clone(m1)
 say m2["a"]
 say map_is_empty(m2)
 say map_is_empty({})
+
+# Queue (O(1) amortized)
+let q = queue_new()
+queue_push(q, 100)
+queue_push(q, 200)
+queue_push(q, 300)
+say queue_size(q)
+say queue_peek(q)
+say queue_pop(q)
+say queue_pop(q)
+say queue_size(q)
+say queue_is_empty(q)
+
+let arr_q = queue_to_array(q)
+say len(arr_q)
+say arr_q[0]
+
+queue_clear(q)
+say queue_size(q)
+say queue_is_empty(q)
 "#;
     if let Some((code, output)) = run_alya_code_full(code) {
         assert_eq!(
@@ -825,7 +859,10 @@ say map_is_empty({})
                 "3\n",
                 "3\n7\n",
                 "4\n2\n1\n1\n",
-                "10\n0\n1\n"
+                "10\n0\n1\n",
+                "3\n100\n100\n200\n1\n0\n",
+                "1\n300\n",
+                "0\n1\n"
             )
         );
     }
@@ -935,6 +972,16 @@ if len(pretty) > len("{\"k\": \"v\"}")
 else
     say 0
 end
+
+let parsed = json_parse("{\"title\": \"Alya\", \"score\": 100, \"active\": true, \"tags\": [\"fast\", \"native\"]}")
+say str_from_ptr(parsed["title"])
+say parsed["score"]
+say parsed["active"]
+let tags = parsed["tags"]
+say str_from_ptr(tags[0])
+say str_from_ptr(tags[1])
+say json_is_valid("{\"ok\": 1}")
+say json_is_valid("invalid json")
 "#;
     if let Some((code, output)) = run_alya_code_full(code) {
         assert_eq!(
@@ -956,7 +1003,14 @@ end
                 "Paris\n",
                 "Bob\n",
                 "25\n",
-                "1\n"
+                "1\n",
+                "Alya\n",
+                "100\n",
+                "1\n",
+                "fast\n",
+                "native\n",
+                "1\n",
+                "0\n"
             )
         );
     }
@@ -1269,6 +1323,9 @@ let filtered = glob_filter("*.txt", items)
 say "f_len: " + str(array_len(filtered))
 say "f0: " + str_from_ptr(filtered[0])
 say "f1: " + str_from_ptr(filtered[1])
+
+let toml_files = glob("Cargo.toml")
+say "has_toml: " + str(array_len(toml_files))
 "#;
     if let Some((code, output)) = run_alya_code_full(code) {
         assert_eq!(code, 0, "Execution failed: {}", output);
@@ -1287,6 +1344,7 @@ say "f1: " + str_from_ptr(filtered[1])
         assert!(output.contains("f_len: 2"));
         assert!(output.contains("f0: apple.txt"));
         assert!(output.contains("f1: cherry.txt"));
+        assert!(output.contains("has_toml: 1"));
     }
 }
 
