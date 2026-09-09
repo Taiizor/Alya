@@ -82,7 +82,7 @@ function build_response(status_code, content_type, body)
     return resp
 end
 
-function handle_client(client_sock, start_time)
+function handle_client(client_sock, start_time, quiet)
     tcp_set_timeout(client_sock, 3000)
     let req = tcp_recv(client_sock, 4096)
     if len(req) == 0
@@ -120,11 +120,13 @@ function handle_client(client_sock, start_time)
     tcp_send(client_sock, resp)
     tcp_close(client_sock)
 
-    let stat_color = color_green(str(status))
-    if status >= 400
-        stat_color = color_red(str(status))
+    if quiet == 0
+        let stat_color = color_green(str(status))
+        if status >= 400
+            stat_color = color_red(str(status))
+        end
+        say color_cyan("[HTTP]") + " " + style_bold(m) + " " + p + " -> " + stat_color + " (" + str(len(body)) + " bytes)"
     end
-    say color_cyan("[HTTP]") + " " + style_bold(m) + " " + p + " -> " + stat_color + " (" + str(len(body)) + " bytes)"
 end
 
 function main()
@@ -149,12 +151,15 @@ function main()
     let cli_args = args()
     let smoke_test = 0
     let max_requests = -1
+    let quiet = 0
     let i = 0
     while i < len(cli_args)
         if cli_args[i] == "--test"
             smoke_test = 1
         elif cli_args[i] == "--once"
             max_requests = 1
+        elif cli_args[i] == "--quiet" or cli_args[i] == "-q"
+            quiet = 1
         end
         i += 1
     end
@@ -170,7 +175,7 @@ function main()
     while 1
         let client = tcp_accept(server)
         if client >= 0
-            handle_client(client, start_time)
+            handle_client(client, start_time, quiet)
             served += 1
             if max_requests > 0 and served >= max_requests
                 say color_yellow("[SERVER]") + " Reached max requests (" + str(served) + "). Shutting down."
