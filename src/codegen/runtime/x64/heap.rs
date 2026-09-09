@@ -298,4 +298,135 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
+
+    // fn_rc_retain
+    out.push_str(".global fn_rc_retain\n");
+    out.push_str("fn_rc_retain:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    if is_win {
+        out.push_str("    mov %rcx, %r11\n");
+    } else {
+        out.push_str("    mov %rdi, %r11\n");
+    }
+    out.push_str("    test $7, %r11\n");
+    out.push_str("    jnz .L_x64_rc_retain_done\n");
+    out.push_str("    cmp $65536, %r11\n");
+    out.push_str("    jb .L_x64_rc_retain_done\n");
+    out.push_str("    mov $0x00007fffffffffff, %rax\n");
+    out.push_str("    cmp %rax, %r11\n");
+    out.push_str("    ja .L_x64_rc_retain_done\n");
+    out.push_str("    movq -16(%r11), %rax\n");
+    out.push_str("    cmp $0x5A110001, %rax\n");
+    out.push_str("    je .L_x64_rc_retain_ok\n");
+    out.push_str("    cmp $0x5A110002, %rax\n");
+    out.push_str("    je .L_x64_rc_retain_ok\n");
+    out.push_str("    cmp $0x5A110003, %rax\n");
+    out.push_str("    jne .L_x64_rc_retain_done\n");
+    out.push_str(".L_x64_rc_retain_ok:\n");
+    out.push_str("    lock incq -8(%r11)\n");
+    out.push_str(".L_x64_rc_retain_done:\n");
+    out.push_str("    mov %r11, %rax\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_rc_release
+    out.push_str(".global fn_rc_release\n");
+    out.push_str("fn_rc_release:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rbx\n");
+    out.push_str("    push %r12\n");
+    out.push_str("    sub $48, %rsp\n");
+    if is_win {
+        out.push_str("    mov %rcx, %rbx\n");
+    } else {
+        out.push_str("    mov %rdi, %rbx\n");
+    }
+    out.push_str("    test $7, %rbx\n");
+    out.push_str("    jnz .L_x64_rc_rel_done\n");
+    out.push_str("    cmp $65536, %rbx\n");
+    out.push_str("    jb .L_x64_rc_rel_done\n");
+    out.push_str("    mov $0x00007fffffffffff, %rax\n");
+    out.push_str("    cmp %rax, %rbx\n");
+    out.push_str("    ja .L_x64_rc_rel_done\n");
+    out.push_str("    movq -16(%rbx), %r12\n");
+    out.push_str("    cmp $0x5A110001, %r12\n");
+    out.push_str("    je .L_x64_rc_rel_ok\n");
+    out.push_str("    cmp $0x5A110002, %r12\n");
+    out.push_str("    je .L_x64_rc_rel_ok\n");
+    out.push_str("    cmp $0x5A110003, %r12\n");
+    out.push_str("    jne .L_x64_rc_rel_done\n");
+    out.push_str(".L_x64_rc_rel_ok:\n");
+    out.push_str("    lock decq -8(%rbx)\n");
+    out.push_str("    jnz .L_x64_rc_rel_done\n");
+    out.push_str("    cmp $0x5A110001, %r12\n");
+    out.push_str("    je .L_x64_rc_free_inner\n");
+    out.push_str("    cmp $0x5A110002, %r12\n");
+    out.push_str("    je .L_x64_rc_free_inner\n");
+    out.push_str("    jmp .L_x64_rc_free_outer\n");
+    out.push_str(".L_x64_rc_free_inner:\n");
+    out.push_str("    movq 16(%rbx), %rax\n");
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jz .L_x64_rc_free_outer\n");
+    if is_win {
+        out.push_str("    mov %rax, %rcx\n");
+        out.push_str("    call free\n");
+    } else {
+        out.push_str("    mov %rax, %rdi\n");
+        out.push_str(&format!("    call {}free\n", p));
+    }
+    out.push_str(".L_x64_rc_free_outer:\n");
+    out.push_str("    lea -16(%rbx), %rax\n");
+    if is_win {
+        out.push_str("    mov %rax, %rcx\n");
+        out.push_str("    call free\n");
+    } else {
+        out.push_str("    mov %rax, %rdi\n");
+        out.push_str(&format!("    call {}free\n", p));
+    }
+    out.push_str(".L_x64_rc_rel_done:\n");
+    out.push_str("    xor %rax, %rax\n");
+    out.push_str("    add $48, %rsp\n");
+    out.push_str("    pop %r12\n");
+    out.push_str("    pop %rbx\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_rc_count
+    out.push_str(".global fn_rc_count\n");
+    out.push_str("fn_rc_count:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    if is_win {
+        out.push_str("    mov %rcx, %rax\n");
+    } else {
+        out.push_str("    mov %rdi, %rax\n");
+    }
+    out.push_str("    test $7, %rax\n");
+    out.push_str("    jnz .L_x64_rcc_zero\n");
+    out.push_str("    cmp $65536, %rax\n");
+    out.push_str("    jb .L_x64_rcc_zero\n");
+    out.push_str("    mov $0x00007fffffffffff, %rdx\n");
+    out.push_str("    cmp %rdx, %rax\n");
+    out.push_str("    ja .L_x64_rcc_zero\n");
+    out.push_str("    movq -16(%rax), %rdx\n");
+    out.push_str("    cmp $0x5A110001, %rdx\n");
+    out.push_str("    je .L_x64_rcc_ok\n");
+    out.push_str("    cmp $0x5A110002, %rdx\n");
+    out.push_str("    je .L_x64_rcc_ok\n");
+    out.push_str("    cmp $0x5A110003, %rdx\n");
+    out.push_str("    je .L_x64_rcc_ok\n");
+    out.push_str(".L_x64_rcc_zero:\n");
+    out.push_str("    xor %rax, %rax\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n");
+    out.push_str(".L_x64_rcc_ok:\n");
+    out.push_str("    movq -8(%rax), %rax\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
 }

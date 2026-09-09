@@ -1788,3 +1788,72 @@ end
         assert!(output.contains("close: ok"), "Got: {}", output);
     }
 }
+
+#[test]
+fn test_e2e_arc_memory_management() {
+    let code = r#"
+struct Point
+    x
+    y
+end
+
+let arr = [10, 20, 30]
+say "arr initial rc: " + str(rc_count(arr))
+
+let arr_alias = arr
+say "arr after alias rc: " + str(rc_count(arr))
+say "alias rc: " + str(rc_count(arr_alias))
+
+let m = map()
+say "map initial rc: " + str(rc_count(m))
+let m_alias = m
+say "map after alias rc: " + str(rc_count(m))
+say "m_alias rc: " + str(rc_count(m_alias))
+
+let p = Point(10, 20)
+say "struct initial rc: " + str(rc_count(p))
+let p_alias = p
+say "struct after alias rc: " + str(rc_count(p))
+say "p_alias rc: " + str(rc_count(p_alias))
+
+function inspect_rc(item)
+    return rc_count(item)
+end
+
+say "arr in function rc: " + str(inspect_rc(arr))
+say "arr after function rc: " + str(rc_count(arr))
+
+let temp = [99]
+temp = arr
+say "arr after reassign rc: " + str(rc_count(arr))
+
+say "non-heap int rc: " + str(rc_count(42))
+say "non-heap str rc: " + str(rc_count("hello"))
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("arr initial rc: 1"), "Got: {}", output);
+        assert!(output.contains("arr after alias rc: 2"), "Got: {}", output);
+        assert!(output.contains("alias rc: 2"), "Got: {}", output);
+        assert!(output.contains("map initial rc: 1"), "Got: {}", output);
+        assert!(output.contains("map after alias rc: 2"), "Got: {}", output);
+        assert!(output.contains("m_alias rc: 2"), "Got: {}", output);
+        assert!(output.contains("struct initial rc: 1"), "Got: {}", output);
+        assert!(output.contains("struct after alias rc: 2"), "Got: {}", output);
+        assert!(output.contains("p_alias rc: 2"), "Got: {}", output);
+        assert!(output.contains("arr in function rc: 3"), "Got: {}", output);
+        assert!(
+            output.contains("arr after function rc: 2"),
+            "Got: {}",
+            output
+        );
+        assert!(
+            output.contains("arr after reassign rc: 3"),
+            "Got: {}",
+            output
+        );
+        assert!(output.contains("non-heap int rc: 0"), "Got: {}", output);
+        assert!(output.contains("non-heap str rc: 0"), "Got: {}", output);
+    }
+}
+

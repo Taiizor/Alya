@@ -14,9 +14,15 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    stp x19, x20, [sp, #16]\n");
     out.push_str("    mov x19, x0\n");
     out.push_str("    mov x20, x1\n");
-    out.push_str("    add x0, x20, #1\n");
+    out.push_str("    add x0, x20, #3\n");
     out.push_str("    mov x1, #8\n");
     out.push_str(&format!("    bl {}calloc\n", p));
+    out.push_str("    movz x1, #0x0003\n");
+    out.push_str("    movk x1, #0x5A11, lsl #16\n");
+    out.push_str("    str x1, [x0]\n");
+    out.push_str("    mov x1, #1\n");
+    out.push_str("    str x1, [x0, #8]\n");
+    out.push_str("    add x0, x0, #16\n");
     out.push_str("    str x19, [x0]\n");
     out.push_str("    ldp x19, x20, [sp, #16]\n");
     out.push_str("    ldp x29, x30, [sp], #32\n");

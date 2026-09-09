@@ -22,11 +22,13 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x86_new_cap_ok:\n");
     out.push_str("    shl $1, %ebx\n");
     out.push_str(".L_x86_new_alloc_hdr:\n");
-    out.push_str("    push $12\n");
+    out.push_str("    push $20\n");
     out.push_str("    push $1\n");
     out.push_str("    call calloc\n");
     out.push_str("    add $8, %esp\n");
-    out.push_str("    mov %eax, %edi\n");
+    out.push_str("    movl $0x5A110001, (%eax)\n");
+    out.push_str("    movl $1, 4(%eax)\n");
+    out.push_str("    lea 8(%eax), %edi\n");
     out.push_str("    push $4\n");
     out.push_str("    push %ebx\n");
     out.push_str("    call calloc\n");

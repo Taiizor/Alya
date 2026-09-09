@@ -100,6 +100,8 @@ impl CodeGen {
             self.generate_statement(stmt);
         }
 
+        self.emit_cleanup_scope(None);
+
         arch::emit_footer(&mut self.output, self.arch);
 
         for func in functions {
@@ -142,11 +144,11 @@ impl CodeGen {
             let is_flt_arr = inference.infer_param_is_float_array(name, i, program);
             let is_map = inference.infer_param_is_map(name, i, program);
             let struct_type = infer_param_struct_type(name, i, program);
-            if let Some(sname) = struct_type {
+            if let Some(ref sname) = struct_type {
                 self.ctx.variables.insert(
                     param.clone(),
                     VarType::Struct {
-                        struct_name: sname,
+                        struct_name: sname.clone(),
                         offset: self.ctx.stack_offset,
                     },
                 );
@@ -181,15 +183,87 @@ impl CodeGen {
                     .variables
                     .insert(param.clone(), VarType::Number(self.ctx.stack_offset));
             }
+
+            let is_heap_param =
+                struct_type.is_some() || is_arr || is_str_arr || is_flt_arr || is_map;
+            if is_heap_param {
+                arch::emit_load_var(
+                    &mut self.output,
+                    self.arch,
+                    self.ctx.stack_offset,
+                    self.ctx.stack_offset,
+                );
+                arch::emit_rc_retain(&mut self.output, self.arch, self.ctx.stack_offset, self.os);
+            }
         }
 
         for stmt in body {
             self.generate_statement(stmt);
         }
 
+        self.emit_cleanup_scope(None);
+
         arch::emit_function_epilogue(&mut self.output, self.arch);
 
         self.ctx.exit_function(saved);
+    }
+
+    pub(crate) fn get_scope_heap_offsets(&self, skip_offset: Option<i32>) -> Vec<i32> {
+        let mut offsets: Vec<i32> = self
+            .ctx
+            .variables
+            .iter()
+            .filter(|(name, _)| !name.contains(':') && !name.contains('.'))
+            .filter_map(|(_, vtype)| match vtype {
+                VarType::Array(off) | VarType::Map(off) | VarType::Struct { offset: off, .. } => {
+                    if *off > 0 && Some(*off) != skip_offset {
+                        Some(*off)
+                    } else {
+                        None
+                    }
+                }
+                _ => None,
+            })
+            .collect();
+        offsets.sort_unstable();
+        offsets.dedup();
+        offsets
+    }
+
+    pub(crate) fn emit_cleanup_scope(&mut self, skip_offset: Option<i32>) {
+        let offsets = self.get_scope_heap_offsets(skip_offset);
+        for offset in offsets {
+            arch::emit_rc_release_stack(
+                &mut self.output,
+                self.arch,
+                offset,
+                self.ctx.stack_offset,
+                self.os,
+            );
+        }
+    }
+
+    pub(crate) fn is_heap_expression(&self, expr: &crate::ast::Expr) -> bool {
+        use crate::ast::Expr;
+        match expr {
+            Expr::Array(_) | Expr::Map(_) | Expr::StructInit { .. } => true,
+            Expr::Identifier(name) => matches!(
+                self.ctx.variables.get(name),
+                Some(VarType::Array(_)) | Some(VarType::Map(_)) | Some(VarType::Struct { .. })
+            ),
+            Expr::Call { name, .. } => {
+                if self.ctx.structs.contains_key(name) {
+                    true
+                } else if let Some(VarType::Struct { .. }) =
+                    self.ctx.variables.get(&format!("fn_ret_struct:{}", name))
+                {
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
     }
 
     pub(crate) fn emit_rodata_section(&mut self) {

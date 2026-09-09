@@ -247,7 +247,28 @@ impl CodeGen {
                 let is_flt = is_float_expr(value, &self.ctx.variables);
                 let is_map = is_map_expr(value, &self.ctx.variables);
                 let is_null = is_null_expr(value, &self.ctx.variables);
+                let is_alias_heap = match value {
+                    Expr::Identifier(ident) => matches!(
+                        self.ctx.variables.get(ident),
+                        Some(VarType::Array(_))
+                            | Some(VarType::Map(_))
+                            | Some(VarType::Struct { .. })
+                    ),
+                    Expr::Index { .. } | Expr::FieldAccess { .. } => {
+                        is_arr || is_map || is_struct.is_some()
+                    }
+                    _ => false,
+                };
                 self.generate_expression(value);
+
+                if is_alias_heap {
+                    arch::emit_rc_retain(
+                        &mut self.output,
+                        self.arch,
+                        self.ctx.stack_offset,
+                        self.os,
+                    );
+                }
 
                 arch::emit_allocate_var(&mut self.output, self.arch, &mut self.ctx.stack_offset);
 
@@ -366,7 +387,57 @@ impl CodeGen {
         let is_arr = is_array_expr(value, &self.ctx.variables);
         let is_map = is_map_expr(value, &self.ctx.variables);
         let is_null = is_null_expr(value, &self.ctx.variables);
+        let old_heap_offset = match self.ctx.variables.get(&name) {
+            Some(VarType::Array(off))
+            | Some(VarType::Map(off))
+            | Some(VarType::Struct { offset: off, .. }) => {
+                if *off > 0 {
+                    Some(*off)
+                } else {
+                    None
+                }
+            }
+            _ => None,
+        };
+        let is_alias_heap = match value {
+            Expr::Identifier(ident) => matches!(
+                self.ctx.variables.get(ident),
+                Some(VarType::Array(_)) | Some(VarType::Map(_)) | Some(VarType::Struct { .. })
+            ),
+            Expr::Index { .. } | Expr::FieldAccess { .. } => {
+                old_heap_offset.is_some() || is_arr || is_map
+            }
+            _ => false,
+        };
+
         self.generate_expression(value);
+
+        if is_alias_heap {
+            arch::emit_rc_retain(&mut self.output, self.arch, self.ctx.stack_offset, self.os);
+        }
+
+        if let Some(old_offset) = old_heap_offset {
+            arch::emit_push_temp(&mut self.output, self.arch);
+            arch::emit_rc_release_stack(
+                &mut self.output,
+                self.arch,
+                old_offset,
+                self.ctx.stack_offset + 8,
+                self.os,
+            );
+            arch::emit_pop_temp(&mut self.output, self.arch);
+            if is_flt {
+                match self.arch {
+                    Architecture::X64 => {
+                        self.output.push_str("    movq %rax, %xmm0\n");
+                    }
+                    Architecture::ARM64 => {
+                        self.output.push_str("    fmov d0, x0\n");
+                    }
+                    Architecture::X86 => {}
+                }
+            }
+        }
 
         if let Some(var_type) = self.ctx.variables.get(&name).cloned() {
             match var_type {
@@ -570,6 +641,14 @@ impl CodeGen {
         arch::emit_push_temp(&mut self.output, self.arch);
 
         self.generate_expression(value);
+        if self.is_heap_expression(value) {
+            arch::emit_rc_retain(
+                &mut self.output,
+                self.arch,
+                self.ctx.stack_offset + 8,
+                self.os,
+            );
+        }
         arch::emit_struct_field_set(&mut self.output, self.arch, field_idx);
     }
 
@@ -583,12 +662,28 @@ impl CodeGen {
                 Architecture::X86 => {
                     for arg in actual_args.iter().rev() {
                         self.generate_expression(arg);
+                        if std::ptr::eq(*arg, value) && self.is_heap_expression(value) {
+                            arch::emit_rc_retain(
+                                &mut self.output,
+                                self.arch,
+                                self.ctx.stack_offset,
+                                self.os,
+                            );
+                        }
                         arch::emit_push_temp(&mut self.output, self.arch);
                     }
                 }
                 _ => {
                     for arg in actual_args.iter() {
                         self.generate_expression(arg);
+                        if std::ptr::eq(*arg, value) && self.is_heap_expression(value) {
+                            arch::emit_rc_retain(
+                                &mut self.output,
+                                self.arch,
+                                self.ctx.stack_offset,
+                                self.os,
+                            );
+                        }
                         arch::emit_push_temp(&mut self.output, self.arch);
                     }
                 }
@@ -634,6 +729,14 @@ impl CodeGen {
             arch::emit_push_temp(&mut self.output, self.arch);
 
             self.generate_expression(value);
+            if self.is_heap_expression(value) {
+                arch::emit_rc_retain(
+                    &mut self.output,
+                    self.arch,
+                    self.ctx.stack_offset + 16,
+                    self.os,
+                );
+            }
             arch::emit_array_set(&mut self.output, self.arch);
         }
     }

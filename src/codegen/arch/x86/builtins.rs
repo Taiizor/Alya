@@ -186,3 +186,21 @@ pub fn emit_call_str_to_float(out: &mut String) {
     out.push_str("    call fn_str_to_float\n");
     out.push_str("    add $4, %esp\n");
 }
+
+pub fn emit_rc_retain(out: &mut String) {
+    out.push_str("    push %eax\n");
+    out.push_str("    call fn_rc_retain\n");
+    out.push_str("    add $4, %esp\n");
+}
+
+pub fn emit_rc_release(out: &mut String) {
+    out.push_str("    push %eax\n");
+    out.push_str("    call fn_rc_release\n");
+    out.push_str("    add $4, %esp\n");
+}
+
+pub fn emit_rc_release_stack(out: &mut String, offset: i32) {
+    out.push_str(&format!("    push -{}(%ebp)\n", offset));
+    out.push_str("    call fn_rc_release\n");
+    out.push_str("    add $4, %esp\n");
+}

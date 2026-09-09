@@ -29,19 +29,23 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x64_new_alloc:\n");
     if matches!(os, OperatingSystem::Windows) {
         out.push_str("    mov $1, %rcx\n");
-        out.push_str("    mov $24, %rdx\n");
+        out.push_str("    mov $40, %rdx\n");
         out.push_str("    sub $32, %rsp\n");
         out.push_str("    call calloc\n");
-        out.push_str("    mov %rax, %r14\n");
+        out.push_str("    movq $0x5A110001, (%rax)\n");
+        out.push_str("    movq $1, 8(%rax)\n");
+        out.push_str("    lea 16(%rax), %r14\n");
         out.push_str("    mov %r13, %rcx\n");
         out.push_str("    mov $8, %rdx\n");
         out.push_str("    call calloc\n");
         out.push_str("    add $32, %rsp\n");
     } else {
         out.push_str("    mov $1, %rdi\n");
-        out.push_str("    mov $24, %rsi\n");
+        out.push_str("    mov $40, %rsi\n");
         out.push_str(&format!("    call {}calloc\n", p));
-        out.push_str("    mov %rax, %r14\n");
+        out.push_str("    movq $0x5A110001, (%rax)\n");
+        out.push_str("    movq $1, 8(%rax)\n");
+        out.push_str("    lea 16(%rax), %r14\n");
         out.push_str("    mov %r13, %rdi\n");
         out.push_str("    mov $8, %rsi\n");
         out.push_str(&format!("    call {}calloc\n", p));

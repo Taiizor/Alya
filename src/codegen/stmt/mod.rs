@@ -2,8 +2,10 @@ mod assign;
 mod control;
 
 use super::CodeGen;
-use crate::ast::Stmt;
+use crate::ast::{Expr, Stmt};
 use crate::codegen::arch;
+use crate::codegen::context::VarType;
+use crate::codegen::target::Architecture;
 
 impl CodeGen {
     pub(crate) fn generate_statement(&mut self, stmt: &Stmt) {
@@ -66,8 +68,49 @@ impl CodeGen {
                 }
             }
             Stmt::Return(opt_expr) => {
+                let mut skip_offset = None;
                 if let Some(expr) = opt_expr {
+                    let is_flt = crate::codegen::analysis::is_float_expr(expr, &self.ctx.variables);
+                    if let Expr::Identifier(id) = expr {
+                        if let Some(vtype) = self.ctx.variables.get(id) {
+                            match vtype {
+                                VarType::Array(off)
+                                | VarType::Map(off)
+                                | VarType::Struct { offset: off, .. } => {
+                                    skip_offset = Some(*off);
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
                     self.generate_expression(expr);
+                    let heap_offsets = self.get_scope_heap_offsets(skip_offset);
+                    if !heap_offsets.is_empty() {
+                        arch::emit_push_temp(&mut self.output, self.arch);
+                        for offset in heap_offsets {
+                            arch::emit_rc_release_stack(
+                                &mut self.output,
+                                self.arch,
+                                offset,
+                                self.ctx.stack_offset + 8,
+                                self.os,
+                            );
+                        }
+                        arch::emit_pop_temp(&mut self.output, self.arch);
+                        if is_flt {
+                            match self.arch {
+                                Architecture::X64 => {
+                                    self.output.push_str("    movq %rax, %xmm0\n");
+                                }
+                                Architecture::ARM64 => {
+                                    self.output.push_str("    fmov d0, x0\n");
+                                }
+                                Architecture::X86 => {}
+                            }
+                        }
+                    }
+                } else {
+                    self.emit_cleanup_scope(None);
                 }
                 arch::emit_function_epilogue(&mut self.output, self.arch);
             }

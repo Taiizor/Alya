@@ -452,3 +452,21 @@ function pool_destroy(pool)
         pool.allocated_count = 0
     end
 end
+
+# --- Reference Counting (ARC) Operations ---
+
+# Returns the current reference count of a heap object (array, map, struct).
+# Returns 0 if obj is null, an integer, or not a managed heap object.
+function rc_get_count(obj)
+    return rc_count(obj)
+end
+
+# Manually increments the reference count of an object.
+function rc_inc(obj)
+    return rc_retain(obj)
+end
+
+# Manually decrements the reference count of an object.
+function rc_dec(obj)
+    return rc_release(obj)
+end

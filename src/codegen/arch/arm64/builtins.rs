@@ -182,3 +182,16 @@ pub fn emit_call_str_to_int(out: &mut String) {
 pub fn emit_call_str_to_float(out: &mut String) {
     out.push_str("    bl fn_str_to_float\n");
 }
+
+pub fn emit_rc_retain(out: &mut String) {
+    out.push_str("    bl fn_rc_retain\n");
+}
+
+pub fn emit_rc_release(out: &mut String) {
+    out.push_str("    bl fn_rc_release\n");
+}
+
+pub fn emit_rc_release_stack(out: &mut String, offset: i32) {
+    emit_arm64_load_x29_offset(out, "x0", offset, "x9");
+    out.push_str("    bl fn_rc_release\n");
+}

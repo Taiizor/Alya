@@ -279,3 +279,43 @@ pub fn emit_call_str_to_float(
         Architecture::ARM64 => arm64::builtins::emit_call_str_to_float(out),
     }
 }
+
+pub fn emit_rc_retain(
+    out: &mut String,
+    arch: Architecture,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    match arch {
+        Architecture::X86 => x86::builtins::emit_rc_retain(out),
+        Architecture::X64 => x64::builtins::emit_rc_retain(out, stack_offset, os),
+        Architecture::ARM64 => arm64::builtins::emit_rc_retain(out),
+    }
+}
+
+pub fn emit_rc_release(
+    out: &mut String,
+    arch: Architecture,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    match arch {
+        Architecture::X86 => x86::builtins::emit_rc_release(out),
+        Architecture::X64 => x64::builtins::emit_rc_release(out, stack_offset, os),
+        Architecture::ARM64 => arm64::builtins::emit_rc_release(out),
+    }
+}
+
+pub fn emit_rc_release_stack(
+    out: &mut String,
+    arch: Architecture,
+    offset: i32,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    match arch {
+        Architecture::X86 => x86::builtins::emit_rc_release_stack(out, offset),
+        Architecture::X64 => x64::builtins::emit_rc_release_stack(out, offset, stack_offset, os),
+        Architecture::ARM64 => arm64::builtins::emit_rc_release_stack(out, offset),
+    }
+}

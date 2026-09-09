@@ -341,3 +341,68 @@ pub fn emit_call_str_to_float(out: &mut String, stack_offset: i32, os: Operating
         }
     }
 }
+
+pub fn emit_rc_retain(out: &mut String, stack_offset: i32, os: OperatingSystem) {
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rax, %rcx\n");
+        let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
+        out.push_str(&format!("    sub ${}, %rsp\n", padding));
+        out.push_str("    call fn_rc_retain\n");
+        out.push_str(&format!("    add ${}, %rsp\n", padding));
+    } else {
+        out.push_str("    mov %rax, %rdi\n");
+        let misaligned = stack_offset % 16 != 0;
+        if misaligned {
+            out.push_str("    sub $8, %rsp\n");
+        }
+        out.push_str("    call fn_rc_retain\n");
+        if misaligned {
+            out.push_str("    add $8, %rsp\n");
+        }
+    }
+}
+
+pub fn emit_rc_release(out: &mut String, stack_offset: i32, os: OperatingSystem) {
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rax, %rcx\n");
+        let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
+        out.push_str(&format!("    sub ${}, %rsp\n", padding));
+        out.push_str("    call fn_rc_release\n");
+        out.push_str(&format!("    add ${}, %rsp\n", padding));
+    } else {
+        out.push_str("    mov %rax, %rdi\n");
+        let misaligned = stack_offset % 16 != 0;
+        if misaligned {
+            out.push_str("    sub $8, %rsp\n");
+        }
+        out.push_str("    call fn_rc_release\n");
+        if misaligned {
+            out.push_str("    add $8, %rsp\n");
+        }
+    }
+}
+
+pub fn emit_rc_release_stack(
+    out: &mut String,
+    offset: i32,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str(&format!("    mov -{}(%rbp), %rcx\n", offset));
+        let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
+        out.push_str(&format!("    sub ${}, %rsp\n", padding));
+        out.push_str("    call fn_rc_release\n");
+        out.push_str(&format!("    add ${}, %rsp\n", padding));
+    } else {
+        out.push_str(&format!("    mov -{}(%rbp), %rdi\n", offset));
+        let misaligned = stack_offset % 16 != 0;
+        if misaligned {
+            out.push_str("    sub $8, %rsp\n");
+        }
+        out.push_str("    call fn_rc_release\n");
+        if misaligned {
+            out.push_str("    add $8, %rsp\n");
+        }
+    }
+}

@@ -411,6 +411,14 @@ impl CodeGen {
                     self.generate_expression(&args[0]);
                     arch::emit_push_temp(&mut self.output, self.arch);
                     self.generate_expression(&args[1]);
+                    if self.is_heap_expression(&args[1]) {
+                        arch::emit_rc_retain(
+                            &mut self.output,
+                            self.arch,
+                            self.ctx.stack_offset + 8,
+                            self.os,
+                        );
+                    }
                     arch::emit_array_push(
                         &mut self.output,
                         self.arch,

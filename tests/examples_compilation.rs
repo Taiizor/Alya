@@ -215,11 +215,15 @@ fn test_all_examples_execute_with_gcc() {
         let _ = fs::remove_file(&temp_exe);
         let _ = fs::remove_file("mini_output.s");
 
+        let actual_stdout = String::from_utf8_lossy(&output.stdout).replace("\r\n", "\n");
+        let actual_stderr = String::from_utf8_lossy(&output.stderr).replace("\r\n", "\n");
         assert!(
             output.status.success(),
-            "Example '{}' failed during execution with status: {:?}",
+            "Example '{}' failed during execution with status: {:?}\nStdout: {}\nStderr: {}",
             example_name,
-            output.status
+            output.status,
+            actual_stdout,
+            actual_stderr
         );
 
         let actual_stdout = String::from_utf8_lossy(&output.stdout).replace("\r\n", "\n");

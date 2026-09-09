@@ -77,11 +77,13 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    push %ebp\n");
     out.push_str("    mov %esp, %ebp\n");
     out.push_str("    push %ebx\n");
-    out.push_str("    push $12\n");
+    out.push_str("    push $20\n");
     out.push_str("    push $1\n");
     out.push_str("    call calloc\n");
     out.push_str("    add $8, %esp\n");
-    out.push_str("    mov %eax, %ebx\n"); // ebx = map header
+    out.push_str("    movl $0x5A110002, (%eax)\n");
+    out.push_str("    movl $1, 4(%eax)\n");
+    out.push_str("    lea 8(%eax), %ebx\n"); // ebx = map header
     out.push_str("    movl $0, (%ebx)\n"); // len = 0
     out.push_str("    movl $64, 4(%ebx)\n"); // cap = 64
     out.push_str("    push $12\n");

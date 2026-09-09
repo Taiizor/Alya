@@ -15,7 +15,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     if matches!(os, OperatingSystem::Windows) {
         out.push_str("    mov %rcx, %r12\n");
         out.push_str("    mov %rdx, %r13\n");
-        out.push_str("    lea 1(%r13), %rcx\n");
+        out.push_str("    lea 3(%r13), %rcx\n");
         out.push_str("    mov $8, %rdx\n");
         out.push_str("    sub $32, %rsp\n");
         out.push_str("    call calloc\n");
@@ -23,10 +23,13 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     } else {
         out.push_str("    mov %rdi, %r12\n");
         out.push_str("    mov %rsi, %r13\n");
-        out.push_str("    lea 1(%r13), %rdi\n");
+        out.push_str("    lea 3(%r13), %rdi\n");
         out.push_str("    mov $8, %rsi\n");
         out.push_str(&format!("    call {}calloc\n", p));
     }
+    out.push_str("    movq $0x5A110003, (%rax)\n");
+    out.push_str("    movq $1, 8(%rax)\n");
+    out.push_str("    lea 16(%rax), %rax\n");
     out.push_str("    mov %r12, (%rax)\n");
     out.push_str("    pop %r13\n");
     out.push_str("    pop %r12\n");

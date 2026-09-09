@@ -14,11 +14,14 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    push %esi\n");
     out.push_str("    mov 8(%ebp), %esi\n");
     out.push_str("    mov 12(%ebp), %ebx\n");
-    out.push_str("    lea 1(%ebx), %eax\n");
+    out.push_str("    lea 3(%ebx), %eax\n");
     out.push_str("    push $4\n");
     out.push_str("    push %eax\n");
     out.push_str("    call calloc\n");
     out.push_str("    add $8, %esp\n");
+    out.push_str("    movl $0x5A110003, (%eax)\n");
+    out.push_str("    movl $1, 4(%eax)\n");
+    out.push_str("    lea 8(%eax), %eax\n");
     out.push_str("    mov %esi, (%eax)\n");
     out.push_str("    pop %esi\n");
     out.push_str("    pop %ebx\n");
