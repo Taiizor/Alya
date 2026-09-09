@@ -69,7 +69,7 @@ function run_single_request(url_str)
     let resp = http_get(url_str)
     let elapsed = clock_ms() - t0
     let ok = 0
-    if resp.status >= 200 and resp.status < 400
+    if resp.status_code >= 200 and resp.status_code < 400
         ok = 1
     end
     return ok, elapsed
