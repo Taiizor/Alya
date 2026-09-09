@@ -16,11 +16,18 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub $16, %esp\n");
     out.push_str("    mov 8(%ebp), %eax\n");     // %eax = ctx
     out.push_str("    mov %eax, -4(%ebp)\n");    // save ctx
+    if is_win {
+        out.push_str("    mov 16(%eax), %edx\n");   // slot_id
+        out.push_str("    movl %edx, %fs:0x14\n");  // TEB ArbitraryUserPointer
+    }
     out.push_str("    push 8(%eax)\n");          // push arg
     out.push_str("    call *4(%eax)\n");         // call func(arg)
     out.push_str("    add $4, %esp\n");
     out.push_str("    mov -4(%ebp), %edx\n");    // reload ctx
     out.push_str("    mov %eax, 12(%edx)\n");    // ctx->result = return value
+    if is_win {
+        out.push_str("    movl $0, %fs:0x14\n");
+    }
     out.push_str("    xor %eax, %eax\n");
     out.push_str("    mov %ebp, %esp\n");
     out.push_str("    pop %ebp\n");
@@ -40,7 +47,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    push %edi\n");
     out.push_str("    mov 8(%ebp), %esi\n");      // func
     out.push_str("    mov 12(%ebp), %edi\n");     // arg
-    out.push_str("    push $16\n");               // 16 bytes for ThreadContext
+    out.push_str("    push $20\n");               // 20 bytes for ThreadContext (includes slot_id)
     out.push_str("    call malloc\n");
     out.push_str("    add $4, %esp\n");
     out.push_str("    mov %eax, %ebx\n");         // ctx
@@ -48,6 +55,11 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov %edi, 8(%ebx)\n");      // ctx->arg
     out.push_str("    movl $0, 12(%ebx)\n");      // ctx->result
     if is_win {
+        out.push_str("    movl $1, %eax\n");
+        out.push_str("    lock xaddl %eax, alya_thread_slot_seq\n");
+        out.push_str("    incl %eax\n");
+        out.push_str("    andl $63, %eax\n");
+        out.push_str("    movl %eax, 16(%ebx)\n");  // ctx->slot_id
         out.push_str("    push $0\n");            // lpThreadId
         out.push_str("    push $0\n");            // dwCreationFlags
         out.push_str("    push %ebx\n");          // lpParameter

@@ -76,7 +76,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    movq (%r9), %rbx\n");
     out.push_str("    cmpq $950000, %rbx\n");
-    out.push_str("    jl .L_x64_join_buf_ok\n");
+    out.push_str("    jb .L_x64_join_buf_ok\n");
     out.push_str("    xorq %rbx, %rbx\n");
     out.push_str(".L_x64_join_buf_ok:\n");
     out.push_str("    lea (%r8, %rbx), %rdi\n");
@@ -178,7 +178,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    movq (%r9), %rbx\n");
     out.push_str("    cmpq $950000, %rbx\n");
-    out.push_str("    jl .L_x64_se1\n");
+    out.push_str("    jb .L_x64_se1\n");
     out.push_str("    xorq %rbx, %rbx\n");
     out.push_str(".L_x64_se1:\n");
     out.push_str("    lea (%r8, %rbx), %rdi\n");
@@ -225,7 +225,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    movq (%r9), %rbx\n");
     out.push_str("    cmpq $950000, %rbx\n");
-    out.push_str("    jl .L_x64_se2\n");
+    out.push_str("    jb .L_x64_se2\n");
     out.push_str("    xorq %rbx, %rbx\n");
     out.push_str(".L_x64_se2:\n");
     out.push_str("    lea (%r8, %rbx), %rdi\n");
@@ -264,7 +264,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    movq (%r9), %rbx\n");
     out.push_str("    cmpq $950000, %rbx\n");
-    out.push_str("    jl .L_x64_se3\n");
+    out.push_str("    jb .L_x64_se3\n");
     out.push_str("    xorq %rbx, %rbx\n");
     out.push_str(".L_x64_se3:\n");
     out.push_str("    lea (%r8, %rbx), %rdi\n");

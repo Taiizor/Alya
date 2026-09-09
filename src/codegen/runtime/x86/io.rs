@@ -27,7 +27,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x86_ask_read:\n");
     emit_str_buf_load(out, "%ecx", "%ebx", os);
     out.push_str("    cmp $1000000, %ebx\n");
-    out.push_str("    jl .L_x86_ask_buf_ok\n");
+    out.push_str("    jb .L_x86_ask_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_ask_buf_ok:\n");
     out.push_str("    lea (%ecx, %ebx), %esi\n");
@@ -77,7 +77,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov %eax, %esi\n");
     emit_str_buf_load(out, "%ebx", "%edi", os);
     out.push_str("    cmp $1000000, %edi\n");
-    out.push_str("    jl .L_x86_getenv_buf_ok\n");
+    out.push_str("    jb .L_x86_getenv_buf_ok\n");
     out.push_str("    xor %edi, %edi\n");
     out.push_str(".L_x86_getenv_buf_ok:\n");
     out.push_str("    lea (%ebx, %edi), %edx\n");

@@ -33,8 +33,8 @@ pub fn emit_x64_runtime(out: &mut String, os: OperatingSystem) {
 pub fn emit_str_buf_ctx(out: &mut String, os: OperatingSystem) {
     match os {
         OperatingSystem::Windows => {
-            out.push_str("    mov %gs:0x48, %r11d\n");
-            out.push_str("    and $63, %r11d\n");
+            out.push_str("    mov %gs:0x28, %r11\n");
+            out.push_str("    and $63, %r11\n");
             out.push_str("    lea alya_str_idx(%rip), %r9\n");
             out.push_str("    lea (%r9, %r11, 8), %r9\n");
             out.push_str("    shl $20, %r11\n");

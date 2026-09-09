@@ -70,7 +70,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jz .L_x86_join_empty\n");
     emit_str_buf_load(out, "%ecx", "%ebx", os);
     out.push_str("    cmp $1000000, %ebx\n");
-    out.push_str("    jl .L_x86_join_buf_ok\n");
+    out.push_str("    jb .L_x86_join_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_join_buf_ok:\n");
     out.push_str("    lea (%ecx, %ebx), %edi\n");
@@ -162,7 +162,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jz .L_x86_split_ret\n");
     emit_str_buf_load(out, "%ecx", "%ebx", os);
     out.push_str("    cmp $1000000, %ebx\n");
-    out.push_str("    jl .L_x86_se1\n");
+    out.push_str("    jb .L_x86_se1\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_se1:\n");
     out.push_str("    lea (%ecx, %ebx), %edi\n");
@@ -205,7 +205,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x86_split_matched:\n");
     emit_str_buf_load(out, "%ecx", "%ebx", os);
     out.push_str("    cmp $1000000, %ebx\n");
-    out.push_str("    jl .L_x86_se2\n");
+    out.push_str("    jb .L_x86_se2\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_se2:\n");
     out.push_str("    lea (%ecx, %ebx), %edi\n");
@@ -239,7 +239,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x86_split_emit_final:\n");
     emit_str_buf_load(out, "%ecx", "%ebx", os);
     out.push_str("    cmp $1000000, %ebx\n");
-    out.push_str("    jl .L_x86_se3\n");
+    out.push_str("    jb .L_x86_se3\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_se3:\n");
     out.push_str("    lea (%ecx, %ebx), %edi\n");

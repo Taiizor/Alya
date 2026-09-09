@@ -21,7 +21,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
-    out.push_str("    jl .L_x64_concat_ok\n");
+    out.push_str("    jb .L_x64_concat_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_concat_ok:\n");
     out.push_str("    lea (%r8, %rbx), %rdi\n");
@@ -98,7 +98,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
-    out.push_str("    jl .L_x64_upper_buf_ok\n");
+    out.push_str("    jb .L_x64_upper_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_upper_buf_ok:\n");
     out.push_str("    lea (%r8, %rbx), %r12\n");
@@ -149,7 +149,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
-    out.push_str("    jl .L_x64_lower_buf_ok\n");
+    out.push_str("    jb .L_x64_lower_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_lower_buf_ok:\n");
     out.push_str("    lea (%r8, %rbx), %r12\n");
@@ -240,7 +240,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
-    out.push_str("    jl .L_x64_trim_buf_ok\n");
+    out.push_str("    jb .L_x64_trim_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_trim_buf_ok:\n");
     out.push_str("    lea (%r8, %rbx), %r13\n");
@@ -301,7 +301,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
-    out.push_str("    jl .L_x64_sub_buf_ok\n");
+    out.push_str("    jb .L_x64_sub_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_sub_buf_ok:\n");
     out.push_str("    lea (%r8, %rbx), %r12\n");
@@ -369,7 +369,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
-    out.push_str("    jl .L_x64_char_at_buf_ok\n");
+    out.push_str("    jb .L_x64_char_at_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_char_at_buf_ok:\n");
     out.push_str("    lea (%r8, %rbx), %r12\n");
@@ -435,7 +435,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
-    out.push_str("    jl .L_x64_chr_buf_ok\n");
+    out.push_str("    jb .L_x64_chr_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_chr_buf_ok:\n");
     out.push_str("    lea (%r8, %rbx), %r12\n");
@@ -471,7 +471,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
-    out.push_str("    jl .L_x64_str_buf_ok\n");
+    out.push_str("    jb .L_x64_str_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_str_buf_ok:\n");
     out.push_str("    lea (%r8, %rbx), %r12\n");

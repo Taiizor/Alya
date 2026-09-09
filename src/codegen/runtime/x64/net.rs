@@ -395,7 +395,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov $1000000, %r11\n");
     out.push_str("    sub %r13, %r11\n");
     out.push_str("    cmp %r11, %r14\n");
-    out.push_str("    jl .L_x64_recv_buf_ok\n");
+    out.push_str("    jb .L_x64_recv_buf_ok\n");
     out.push_str("    xor %r14, %r14\n");
     out.push_str(".L_x64_recv_buf_ok:\n");
     out.push_str("    lea (%r8, %r14), %r12\n"); // destination buffer
@@ -557,7 +557,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
-    out.push_str("    jl .L_x64_peer_ip_buf_ok\n");
+    out.push_str("    jb .L_x64_peer_ip_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_peer_ip_buf_ok:\n");
     out.push_str("    lea (%r8, %rbx), %r11\n");
@@ -831,7 +831,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov $1000000, %r11\n");
     out.push_str("    sub %r13, %r11\n");
     out.push_str("    cmp %r11, %r14\n");
-    out.push_str("    jl .L_x64_urecv_buf_ok\n");
+    out.push_str("    jb .L_x64_urecv_buf_ok\n");
     out.push_str("    xor %r14, %r14\n");
     out.push_str(".L_x64_urecv_buf_ok:\n");
     out.push_str("    lea (%r8, %r14), %r12\n");

@@ -17,7 +17,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov 8(%ebp), %esi\n");
     emit_str_buf_load(out, "%ecx", "%ebx", os);
     out.push_str("    cmp $1000000, %ebx\n");
-    out.push_str("    jl .L_x86_concat_ok\n");
+    out.push_str("    jb .L_x86_concat_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_concat_ok:\n");
     out.push_str("    lea (%ecx, %ebx), %edi\n");
@@ -83,7 +83,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov 8(%ebp), %esi\n");
     emit_str_buf_load(out, "%ecx", "%ebx", os);
     out.push_str("    cmp $1000000, %ebx\n");
-    out.push_str("    jl .L_x86_upper_buf_ok\n");
+    out.push_str("    jb .L_x86_upper_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_upper_buf_ok:\n");
     out.push_str("    lea (%ecx, %ebx), %edi\n");
@@ -126,7 +126,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov 8(%ebp), %esi\n");
     emit_str_buf_load(out, "%ecx", "%ebx", os);
     out.push_str("    cmp $1000000, %ebx\n");
-    out.push_str("    jl .L_x86_lower_buf_ok\n");
+    out.push_str("    jb .L_x86_lower_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_lower_buf_ok:\n");
     out.push_str("    lea (%ecx, %ebx), %edi\n");
@@ -208,7 +208,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x86_trim_copy_start:\n");
     emit_str_buf_load(out, "%ecx", "%ebx", os);
     out.push_str("    cmp $1000000, %ebx\n");
-    out.push_str("    jl .L_x86_trim_buf_ok\n");
+    out.push_str("    jb .L_x86_trim_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_trim_buf_ok:\n");
     out.push_str("    lea (%ecx, %ebx), %edi\n");
@@ -260,7 +260,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x86_sub_adv_done:\n");
     emit_str_buf_load(out, "%ecx", "%edx", os);
     out.push_str("    cmp $1000000, %edx\n");
-    out.push_str("    jl .L_x86_sub_buf_ok\n");
+    out.push_str("    jb .L_x86_sub_buf_ok\n");
     out.push_str("    xor %edx, %edx\n");
     out.push_str(".L_x86_sub_buf_ok:\n");
     out.push_str("    lea (%ecx, %edx), %edi\n");
@@ -320,7 +320,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jz .L_x86_char_at_end\n");
     emit_str_buf_load(out, "%ecx", "%ebx", os);
     out.push_str("    cmp $1000000, %ebx\n");
-    out.push_str("    jl .L_x86_char_at_buf_ok\n");
+    out.push_str("    jb .L_x86_char_at_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_char_at_buf_ok:\n");
     out.push_str("    lea (%ecx, %ebx), %edi\n");
@@ -378,7 +378,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jz .L_x86_chr_end\n");
     emit_str_buf_load(out, "%ecx", "%ebx", os);
     out.push_str("    cmp $1000000, %ebx\n");
-    out.push_str("    jl .L_x86_chr_buf_ok\n");
+    out.push_str("    jb .L_x86_chr_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_chr_buf_ok:\n");
     out.push_str("    lea (%ecx, %ebx), %edi\n");
@@ -408,7 +408,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov 8(%ebp), %eax\n");
     emit_str_buf_load(out, "%ecx", "%ebx", os);
     out.push_str("    cmp $1000000, %ebx\n");
-    out.push_str("    jl .L_x86_str_buf_ok\n");
+    out.push_str("    jb .L_x86_str_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_str_buf_ok:\n");
     out.push_str("    lea (%ecx, %ebx), %edi\n");

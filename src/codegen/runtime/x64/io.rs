@@ -39,7 +39,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    mov (%r9), %rsi\n");
     out.push_str("    cmp $950000, %rsi\n");
-    out.push_str("    jl .L_x64_ask_buf_ok\n");
+    out.push_str("    jb .L_x64_ask_buf_ok\n");
     out.push_str("    xor %rsi, %rsi\n");
     out.push_str(".L_x64_ask_buf_ok:\n");
     out.push_str("    lea (%r8, %rsi), %r12\n");
@@ -103,7 +103,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     super::emit_str_buf_ctx(out, os);
     out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
-    out.push_str("    jl .L_x64_getenv_buf_ok\n");
+    out.push_str("    jb .L_x64_getenv_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
     out.push_str(".L_x64_getenv_buf_ok:\n");
     out.push_str("    lea (%r8, %rbx), %r12\n");

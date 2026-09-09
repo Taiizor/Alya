@@ -13,11 +13,14 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     if is_win {
         out.push_str("    sub $48, %rsp\n");
         out.push_str("    mov %rcx, 32(%rsp)\n");  // save ctx
+        out.push_str("    mov 32(%rcx), %rax\n");  // slot_id
+        out.push_str("    mov %rax, %gs:0x28\n");  // store in Windows TEB ArbitraryUserPointer
         out.push_str("    mov 8(%rcx), %r11\n");   // func
         out.push_str("    mov 16(%rcx), %rcx\n");  // arg
         out.push_str("    call *%r11\n");
         out.push_str("    mov 32(%rsp), %r10\n");  // reload ctx
         out.push_str("    mov %rax, 24(%r10)\n");  // result
+        out.push_str("    movq $0, %gs:0x28\n");   // clear ArbitraryUserPointer
         out.push_str("    xor %rax, %rax\n");
         out.push_str("    add $48, %rsp\n");
     } else {
@@ -47,12 +50,17 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    sub $56, %rsp\n");
         out.push_str("    mov %rcx, %r12\n");      // func
         out.push_str("    mov %rdx, %r13\n");      // arg
-        out.push_str("    mov $32, %rcx\n");
+        out.push_str("    mov $40, %rcx\n");
         out.push_str("    call malloc\n");
         out.push_str("    mov %rax, %rbx\n");      // ctx
         out.push_str("    mov %r12, 8(%rbx)\n");
         out.push_str("    mov %r13, 16(%rbx)\n");
         out.push_str("    movq $0, 24(%rbx)\n");
+        out.push_str("    mov $1, %rax\n");
+        out.push_str("    lock xaddq %rax, alya_thread_slot_seq(%rip)\n");
+        out.push_str("    inc %rax\n");
+        out.push_str("    and $63, %rax\n");
+        out.push_str("    mov %rax, 32(%rbx)\n");  // unique thread slot
         out.push_str("    xor %rcx, %rcx\n");      // lpThreadAttributes = NULL
         out.push_str("    xor %rdx, %rdx\n");      // dwStackSize = 0
         out.push_str("    lea fn_alya_thread_proc(%rip), %r8\n"); // lpStartAddress

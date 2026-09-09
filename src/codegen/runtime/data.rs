@@ -26,6 +26,8 @@ pub fn emit_data_sections(
         Architecture::ARM64 | Architecture::X64 => {
             out.push_str("alya_str_idx:\n");
             out.push_str("    .space 512\n");
+            out.push_str("alya_thread_slot_seq:\n");
+            out.push_str("    .quad 0\n");
             out.push_str("alya_argc:\n");
             out.push_str("    .quad 0\n");
             out.push_str("alya_argv:\n");
@@ -48,6 +50,8 @@ pub fn emit_data_sections(
         Architecture::X86 => {
             out.push_str("alya_str_idx:\n");
             out.push_str("    .space 256\n");
+            out.push_str("alya_thread_slot_seq:\n");
+            out.push_str("    .long 0\n");
             out.push_str("alya_argc:\n");
             out.push_str("    .long 0\n");
             out.push_str("alya_argv:\n");
