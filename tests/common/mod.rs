@@ -57,11 +57,15 @@ pub fn run_alya_code_with_input_and_args(
 
     let pid = std::process::id();
     let id = TEST_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
-    let asm_path = format!("temp_e2e_{}_{}.s", pid, id);
+    let time = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or(0);
+    let asm_path = format!("temp_e2e_{}_{}_{}.s", pid, id, time);
     let exe_path = if cfg!(target_os = "windows") {
-        format!("temp_e2e_{}_{}.exe", pid, id)
+        format!("temp_e2e_{}_{}_{}.exe", pid, id, time)
     } else {
-        format!("temp_e2e_{}_{}", pid, id)
+        format!("temp_e2e_{}_{}_{}", pid, id, time)
     };
 
     fs::write(&asm_path, asm_code).expect("Failed to write temp asm file");

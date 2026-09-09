@@ -154,11 +154,15 @@ fn test_all_examples_execute_with_gcc() {
 
         let asm_code = codegen::generate(&ast, arch, os);
         let pid = std::process::id();
-        let temp_asm = format!("temp_ex_test_{}_{}.s", pid, idx);
+        let time = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_nanos())
+            .unwrap_or(0);
+        let temp_asm = format!("temp_ex_test_{}_{}_{}.s", pid, idx, time);
         let temp_exe = if cfg!(target_os = "windows") {
-            format!("temp_ex_test_{}_{}.exe", pid, idx)
+            format!("temp_ex_test_{}_{}_{}.exe", pid, idx, time)
         } else {
-            format!("temp_ex_test_{}_{}", pid, idx)
+            format!("temp_ex_test_{}_{}_{}", pid, idx, time)
         };
 
         fs::write(&temp_asm, &asm_code).expect("Failed to write asm");
