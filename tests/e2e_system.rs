@@ -1605,10 +1605,18 @@ say "weekday: " + weekday_name(4)
     if let Some((code, output)) = run_alya_code_full(code) {
         assert_eq!(code, 0, "Execution failed: {}", output);
         assert!(output.contains("y: 1970 m: 1 d: 1"), "Got: {}", output);
-        assert!(output.contains("iso: 1970-01-01T00:00:00Z"), "Got: {}", output);
+        assert!(
+            output.contains("iso: 1970-01-01T00:00:00Z"),
+            "Got: {}",
+            output
+        );
         assert!(output.contains("date: 1970-01-01"), "Got: {}", output);
         assert!(output.contains("time: 00:00:00"), "Got: {}", output);
-        assert!(output.contains("map: 1970-01-01T00:00:00Z"), "Got: {}", output);
+        assert!(
+            output.contains("map: 1970-01-01T00:00:00Z"),
+            "Got: {}",
+            output
+        );
         assert!(output.contains("month: January"), "Got: {}", output);
         assert!(output.contains("weekday: Thursday"), "Got: {}", output);
     }
@@ -1745,8 +1753,15 @@ say "auth: " + basic_auth("admin", "secret")
         assert_eq!(code, 0, "Execution failed: {}", output);
         assert!(output.contains("200: OK"), "Got: {}", output);
         assert!(output.contains("404: Not Found"), "Got: {}", output);
-        assert!(output.contains("500: Internal Server Error"), "Got: {}", output);
-        assert!(output.contains("auth: Basic YWRtaW46c2VjcmV0"), "Got: {}", output);
+        assert!(
+            output.contains("500: Internal Server Error"),
+            "Got: {}",
+            output
+        );
+        assert!(
+            output.contains("auth: Basic YWRtaW46c2VjcmV0"),
+            "Got: {}",
+            output
+        );
     }
 }
-
