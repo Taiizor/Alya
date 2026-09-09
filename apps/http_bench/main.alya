@@ -80,7 +80,7 @@ function run_single_probe(url_str)
     if resp.status_code >= 200 and resp.status_code < 400
         ok = 1
     end
-    return ok, elapsed
+    return ok, elapsed, resp.body
 end
 
 function run_worker_task(args_tuple)
@@ -253,7 +253,7 @@ function main()
 
     # Pre-flight connectivity check: verify target server is reachable
     say "Connecting to " + color_white(cfg.url) + "..."
-    let probe_ok, probe_lat = run_single_probe(cfg.url)
+    let probe_ok, probe_lat, probe_body = run_single_probe(cfg.url)
     if probe_ok == 0
         say ""
         say color_red("✗ Error:") + " Could not connect to target server at " + style_bold(cfg.url)
@@ -263,7 +263,11 @@ function main()
         return
     end
 
-    say color_green("✓ Connection verified") + " (" + str(probe_lat) + " ms). Starting benchmark...\n"
+    say color_green("✓ Connection verified") + " (" + str(probe_lat) + " ms)."
+    if len(probe_body) > 0
+        say "  " + style_bold("Server Payload") + "  : " + color_cyan(probe_body)
+    end
+    say "  Starting benchmark...\n"
     let t_start = clock_ms()
 
     let ch_res = channel_new()

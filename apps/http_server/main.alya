@@ -147,7 +147,10 @@ function handle_client(client_sock, start_time, quiet)
         let ctype = "text/html; charset=utf-8"
         let body = ""
 
-        if p == "/" or p == "/index.html"
+        if p == "/" or p == "/json"
+            ctype = "application/json"
+            body = "{\"message\":\"Hello, World!\"}"
+        elif p == "/html" or p == "/index.html"
             let file_path = "apps/http_server/public/index.html"
             if file_exists(file_path) == 1
                 body = read_file(file_path)
@@ -219,7 +222,7 @@ function main()
         say color_cyan("║") + "  Workers     : " + color_white("1 thread (single)") + "            " + color_cyan("║")
     end
     say color_cyan("║") + "  Features    : " + color_white("Keep-Alive, Non-blocking I/O") + "    " + color_cyan("║")
-    say color_cyan("║") + "  Endpoints   : " + color_white("/, /api/status, /api/echo") + "    " + color_cyan("║")
+    say color_cyan("║") + "  Endpoints   : " + color_white("/, /json, /html, /api/status") + "   " + color_cyan("║")
     say color_cyan("║") + "  Press Ctrl+C to shutdown server                 " + color_cyan("║")
     say color_cyan("╚═════════════════════════════════════════════════╝")
     say ""
