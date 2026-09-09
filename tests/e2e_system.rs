@@ -1839,7 +1839,11 @@ say "non-heap str rc: " + str(rc_count("hello"))
         assert!(output.contains("map after alias rc: 2"), "Got: {}", output);
         assert!(output.contains("m_alias rc: 2"), "Got: {}", output);
         assert!(output.contains("struct initial rc: 1"), "Got: {}", output);
-        assert!(output.contains("struct after alias rc: 2"), "Got: {}", output);
+        assert!(
+            output.contains("struct after alias rc: 2"),
+            "Got: {}",
+            output
+        );
         assert!(output.contains("p_alias rc: 2"), "Got: {}", output);
         assert!(output.contains("arr in function rc: 3"), "Got: {}", output);
         assert!(
@@ -1856,4 +1860,3 @@ say "non-heap str rc: " + str(rc_count("hello"))
         assert!(output.contains("non-heap str rc: 0"), "Got: {}", output);
     }
 }
-
