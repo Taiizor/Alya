@@ -36,13 +36,13 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str(&format!("    call {}fflush\n", p));
     }
     out.push_str(".L_x64_ask_read:\n");
-    out.push_str("    lea alya_str_buf(%rip), %rbx\n");
-    out.push_str("    mov alya_str_idx(%rip), %rsi\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    mov (%r9), %rsi\n");
     out.push_str("    cmp $950000, %rsi\n");
     out.push_str("    jl .L_x64_ask_buf_ok\n");
     out.push_str("    xor %rsi, %rsi\n");
     out.push_str(".L_x64_ask_buf_ok:\n");
-    out.push_str("    lea (%rbx, %rsi), %r12\n");
+    out.push_str("    lea (%r8, %rsi), %r12\n");
     out.push_str("    mov %r12, %r13\n");
     out.push_str(".L_x64_ask_loop:\n");
     out.push_str(&format!("    call {}getchar\n", p));
@@ -58,11 +58,11 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x64_ask_done:\n");
     out.push_str("    movb $0, (%r13)\n");
     out.push_str("    inc %r13\n");
-    out.push_str("    lea alya_str_buf(%rip), %rbx\n");
-    out.push_str("    sub %rbx, %r13\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    sub %r8, %r13\n");
     out.push_str("    add $7, %r13\n");
     out.push_str("    and $-8, %r13\n");
-    out.push_str("    mov %r13, alya_str_idx(%rip)\n");
+    out.push_str("    mov %r13, (%r9)\n");
     out.push_str("    mov %r12, %rax\n");
     out.push_str("    add $56, %rsp\n");
     out.push_str("    pop %r13\n");
@@ -100,8 +100,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    test %rax, %rax\n");
     out.push_str("    jz .L_x64_getenv_empty\n");
     out.push_str("    mov %rax, %rsi\n");
-    out.push_str("    lea alya_str_buf(%rip), %r8\n");
-    out.push_str("    mov alya_str_idx(%rip), %rbx\n");
+    super::emit_str_buf_ctx(out, os);
+    out.push_str("    mov (%r9), %rbx\n");
     out.push_str("    cmp $950000, %rbx\n");
     out.push_str("    jl .L_x64_getenv_buf_ok\n");
     out.push_str("    xor %rbx, %rbx\n");
@@ -121,7 +121,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %r8, %r14\n");
     out.push_str("    add $7, %r14\n");
     out.push_str("    and $-8, %r14\n");
-    out.push_str("    mov %r14, alya_str_idx(%rip)\n");
+    out.push_str("    mov %r14, (%r9)\n");
     out.push_str("    mov %r12, %rax\n");
     out.push_str("    jmp .L_x64_getenv_ret\n");
     out.push_str(".L_x64_getenv_empty:\n");

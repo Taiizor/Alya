@@ -1,5 +1,5 @@
 use crate::codegen::target::OperatingSystem;
-use super::emit_adrp_add;
+use super::{emit_adrp_add, emit_str_buf_ctx};
 
 #[rustfmt::skip]
 pub fn emit(out: &mut String, os: OperatingSystem) {
@@ -232,14 +232,13 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    cmp x20, x2\n");
     out.push_str("    csel x20, x2, x20, gt\n");
 
-    emit_adrp_add(out, "x2", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x5", "x2", "x6", os);
     out.push_str("    ldr x3, [x2]\n");
     out.push_str("    movz x4, #16960\n");
     out.push_str("    movk x4, #15, lsl #16\n"); // 1000000 (0xF4240)
     out.push_str("    sub x4, x4, x20\n");
     out.push_str("    cmp x3, x4\n");
     out.push_str("    csel x3, xzr, x3, gt\n");
-    emit_adrp_add(out, "x5", "alya_str_buf", os);
     out.push_str("    add x21, x5, x3\n"); // x21 = buffer
     out.push_str("    mov x22, x3\n");      // x22 = start idx
 
@@ -251,7 +250,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    cmp x0, #0\n");
     out.push_str("    ble .L_arm64_recv_empty\n");
     out.push_str("    strb wzr, [x21, x0]\n");
-    emit_adrp_add(out, "x2", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x5", "x2", "x6", os);
     out.push_str("    add x1, x22, x0\n");
     out.push_str("    add x1, x1, #8\n");
     out.push_str("    and x1, x1, #-8\n");
@@ -341,13 +340,12 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(&format!("    bl {}inet_ntoa\n", p));
     out.push_str("    cbz x0, .L_arm64_peer_ip_empty\n");
     out.push_str("    mov x19, x0\n");
-    emit_adrp_add(out, "x1", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x4", "x1", "x6", os);
     out.push_str("    ldr x2, [x1]\n");
-    out.push_str("    movz x3, #0x7EE0\n");
-    out.push_str("    movk x3, #0xE, lsl #16\n");
+    out.push_str("    movz x3, #16960\n");
+    out.push_str("    movk x3, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x2, x3\n");
     out.push_str("    csel x2, xzr, x2, gt\n");
-    emit_adrp_add(out, "x4", "alya_str_buf", os);
     out.push_str("    add x20, x4, x2\n");
     out.push_str("    mov x5, x20\n");
     out.push_str("    mov x6, x19\n");
@@ -522,14 +520,13 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movz x2, #8, lsl #16\n");
     out.push_str("    cmp x20, x2\n");
     out.push_str("    csel x20, x2, x20, gt\n");
-    emit_adrp_add(out, "x2", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x5", "x2", "x6", os);
     out.push_str("    ldr x3, [x2]\n");
     out.push_str("    movz x4, #16960\n");
     out.push_str("    movk x4, #15, lsl #16\n");
     out.push_str("    sub x4, x4, x20\n");
     out.push_str("    cmp x3, x4\n");
     out.push_str("    csel x3, xzr, x3, gt\n");
-    emit_adrp_add(out, "x5", "alya_str_buf", os);
     out.push_str("    add x21, x5, x3\n");
     out.push_str("    mov x22, x3\n");
     out.push_str("    mov x0, x19\n");
@@ -542,7 +539,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    cmp x0, #0\n");
     out.push_str("    ble .L_arm64_urecv_empty\n");
     out.push_str("    strb wzr, [x21, x0]\n");
-    emit_adrp_add(out, "x2", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x5", "x2", "x6", os);
     out.push_str("    add x1, x22, x0\n");
     out.push_str("    add x1, x1, #8\n");
     out.push_str("    and x1, x1, #-8\n");
@@ -555,5 +552,111 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    ldp x19, x20, [sp, #16]\n");
     out.push_str("    ldp x21, x22, [sp, #32]\n");
     out.push_str("    ldp x29, x30, [sp], #48\n");
+    out.push_str("    ret\n\n");
+
+    // fn_net_set_nonblocking: net_set_nonblocking(sock, mode) -> 0 or -1
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_net_set_nonblocking\n");
+    out.push_str("fn_net_set_nonblocking:\n");
+    out.push_str("    stp x29, x30, [sp, #-32]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    stp x19, x20, [sp, #16]\n");
+    out.push_str("    mov x19, x0\n"); // sock
+    out.push_str("    mov x20, x1\n"); // mode
+
+    // fcntl(sock, F_GETFL, 0)
+    out.push_str("    mov x0, x19\n");
+    out.push_str("    mov x1, #3\n"); // F_GETFL = 3
+    out.push_str("    mov x2, #0\n");
+    out.push_str(&format!("    bl {}fcntl\n", p));
+    out.push_str("    cmp w0, #0\n");
+    out.push_str("    blt .L_arm64_snb_err\n");
+
+    let nonblock_flag = if is_mac { 4 } else { 2048 };
+    out.push_str("    cbz x20, .L_arm64_snb_clear\n");
+    out.push_str(&format!("    orr w2, w0, #{}\n", nonblock_flag));
+    out.push_str("    b .L_arm64_snb_apply\n");
+    out.push_str(".L_arm64_snb_clear:\n");
+    out.push_str(&format!("    bic w2, w0, #{}\n", nonblock_flag));
+    out.push_str(".L_arm64_snb_apply:\n");
+    out.push_str("    mov x0, x19\n");
+    out.push_str("    mov x1, #4\n"); // F_SETFL = 4
+    out.push_str(&format!("    bl {}fcntl\n", p));
+    out.push_str("    cmp w0, #0\n");
+    out.push_str("    blt .L_arm64_snb_err\n");
+    out.push_str("    mov x0, #0\n");
+    out.push_str("    b .L_arm64_snb_ret\n");
+    out.push_str(".L_arm64_snb_err:\n");
+    out.push_str("    mvn x0, xzr\n"); // -1
+    out.push_str(".L_arm64_snb_ret:\n");
+    out.push_str("    ldp x19, x20, [sp, #16]\n");
+    out.push_str("    ldp x29, x30, [sp], #32\n");
+    out.push_str("    ret\n\n");
+
+    // fn_net_poll: net_poll(sock, timeout_ms) -> 1 (ready), 0 (timeout), -1 (error)
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_net_poll\n");
+    out.push_str("fn_net_poll:\n");
+    out.push_str("    stp x29, x30, [sp, #-192]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    stp x19, x20, [sp, #16]\n");
+    out.push_str("    stp x21, x22, [sp, #32]\n");
+    out.push_str("    mov x19, x0\n"); // sock
+    out.push_str("    mov x20, x1\n"); // timeout_ms
+
+    // Zero 128-byte fd_set at [sp, #48]
+    out.push_str("    add x21, sp, #48\n");
+    out.push_str("    stp xzr, xzr, [x21]\n");
+    out.push_str("    stp xzr, xzr, [x21, #16]\n");
+    out.push_str("    stp xzr, xzr, [x21, #32]\n");
+    out.push_str("    stp xzr, xzr, [x21, #48]\n");
+    out.push_str("    stp xzr, xzr, [x21, #64]\n");
+    out.push_str("    stp xzr, xzr, [x21, #80]\n");
+    out.push_str("    stp xzr, xzr, [x21, #96]\n");
+    out.push_str("    stp xzr, xzr, [x21, #112]\n");
+
+    // Set bit in fd_set
+    out.push_str("    lsr x1, x19, #6\n"); // word = sock / 64
+    out.push_str("    and x2, x19, #63\n"); // bit = sock % 64
+    out.push_str("    mov x3, #1\n");
+    out.push_str("    lsl x3, x3, x2\n");
+    out.push_str("    add x4, x21, x1, lsl #3\n");
+    out.push_str("    ldr x5, [x4]\n");
+    out.push_str("    orr x5, x5, x3\n");
+    out.push_str("    str x5, [x4]\n");
+
+    // Setup timeval at [sp, #176]
+    out.push_str("    cmp x20, #0\n");
+    out.push_str("    blt .L_arm64_poll_inf\n");
+    out.push_str("    mov x1, #1000\n");
+    out.push_str("    sdiv x2, x20, x1\n"); // tv_sec = timeout_ms / 1000
+    out.push_str("    msub x3, x2, x1, x20\n"); // rem_ms = timeout_ms - (sec * 1000)
+    out.push_str("    mul x3, x3, x1\n"); // tv_usec = rem_ms * 1000
+    out.push_str("    add x22, sp, #176\n");
+    out.push_str("    stp x2, x3, [x22]\n");
+    out.push_str("    mov x4, x22\n"); // timeout arg
+    out.push_str("    b .L_arm64_poll_call\n");
+    out.push_str(".L_arm64_poll_inf:\n");
+    out.push_str("    mov x4, #0\n");
+    out.push_str(".L_arm64_poll_call:\n");
+    out.push_str("    add x0, x19, #1\n"); // nfds = sock + 1
+    out.push_str("    mov x1, x21\n"); // readfds
+    out.push_str("    mov x2, #0\n"); // writefds = NULL
+    out.push_str("    mov x3, #0\n"); // exceptfds = NULL
+    out.push_str(&format!("    bl {}select\n", p));
+    out.push_str("    cmp w0, #0\n");
+    out.push_str("    bgt .L_arm64_poll_ready\n");
+    out.push_str("    blt .L_arm64_poll_err\n");
+    out.push_str("    mov x0, #0\n"); // timeout
+    out.push_str("    b .L_arm64_poll_done\n");
+    out.push_str(".L_arm64_poll_ready:\n");
+    out.push_str("    mov x0, #1\n"); // ready
+    out.push_str("    b .L_arm64_poll_done\n");
+    out.push_str(".L_arm64_poll_err:\n");
+    out.push_str("    mvn x0, xzr\n"); // -1
+    out.push_str(".L_arm64_poll_done:\n");
+    out.push_str("    ldp x19, x20, [sp, #16]\n");
+    out.push_str("    ldp x21, x22, [sp, #32]\n");
+    out.push_str("    ldp x29, x30, [sp], #192\n");
     out.push_str("    ret\n\n");
 }

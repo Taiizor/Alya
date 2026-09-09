@@ -1,5 +1,5 @@
 use crate::codegen::target::OperatingSystem;
-use super::emit_adrp_add;
+use super::{emit_adrp_add, emit_str_buf_ctx};
 
 #[rustfmt::skip]
 pub fn emit(out: &mut String, os: OperatingSystem) {
@@ -8,6 +8,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     let _ = (is_win, p);
 
     // fn_ask
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_ask\n");
     out.push_str("fn_ask:\n");
     out.push_str("    stp x29, x30, [sp, #-16]!\n");
     out.push_str("    mov x29, sp\n");
@@ -27,10 +29,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov x0, #0\n");
     out.push_str(&format!("    bl {}fflush\n", p));
     out.push_str(".L_arm_ask_read:\n");
-    emit_adrp_add(out, "x19", "alya_str_buf", os);
-    emit_adrp_add(out, "x20", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x19", "x20", "x9", os);
     out.push_str("    ldr x2, [x20]\n");
-    out.push_str("    mov x9, #48000\n");
+    out.push_str("    movz x9, #16960\n");
+    out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x2, x9\n");
     out.push_str("    b.lt .L_arm_ask_buf_ok\n");
     out.push_str("    mov x2, #0\n");
@@ -49,7 +51,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    b .L_arm_ask_loop\n");
     out.push_str(".L_arm_ask_done:\n");
     out.push_str("    strb wzr, [x19], #1\n");
-    emit_adrp_add(out, "x1", "alya_str_buf", os);
+    emit_str_buf_ctx(out, "x1", "x20", "x9", os);
     out.push_str("    sub x2, x19, x1\n");
     out.push_str("    add x2, x2, #7\n");
     out.push_str("    and x2, x2, #~7\n");
@@ -72,10 +74,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(&format!("    bl {}getenv\n", p));
     out.push_str("    cbz x0, .L_arm64_getenv_empty\n");
     out.push_str("    mov x19, x0\n");
-    emit_adrp_add(out, "x2", "alya_str_buf", os);
-    emit_adrp_add(out, "x3", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x2", "x3", "x9", os);
     out.push_str("    ldr x4, [x3]\n");
-    out.push_str("    mov x5, #48000\n");
+    out.push_str("    movz x5, #16960\n");
+    out.push_str("    movk x5, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x4, x5\n");
     out.push_str("    b.lt .L_arm64_getenv_buf_ok\n");
     out.push_str("    mov x4, #0\n");

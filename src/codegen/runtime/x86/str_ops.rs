@@ -1,4 +1,5 @@
 use crate::codegen::target::OperatingSystem;
+use super::{emit_str_buf_load, emit_str_buf_store};
 
 #[rustfmt::skip]
 pub fn emit(out: &mut String, os: OperatingSystem) {
@@ -14,20 +15,19 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    push %edi\n");
     out.push_str("    push %ebx\n");
     out.push_str("    mov 8(%ebp), %esi\n");
-    out.push_str("    mov 12(%ebp), %edx\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
-    out.push_str("    mov alya_str_idx, %ebx\n");
-    out.push_str("    cmp $48000, %ebx\n");
+    emit_str_buf_load(out, "%ecx", "%ebx", os);
+    out.push_str("    cmp $1000000, %ebx\n");
     out.push_str("    jl .L_x86_concat_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_concat_ok:\n");
     out.push_str("    lea (%ecx, %ebx), %edi\n");
     out.push_str("    mov %edi, %eax\n");
+    out.push_str("    mov 12(%ebp), %edx\n");
     out.push_str(".L_x86_copy1:\n");
     out.push_str("    movb (%esi), %bl\n");
     out.push_str("    test %bl, %bl\n");
     out.push_str("    jz .L_x86_copy2_start\n");
-    out.push_str("    movb %cl, (%edi)\n");
+    out.push_str("    movb %bl, (%edi)\n");
     out.push_str("    inc %esi\n");
     out.push_str("    inc %edi\n");
     out.push_str("    jmp .L_x86_copy1\n");
@@ -37,7 +37,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movb (%esi), %bl\n");
     out.push_str("    test %bl, %bl\n");
     out.push_str("    jz .L_x86_concat_end\n");
-    out.push_str("    movb %cl, (%edi)\n");
+    out.push_str("    movb %bl, (%edi)\n");
     out.push_str("    inc %esi\n");
     out.push_str("    inc %edi\n");
     out.push_str("    jmp .L_x86_copy2\n");
@@ -47,7 +47,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %ecx, %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%edx", os);
     out.push_str("    pop %ebx\n");
     out.push_str("    pop %edi\n");
     out.push_str("    pop %esi\n");
@@ -81,9 +81,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    push %esi\n");
     out.push_str("    push %edi\n");
     out.push_str("    mov 8(%ebp), %esi\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
-    out.push_str("    mov alya_str_idx, %ebx\n");
-    out.push_str("    cmp $48000, %ebx\n");
+    emit_str_buf_load(out, "%ecx", "%ebx", os);
+    out.push_str("    cmp $1000000, %ebx\n");
     out.push_str("    jl .L_x86_upper_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_upper_buf_ok:\n");
@@ -109,7 +108,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %ecx, %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%edx", os);
     out.push_str("    pop %edi\n");
     out.push_str("    pop %esi\n");
     out.push_str("    pop %ebx\n");
@@ -125,9 +124,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    push %esi\n");
     out.push_str("    push %edi\n");
     out.push_str("    mov 8(%ebp), %esi\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
-    out.push_str("    mov alya_str_idx, %ebx\n");
-    out.push_str("    cmp $48000, %ebx\n");
+    emit_str_buf_load(out, "%ecx", "%ebx", os);
+    out.push_str("    cmp $1000000, %ebx\n");
     out.push_str("    jl .L_x86_lower_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_lower_buf_ok:\n");
@@ -153,7 +151,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %ecx, %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%edx", os);
     out.push_str("    pop %edi\n");
     out.push_str("    pop %esi\n");
     out.push_str("    pop %ebx\n");
@@ -208,9 +206,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    dec %edx\n");
     out.push_str("    jmp .L_x86_trim_tws\n");
     out.push_str(".L_x86_trim_copy_start:\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
-    out.push_str("    mov alya_str_idx, %ebx\n");
-    out.push_str("    cmp $48000, %ebx\n");
+    emit_str_buf_load(out, "%ecx", "%ebx", os);
+    out.push_str("    cmp $1000000, %ebx\n");
     out.push_str("    jl .L_x86_trim_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_trim_buf_ok:\n");
@@ -230,7 +227,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %ecx, %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%edx", os);
     out.push_str("    pop %edi\n");
     out.push_str("    pop %esi\n");
     out.push_str("    pop %ebx\n");
@@ -261,9 +258,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    dec %edx\n");
     out.push_str("    jmp .L_x86_sub_adv\n");
     out.push_str(".L_x86_sub_adv_done:\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
-    out.push_str("    mov alya_str_idx, %edx\n");
-    out.push_str("    cmp $48000, %edx\n");
+    emit_str_buf_load(out, "%ecx", "%edx", os);
+    out.push_str("    cmp $1000000, %edx\n");
     out.push_str("    jl .L_x86_sub_buf_ok\n");
     out.push_str("    xor %edx, %edx\n");
     out.push_str(".L_x86_sub_buf_ok:\n");
@@ -288,7 +284,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %ecx, %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%edx", os);
     out.push_str("    pop %edi\n");
     out.push_str("    pop %esi\n");
     out.push_str("    pop %ebx\n");
@@ -322,9 +318,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movzbl (%esi), %edx\n");
     out.push_str("    test %edx, %edx\n");
     out.push_str("    jz .L_x86_char_at_end\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
-    out.push_str("    mov alya_str_idx, %ebx\n");
-    out.push_str("    cmp $48000, %ebx\n");
+    emit_str_buf_load(out, "%ecx", "%ebx", os);
+    out.push_str("    cmp $1000000, %ebx\n");
     out.push_str("    jl .L_x86_char_at_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_char_at_buf_ok:\n");
@@ -336,7 +331,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %ecx, %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%edx", os);
     out.push_str(".L_x86_char_at_end:\n");
     out.push_str("    pop %edi\n");
     out.push_str("    pop %esi\n");
@@ -381,9 +376,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x86_chr_code:\n");
     out.push_str("    and $255, %edx\n");
     out.push_str("    jz .L_x86_chr_end\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
-    out.push_str("    mov alya_str_idx, %ebx\n");
-    out.push_str("    cmp $48000, %ebx\n");
+    emit_str_buf_load(out, "%ecx", "%ebx", os);
+    out.push_str("    cmp $1000000, %ebx\n");
     out.push_str("    jl .L_x86_chr_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_chr_buf_ok:\n");
@@ -395,7 +389,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %ecx, %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%edx", os);
     out.push_str(".L_x86_chr_end:\n");
     out.push_str("    pop %edi\n");
     out.push_str("    pop %ebx\n");
@@ -412,9 +406,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    push %edi\n");
     out.push_str("    push %esi\n");
     out.push_str("    mov 8(%ebp), %eax\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
-    out.push_str("    mov alya_str_idx, %ebx\n");
-    out.push_str("    cmp $48000, %ebx\n");
+    emit_str_buf_load(out, "%ecx", "%ebx", os);
+    out.push_str("    cmp $1000000, %ebx\n");
     out.push_str("    jl .L_x86_str_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_str_buf_ok:\n");
@@ -451,11 +444,11 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movb $0, (%edi)\n");
     out.push_str("    inc %edi\n");
     out.push_str(".L_x86_str_finish:\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
+    emit_str_buf_load(out, "%ecx", "%ebx", os);
     out.push_str("    sub %ecx, %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%edx", os);
     out.push_str("    mov %esi, %eax\n");
     out.push_str("    pop %esi\n");
     out.push_str("    pop %edi\n");

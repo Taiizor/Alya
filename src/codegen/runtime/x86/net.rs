@@ -1,4 +1,5 @@
 use crate::codegen::target::OperatingSystem;
+use super::{emit_str_buf_load, emit_str_buf_store};
 
 #[rustfmt::skip]
 pub fn emit(out: &mut String, os: OperatingSystem) {
@@ -242,6 +243,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_net_recv:\n");
     out.push_str("    push %ebp\n");
     out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    sub $16, %esp\n");
     out.push_str("    push %ebx\n");
     out.push_str("    push %esi\n");
     out.push_str("    push %edi\n");
@@ -255,15 +257,15 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jle .L_x86_recv_alloc\n");
     out.push_str("    mov $524288, %esi\n");
     out.push_str(".L_x86_recv_alloc:\n");
-    out.push_str("    mov alya_str_idx, %edi\n");
+    emit_str_buf_load(out, "%edx", "%edi", os);
     out.push_str("    mov $1000000, %ecx\n");
     out.push_str("    sub %esi, %ecx\n");
     out.push_str("    cmp %ecx, %edi\n");
     out.push_str("    jl .L_x86_recv_buf_ok\n");
     out.push_str("    xor %edi, %edi\n");
     out.push_str(".L_x86_recv_buf_ok:\n");
-    out.push_str("    lea alya_str_buf, %edx\n");
     out.push_str("    add %edi, %edx\n");
+    out.push_str("    mov %edx, -4(%ebp)\n");
     out.push_str("    push $0\n");
     out.push_str("    push %esi\n");
     out.push_str("    push %edx\n");
@@ -272,13 +274,12 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    add $16, %esp\n");
     out.push_str("    cmp $0, %eax\n");
     out.push_str("    jle .L_x86_recv_empty\n");
-    out.push_str("    lea alya_str_buf, %edx\n");
-    out.push_str("    add %edi, %edx\n");
+    out.push_str("    mov -4(%ebp), %edx\n");
     out.push_str("    movb $0, (%edx, %eax)\n");
     out.push_str("    lea 1(%eax, %edi), %ecx\n");
-    out.push_str("    add $7, %ecx\n");
-    out.push_str("    and $-8, %ecx\n");
-    out.push_str("    mov %ecx, alya_str_idx\n");
+    out.push_str("    add $3, %ecx\n");
+    out.push_str("    and $-4, %ecx\n");
+    emit_str_buf_store(out, "%ecx", "%esi", os);
     out.push_str("    mov %edx, %eax\n");
     out.push_str("    jmp .L_x86_recv_done\n");
     out.push_str(".L_x86_recv_empty:\n");
@@ -398,13 +399,12 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    test %eax, %eax\n");
     out.push_str("    jz .L_x86_peer_ip_empty\n");
     out.push_str("    mov %eax, %esi\n");
-    out.push_str("    mov alya_str_idx, %edi\n");
-    out.push_str("    cmp $950000, %edi\n");
+    emit_str_buf_load(out, "%ecx", "%edi", os);
+    out.push_str("    cmp $1000000, %edi\n");
     out.push_str("    jl .L_x86_peer_ip_buf_ok\n");
     out.push_str("    xor %edi, %edi\n");
     out.push_str(".L_x86_peer_ip_buf_ok:\n");
-    out.push_str("    lea alya_str_buf, %edx\n");
-    out.push_str("    add %edi, %edx\n");
+    out.push_str("    lea (%ecx, %edi), %edx\n");
     out.push_str("    mov %edx, %ebx\n");
     out.push_str(".L_x86_peer_ip_copy:\n");
     out.push_str("    movb (%esi), %al\n");
@@ -416,11 +416,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jmp .L_x86_peer_ip_copy\n");
     out.push_str(".L_x86_peer_ip_copy_done:\n");
     out.push_str("    inc %edx\n");
-    out.push_str("    lea alya_str_buf, %eax\n");
-    out.push_str("    sub %eax, %edx\n");
-    out.push_str("    add $7, %edx\n");
-    out.push_str("    and $-8, %edx\n");
-    out.push_str("    mov %edx, alya_str_idx\n");
+    out.push_str("    sub %ecx, %edx\n");
+    out.push_str("    add $3, %edx\n");
+    out.push_str("    and $-4, %edx\n");
+    emit_str_buf_store(out, "%edx", "%eax", os);
     out.push_str("    mov %ebx, %eax\n");
     out.push_str("    jmp .L_x86_peer_ip_ret\n");
     out.push_str(".L_x86_peer_ip_empty:\n");
@@ -587,6 +586,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("fn_net_udp_recv:\n");
     out.push_str("    push %ebp\n");
     out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    sub $16, %esp\n");
     out.push_str("    push %ebx\n");
     out.push_str("    push %esi\n");
     out.push_str("    push %edi\n");
@@ -600,15 +600,15 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jle .L_x86_urecv_alloc\n");
     out.push_str("    mov $524288, %esi\n");
     out.push_str(".L_x86_urecv_alloc:\n");
-    out.push_str("    mov alya_str_idx, %edi\n");
+    emit_str_buf_load(out, "%edx", "%edi", os);
     out.push_str("    mov $1000000, %ecx\n");
     out.push_str("    sub %esi, %ecx\n");
     out.push_str("    cmp %ecx, %edi\n");
     out.push_str("    jl .L_x86_urecv_buf_ok\n");
     out.push_str("    xor %edi, %edi\n");
     out.push_str(".L_x86_urecv_buf_ok:\n");
-    out.push_str("    lea alya_str_buf, %edx\n");
     out.push_str("    add %edi, %edx\n");
+    out.push_str("    mov %edx, -4(%ebp)\n");
     out.push_str("    push $0\n"); // addrlen = NULL
     out.push_str("    push $0\n"); // src_addr = NULL
     out.push_str("    push $0\n"); // flags = 0
@@ -619,13 +619,12 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    add $24, %esp\n");
     out.push_str("    cmp $0, %eax\n");
     out.push_str("    jle .L_x86_urecv_empty\n");
-    out.push_str("    lea alya_str_buf, %edx\n");
-    out.push_str("    add %edi, %edx\n");
+    out.push_str("    mov -4(%ebp), %edx\n");
     out.push_str("    movb $0, (%edx, %eax)\n");
     out.push_str("    lea 1(%eax, %edi), %ecx\n");
-    out.push_str("    add $7, %ecx\n");
-    out.push_str("    and $-8, %ecx\n");
-    out.push_str("    mov %ecx, alya_str_idx\n");
+    out.push_str("    add $3, %ecx\n");
+    out.push_str("    and $-4, %ecx\n");
+    emit_str_buf_store(out, "%ecx", "%esi", os);
     out.push_str("    mov %edx, %eax\n");
     out.push_str("    jmp .L_x86_urecv_done\n");
     out.push_str(".L_x86_urecv_empty:\n");
@@ -634,6 +633,170 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %edi\n");
     out.push_str("    pop %esi\n");
     out.push_str("    pop %ebx\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_net_set_nonblocking: net_set_nonblocking(sock, mode) -> 0 or -1
+    out.push_str(".global fn_net_set_nonblocking\n");
+    out.push_str("fn_net_set_nonblocking:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    if is_win {
+        out.push_str("    sub $8, %esp\n");
+        out.push_str("    movl 12(%ebp), %eax\n"); // mode
+        out.push_str("    movl %eax, -8(%ebp)\n");
+        out.push_str("    leal -8(%ebp), %eax\n");
+        out.push_str("    push %eax\n");           // arg3: &mode
+        out.push_str("    push $0x8004667e\n");    // arg2: FIONBIO
+        out.push_str("    push 8(%ebp)\n");        // arg1: sock
+        out.push_str("    call ioctlsocket\n");
+        out.push_str("    add $12, %esp\n");
+        out.push_str("    cmp $0, %eax\n");
+        out.push_str("    jge .L_x86_snb_ok\n");
+        out.push_str("    mov $-1, %eax\n");
+        out.push_str("    jmp .L_x86_snb_ret\n");
+        out.push_str(".L_x86_snb_ok:\n");
+        out.push_str("    xor %eax, %eax\n");
+        out.push_str(".L_x86_snb_ret:\n");
+        out.push_str("    add $8, %esp\n");
+    } else {
+        out.push_str("    push %ebx\n");
+        out.push_str("    push %esi\n");
+        out.push_str("    mov 8(%ebp), %ebx\n");  // sock
+        out.push_str("    mov 12(%ebp), %esi\n"); // mode
+        out.push_str("    push $0\n");
+        out.push_str("    push $3\n");            // F_GETFL = 3
+        out.push_str("    push %ebx\n");
+        out.push_str("    call fcntl\n");
+        out.push_str("    add $12, %esp\n");
+        out.push_str("    cmp $0, %eax\n");
+        out.push_str("    jl .L_x86_snb_err\n");
+        out.push_str("    test %esi, %esi\n");
+        out.push_str("    jz .L_x86_snb_clear\n");
+        out.push_str("    or $2048, %eax\n");     // O_NONBLOCK = 2048
+        out.push_str("    jmp .L_x86_snb_set\n");
+        out.push_str(".L_x86_snb_clear:\n");
+        out.push_str("    and $-2049, %eax\n");
+        out.push_str(".L_x86_snb_set:\n");
+        out.push_str("    push %eax\n");
+        out.push_str("    push $4\n");            // F_SETFL = 4
+        out.push_str("    push %ebx\n");
+        out.push_str("    call fcntl\n");
+        out.push_str("    add $12, %esp\n");
+        out.push_str("    cmp $0, %eax\n");
+        out.push_str("    jl .L_x86_snb_err\n");
+        out.push_str("    xor %eax, %eax\n");
+        out.push_str("    jmp .L_x86_snb_done\n");
+        out.push_str(".L_x86_snb_err:\n");
+        out.push_str("    mov $-1, %eax\n");
+        out.push_str(".L_x86_snb_done:\n");
+        out.push_str("    pop %esi\n");
+        out.push_str("    pop %ebx\n");
+    }
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_net_poll: net_poll(sock, timeout_ms) -> 1 (ready), 0 (timeout), -1 (error)
+    out.push_str(".global fn_net_poll\n");
+    out.push_str("fn_net_poll:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    if is_win {
+        out.push_str("    sub $280, %esp\n");
+        out.push_str("    movl $1, -276(%ebp)\n"); // fd_count = 1
+        out.push_str("    mov 8(%ebp), %eax\n");
+        out.push_str("    movl %eax, -272(%ebp)\n"); // fd_array[0] = sock
+
+        out.push_str("    mov 12(%ebp), %eax\n");
+        out.push_str("    cmp $0, %eax\n");
+        out.push_str("    jl .L_x86_poll_win_inf\n");
+        out.push_str("    xor %edx, %edx\n");
+        out.push_str("    mov $1000, %ecx\n");
+        out.push_str("    div %ecx\n");
+        out.push_str("    movl %eax, -8(%ebp)\n");  // tv_sec
+        out.push_str("    imul $1000, %edx, %edx\n");
+        out.push_str("    movl %edx, -4(%ebp)\n");  // tv_usec
+        out.push_str("    leal -8(%ebp), %eax\n");
+        out.push_str("    push %eax\n");            // arg5: timeout
+        out.push_str("    jmp .L_x86_poll_win_call\n");
+        out.push_str(".L_x86_poll_win_inf:\n");
+        out.push_str("    push $0\n");
+        out.push_str(".L_x86_poll_win_call:\n");
+        out.push_str("    push $0\n");              // arg4: exceptfds
+        out.push_str("    push $0\n");              // arg3: writefds
+        out.push_str("    leal -276(%ebp), %eax\n");
+        out.push_str("    push %eax\n");            // arg2: readfds
+        out.push_str("    push $0\n");              // arg1: nfds (ignored on Win)
+        out.push_str("    call select\n");
+        out.push_str("    add $20, %esp\n");
+        out.push_str("    cmp $0, %eax\n");
+        out.push_str("    jg .L_x86_poll_win_ready\n");
+        out.push_str("    jl .L_x86_poll_win_err\n");
+        out.push_str("    xor %eax, %eax\n");
+        out.push_str("    jmp .L_x86_poll_win_done\n");
+        out.push_str(".L_x86_poll_win_ready:\n");
+        out.push_str("    mov $1, %eax\n");
+        out.push_str("    jmp .L_x86_poll_win_done\n");
+        out.push_str(".L_x86_poll_win_err:\n");
+        out.push_str("    mov $-1, %eax\n");
+        out.push_str(".L_x86_poll_win_done:\n");
+        out.push_str("    add $280, %esp\n");
+    } else {
+        out.push_str("    push %ebx\n");
+        out.push_str("    push %edi\n");
+        out.push_str("    sub $144, %esp\n");
+        out.push_str("    leal -136(%ebp), %edi\n");
+        out.push_str("    xor %eax, %eax\n");
+        out.push_str("    mov $32, %ecx\n");
+        out.push_str("    rep stosl\n");
+
+        out.push_str("    mov 8(%ebp), %eax\n"); // sock
+        out.push_str("    mov %eax, %ecx\n");
+        out.push_str("    shr $5, %eax\n");
+        out.push_str("    and $31, %ecx\n");
+        out.push_str("    bts %ecx, -136(%ebp, %eax, 4)\n");
+
+        out.push_str("    mov 12(%ebp), %eax\n"); // timeout_ms
+        out.push_str("    cmp $0, %eax\n");
+        out.push_str("    jl .L_x86_poll_posix_inf\n");
+        out.push_str("    xor %edx, %edx\n");
+        out.push_str("    mov $1000, %ecx\n");
+        out.push_str("    div %ecx\n");
+        out.push_str("    movl %eax, -144(%ebp)\n");
+        out.push_str("    imul $1000, %edx, %edx\n");
+        out.push_str("    movl %edx, -140(%ebp)\n");
+        out.push_str("    leal -144(%ebp), %edx\n");
+        out.push_str("    push %edx\n");
+        out.push_str("    jmp .L_x86_poll_posix_call\n");
+        out.push_str(".L_x86_poll_posix_inf:\n");
+        out.push_str("    push $0\n");
+        out.push_str(".L_x86_poll_posix_call:\n");
+        out.push_str("    push $0\n");
+        out.push_str("    push $0\n");
+        out.push_str("    leal -136(%ebp), %eax\n");
+        out.push_str("    push %eax\n");
+        out.push_str("    mov 8(%ebp), %eax\n");
+        out.push_str("    inc %eax\n");
+        out.push_str("    push %eax\n");
+        out.push_str("    call select\n");
+        out.push_str("    add $20, %esp\n");
+        out.push_str("    cmp $0, %eax\n");
+        out.push_str("    jg .L_x86_poll_posix_ready\n");
+        out.push_str("    jl .L_x86_poll_posix_err\n");
+        out.push_str("    xor %eax, %eax\n");
+        out.push_str("    jmp .L_x86_poll_posix_done\n");
+        out.push_str(".L_x86_poll_posix_ready:\n");
+        out.push_str("    mov $1, %eax\n");
+        out.push_str("    jmp .L_x86_poll_posix_done\n");
+        out.push_str(".L_x86_poll_posix_err:\n");
+        out.push_str("    mov $-1, %eax\n");
+        out.push_str(".L_x86_poll_posix_done:\n");
+        out.push_str("    add $144, %esp\n");
+        out.push_str("    pop %edi\n");
+        out.push_str("    pop %ebx\n");
+    }
     out.push_str("    mov %ebp, %esp\n");
     out.push_str("    pop %ebp\n");
     out.push_str("    ret\n\n");

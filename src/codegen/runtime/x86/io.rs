@@ -1,4 +1,5 @@
 use crate::codegen::target::OperatingSystem;
+use super::{emit_str_buf_load, emit_str_buf_store};
 
 #[rustfmt::skip]
 pub fn emit(out: &mut String, os: OperatingSystem) {
@@ -24,9 +25,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    call fflush\n");
     out.push_str("    add $4, %esp\n");
     out.push_str(".L_x86_ask_read:\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
-    out.push_str("    mov alya_str_idx, %ebx\n");
-    out.push_str("    cmp $48000, %ebx\n");
+    emit_str_buf_load(out, "%ecx", "%ebx", os);
+    out.push_str("    cmp $1000000, %ebx\n");
     out.push_str("    jl .L_x86_ask_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_ask_buf_ok:\n");
@@ -49,7 +49,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %ecx, %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%edx", os);
     out.push_str("    mov %esi, %eax\n");
     out.push_str("    pop %ebx\n");
     out.push_str("    pop %edi\n");
@@ -75,9 +75,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    test %eax, %eax\n");
     out.push_str("    jz .L_x86_getenv_empty\n");
     out.push_str("    mov %eax, %esi\n");
-    out.push_str("    mov $alya_str_buf, %ebx\n");
-    out.push_str("    mov alya_str_idx, %edi\n");
-    out.push_str("    cmp $48000, %edi\n");
+    emit_str_buf_load(out, "%ebx", "%edi", os);
+    out.push_str("    cmp $1000000, %edi\n");
     out.push_str("    jl .L_x86_getenv_buf_ok\n");
     out.push_str("    xor %edi, %edi\n");
     out.push_str(".L_x86_getenv_buf_ok:\n");
@@ -94,7 +93,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    inc %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%ecx", os);
     out.push_str("    mov %edx, %eax\n");
     out.push_str("    jmp .L_x86_getenv_ret\n");
     out.push_str(".L_x86_getenv_empty:\n");

@@ -1,5 +1,5 @@
 use crate::codegen::target::OperatingSystem;
-use super::emit_adrp_add;
+use super::{emit_adrp_add, emit_str_buf_ctx};
 
 #[rustfmt::skip]
 pub fn emit(out: &mut String, os: OperatingSystem) {
@@ -50,10 +50,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    cbz x19, .L_arm64_join_empty\n");
     out.push_str("    ldr x21, [x19]\n"); // arr->len
     out.push_str("    cbz x21, .L_arm64_join_empty\n");
-    emit_adrp_add(out, "x22", "alya_str_buf", os);
-    emit_adrp_add(out, "x23", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x22", "x23", "x9", os);
     out.push_str("    ldr x24, [x23]\n");
-    out.push_str("    mov x9, #48000\n");
+    out.push_str("    movz x9, #16960\n");
+    out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x24, x9\n");
     out.push_str("    b.lt .L_arm64_join_buf_ok\n");
     out.push_str("    mov x24, #0\n");
@@ -128,10 +128,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_arm64_split_empty_loop:\n");
     out.push_str("    ldrb w24, [x23], #1\n");
     out.push_str("    cbz w24, .L_arm64_split_ret\n");
-    emit_adrp_add(out, "x9", "alya_str_buf", os);
-    emit_adrp_add(out, "x10", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x9", "x10", "x12", os);
     out.push_str("    ldr x11, [x10]\n");
-    out.push_str("    mov x12, #48000\n");
+    out.push_str("    movz x12, #16960\n");
+    out.push_str("    movk x12, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x11, x12\n");
     out.push_str("    b.lt .L_arm64_se1\n");
     out.push_str("    mov x11, #0\n");
@@ -168,10 +168,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    add x23, x23, #1\n");
     out.push_str("    b .L_arm64_split_main_loop\n");
     out.push_str(".L_arm64_split_matched:\n");
-    emit_adrp_add(out, "x9", "alya_str_buf", os);
-    emit_adrp_add(out, "x10", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x9", "x10", "x12", os);
     out.push_str("    ldr x11, [x10]\n");
-    out.push_str("    mov x12, #48000\n");
+    out.push_str("    movz x12, #16960\n");
+    out.push_str("    movk x12, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x11, x12\n");
     out.push_str("    b.lt .L_arm64_se2\n");
     out.push_str("    mov x11, #0\n");
@@ -198,10 +198,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov x24, x23\n"); // token_start = curr
     out.push_str("    b .L_arm64_split_main_loop\n");
     out.push_str(".L_arm64_split_emit_final:\n");
-    emit_adrp_add(out, "x9", "alya_str_buf", os);
-    emit_adrp_add(out, "x10", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x9", "x10", "x12", os);
     out.push_str("    ldr x11, [x10]\n");
-    out.push_str("    mov x12, #48000\n");
+    out.push_str("    movz x12, #16960\n");
+    out.push_str("    movk x12, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x11, x12\n");
     out.push_str("    b.lt .L_arm64_se3\n");
     out.push_str("    mov x11, #0\n");

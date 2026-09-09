@@ -24,6 +24,28 @@ pub(crate) fn emit_adrp_add(out: &mut String, reg: &str, label: &str, os: Operat
     }
 }
 
+pub(crate) fn emit_str_buf_ctx(
+    out: &mut String,
+    buf_reg: &str,
+    idx_reg: &str,
+    temp_reg: &str,
+    os: OperatingSystem,
+) {
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str(&format!("    mrs {}, tpidrro_el0\n", temp_reg));
+        out.push_str(&format!("    lsr {}, {}, #12\n", temp_reg, temp_reg));
+        out.push_str(&format!("    and {}, {}, #63\n", temp_reg, temp_reg));
+    } else {
+        out.push_str(&format!("    mrs {}, tpidr_el0\n", temp_reg));
+        out.push_str(&format!("    lsr {}, {}, #12\n", temp_reg, temp_reg));
+        out.push_str(&format!("    and {}, {}, #63\n", temp_reg, temp_reg));
+    }
+    emit_adrp_add(out, idx_reg, "alya_str_idx", os);
+    out.push_str(&format!("    add {}, {}, {}, lsl #3\n", idx_reg, idx_reg, temp_reg));
+    emit_adrp_add(out, buf_reg, "alya_str_buf", os);
+    out.push_str(&format!("    add {}, {}, {}, lsl #20\n", buf_reg, buf_reg, temp_reg));
+}
+
 pub fn emit_arm64_runtime(out: &mut String, os: OperatingSystem) {
     str_ops::emit(out, os);
     str_split::emit(out, os);

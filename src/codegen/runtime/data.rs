@@ -47,7 +47,7 @@ pub fn emit_data_sections(
         }
         Architecture::X86 => {
             out.push_str("alya_str_idx:\n");
-            out.push_str("    .long 0\n");
+            out.push_str("    .space 256\n");
             out.push_str("alya_argc:\n");
             out.push_str("    .long 0\n");
             out.push_str("alya_argv:\n");

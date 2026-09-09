@@ -1,4 +1,5 @@
 use crate::codegen::target::OperatingSystem;
+use super::{emit_str_buf_load, emit_str_buf_store};
 
 #[rustfmt::skip]
 pub fn emit(out: &mut String, os: OperatingSystem) {
@@ -67,9 +68,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov (%esi), %eax\n");
     out.push_str("    test %eax, %eax\n");
     out.push_str("    jz .L_x86_join_empty\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
-    out.push_str("    mov alya_str_idx, %ebx\n");
-    out.push_str("    cmp $48000, %ebx\n");
+    emit_str_buf_load(out, "%ecx", "%ebx", os);
+    out.push_str("    cmp $1000000, %ebx\n");
     out.push_str("    jl .L_x86_join_buf_ok\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_join_buf_ok:\n");
@@ -111,11 +111,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_x86_join_finish:\n");
     out.push_str("    movb $0, (%edi)\n");
     out.push_str("    inc %edi\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
     out.push_str("    sub %ecx, %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%edx", os);
     out.push_str("    mov -4(%ebp), %eax\n");
     out.push_str("    jmp .L_x86_join_ret\n");
     out.push_str(".L_x86_join_empty:\n");
@@ -161,9 +160,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    movb (%esi), %al\n");
     out.push_str("    test %al, %al\n");
     out.push_str("    jz .L_x86_split_ret\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
-    out.push_str("    mov alya_str_idx, %ebx\n");
-    out.push_str("    cmp $48000, %ebx\n");
+    emit_str_buf_load(out, "%ecx", "%ebx", os);
+    out.push_str("    cmp $1000000, %ebx\n");
     out.push_str("    jl .L_x86_se1\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_se1:\n");
@@ -175,7 +173,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %ecx, %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%ecx", os);
     out.push_str("    push %edx\n");
     out.push_str("    push -12(%ebp)\n");
     out.push_str("    call alya_array_push\n");
@@ -205,9 +203,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    incl -20(%ebp)\n");
     out.push_str("    jmp .L_x86_split_main_loop\n");
     out.push_str(".L_x86_split_matched:\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
-    out.push_str("    mov alya_str_idx, %ebx\n");
-    out.push_str("    cmp $48000, %ebx\n");
+    emit_str_buf_load(out, "%ecx", "%ebx", os);
+    out.push_str("    cmp $1000000, %ebx\n");
     out.push_str("    jl .L_x86_se2\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_se2:\n");
@@ -229,7 +226,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %ecx, %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%edx", os);
     out.push_str("    push -28(%ebp)\n");
     out.push_str("    push -12(%ebp)\n");
     out.push_str("    call alya_array_push\n");
@@ -240,9 +237,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov %eax, -24(%ebp)\n");
     out.push_str("    jmp .L_x86_split_main_loop\n");
     out.push_str(".L_x86_split_emit_final:\n");
-    out.push_str("    mov $alya_str_buf, %ecx\n");
-    out.push_str("    mov alya_str_idx, %ebx\n");
-    out.push_str("    cmp $48000, %ebx\n");
+    emit_str_buf_load(out, "%ecx", "%ebx", os);
+    out.push_str("    cmp $1000000, %ebx\n");
     out.push_str("    jl .L_x86_se3\n");
     out.push_str("    xor %ebx, %ebx\n");
     out.push_str(".L_x86_se3:\n");
@@ -264,7 +260,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub %ecx, %edi\n");
     out.push_str("    add $3, %edi\n");
     out.push_str("    and $-4, %edi\n");
-    out.push_str("    mov %edi, alya_str_idx\n");
+    emit_str_buf_store(out, "%edi", "%edx", os);
     out.push_str("    push -28(%ebp)\n");
     out.push_str("    push -12(%ebp)\n");
     out.push_str("    call alya_array_push\n");

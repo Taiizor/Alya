@@ -1,5 +1,5 @@
 use crate::codegen::target::OperatingSystem;
-use super::emit_adrp_add;
+use super::{emit_adrp_add, emit_str_buf_ctx};
 
 #[rustfmt::skip]
 pub fn emit(out: &mut String, os: OperatingSystem) {
@@ -14,10 +14,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov x29, sp\n");
     out.push_str("    stp x19, x20, [sp, #-16]!\n");
     out.push_str("    stp x21, x22, [sp, #-16]!\n");
-    emit_adrp_add(out, "x19", "alya_str_buf", os);
-    emit_adrp_add(out, "x20", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x19", "x20", "x9", os);
     out.push_str("    ldr x21, [x20]\n");
-    out.push_str("    mov x9, #48000\n");
+    out.push_str("    movz x9, #16960\n");
+    out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x21, x9\n");
     out.push_str("    b.lt .L_arm_concat_ok\n");
     out.push_str("    mov x21, #0\n");
@@ -69,10 +69,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    stp x19, x20, [sp, #16]\n");
     out.push_str("    stp x21, x22, [sp, #32]\n");
     out.push_str("    mov x19, x0\n");
-    emit_adrp_add(out, "x20", "alya_str_buf", os);
-    emit_adrp_add(out, "x21", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x20", "x21", "x9", os);
     out.push_str("    ldr x22, [x21]\n");
-    out.push_str("    mov x9, #48000\n");
+    out.push_str("    movz x9, #16960\n");
+    out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x22, x9\n");
     out.push_str("    b.lt .L_arm64_upper_buf_ok\n");
     out.push_str("    mov x22, #0\n");
@@ -109,10 +109,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    stp x19, x20, [sp, #16]\n");
     out.push_str("    stp x21, x22, [sp, #32]\n");
     out.push_str("    mov x19, x0\n");
-    emit_adrp_add(out, "x20", "alya_str_buf", os);
-    emit_adrp_add(out, "x21", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x20", "x21", "x9", os);
     out.push_str("    ldr x22, [x21]\n");
-    out.push_str("    mov x9, #48000\n");
+    out.push_str("    movz x9, #16960\n");
+    out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x22, x9\n");
     out.push_str("    b.lt .L_arm64_lower_buf_ok\n");
     out.push_str("    mov x22, #0\n");
@@ -189,10 +189,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov x12, x13\n");
     out.push_str("    b .L_arm64_trim_tws\n");
     out.push_str(".L_arm64_trim_copy_start:\n");
-    emit_adrp_add(out, "x20", "alya_str_buf", os);
-    emit_adrp_add(out, "x21", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x20", "x21", "x9", os);
     out.push_str("    ldr x22, [x21]\n");
-    out.push_str("    mov x9, #48000\n");
+    out.push_str("    movz x9, #16960\n");
+    out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x22, x9\n");
     out.push_str("    b.lt .L_arm64_trim_buf_ok\n");
     out.push_str("    mov x22, #0\n");
@@ -237,10 +237,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    sub x1, x1, #1\n");
     out.push_str("    b .L_arm64_sub_adv\n");
     out.push_str(".L_arm64_sub_adv_done:\n");
-    emit_adrp_add(out, "x20", "alya_str_buf", os);
-    emit_adrp_add(out, "x21", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x20", "x21", "x9", os);
     out.push_str("    ldr x22, [x21]\n");
-    out.push_str("    mov x9, #48000\n");
+    out.push_str("    movz x9, #16960\n");
+    out.push_str("    movk x9, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x22, x9\n");
     out.push_str("    b.lt .L_arm64_sub_buf_ok\n");
     out.push_str("    mov x22, #0\n");
@@ -290,10 +290,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_arm64_char_at_fetch:\n");
     out.push_str("    ldrb w2, [x19]\n");
     out.push_str("    cbz w2, .L_arm64_char_at_empty\n");
-    emit_adrp_add(out, "x3", "alya_str_buf", os);
-    emit_adrp_add(out, "x4", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x3", "x4", "x6", os);
     out.push_str("    ldr x5, [x4]\n");
-    out.push_str("    mov x6, #48000\n");
+    out.push_str("    movz x6, #16960\n");
+    out.push_str("    movk x6, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x5, x6\n");
     out.push_str("    b.lt .L_arm64_char_at_buf_ok\n");
     out.push_str("    mov x5, #0\n");
@@ -340,10 +340,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str(".L_arm64_chr_byte:\n");
     out.push_str("    and w19, w19, #255\n");
     out.push_str("    cbz w19, .L_arm64_chr_empty\n");
-    emit_adrp_add(out, "x1", "alya_str_buf", os);
-    emit_adrp_add(out, "x2", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x1", "x2", "x4", os);
     out.push_str("    ldr x3, [x2]\n");
-    out.push_str("    mov x4, #48000\n");
+    out.push_str("    movz x4, #16960\n");
+    out.push_str("    movk x4, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x3, x4\n");
     out.push_str("    b.lt .L_arm64_chr_buf_ok\n");
     out.push_str("    mov x3, #0\n");
@@ -372,10 +372,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    stp x19, x20, [sp, #16]\n");
     out.push_str("    stp x21, x22, [sp, #32]\n");
     out.push_str("    mov x19, x0\n");
-    emit_adrp_add(out, "x1", "alya_str_buf", os);
-    emit_adrp_add(out, "x2", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x1", "x2", "x4", os);
     out.push_str("    ldr x3, [x2]\n");
-    out.push_str("    mov x4, #48000\n");
+    out.push_str("    movz x4, #16960\n");
+    out.push_str("    movk x4, #15, lsl #16\n"); // 1,000,000
     out.push_str("    cmp x3, x4\n");
     out.push_str("    b.lt .L_arm64_str_buf_ok\n");
     out.push_str("    mov x3, #0\n");
@@ -414,8 +414,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    add sp, sp, #32\n");
     out.push_str("    strb wzr, [x20], #1\n");
     out.push_str(".L_arm64_str_finish:\n");
-    emit_adrp_add(out, "x1", "alya_str_buf", os);
-    emit_adrp_add(out, "x2", "alya_str_idx", os);
+    emit_str_buf_ctx(out, "x1", "x2", "x4", os);
     out.push_str("    sub x3, x20, x1\n");
     out.push_str("    add x3, x3, #7\n");
     out.push_str("    and x3, x3, #~7\n");
