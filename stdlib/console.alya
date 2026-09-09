@@ -230,4 +230,3 @@ function console_table(headers, rows)
     say div
     return 1
 end
-
