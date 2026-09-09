@@ -1,4 +1,4 @@
-use crate::ast::Stmt;
+use crate::ast::{Expr, Stmt};
 use crate::codegen::{self, Architecture, OperatingSystem};
 use crate::driver::runner;
 use crate::lexer::{Lexer, TokenType};
@@ -92,6 +92,98 @@ pub fn is_input_incomplete(input: &str) -> bool {
     false
 }
 
+/// Recursively checks if an expression invokes the `ask` builtin or any custom function
+/// that references `ask`.
+pub fn expr_contains_ask(expr: &Expr, session_funcs: &[(String, String)]) -> bool {
+    match expr {
+        Expr::Call { name, args } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            if bare == "ask" {
+                return true;
+            }
+            if session_funcs
+                .iter()
+                .any(|(fn_name, fn_code)| fn_name == bare && fn_code.contains("ask"))
+            {
+                return true;
+            }
+            args.iter().any(|a| expr_contains_ask(a, session_funcs))
+        }
+        Expr::Binary { left, right, .. } => {
+            expr_contains_ask(left, session_funcs) || expr_contains_ask(right, session_funcs)
+        }
+        Expr::Unary { expr, .. } => expr_contains_ask(expr, session_funcs),
+        Expr::Ternary {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            expr_contains_ask(condition, session_funcs)
+                || expr_contains_ask(then_branch, session_funcs)
+                || expr_contains_ask(else_branch, session_funcs)
+        }
+        Expr::NullCoalesce { value, default } => {
+            expr_contains_ask(value, session_funcs) || expr_contains_ask(default, session_funcs)
+        }
+        Expr::Array(items) => items.iter().any(|i| expr_contains_ask(i, session_funcs)),
+        Expr::Map(pairs) => pairs.iter().any(|(k, v)| {
+            expr_contains_ask(k, session_funcs) || expr_contains_ask(v, session_funcs)
+        }),
+        Expr::Index { array, index } => {
+            expr_contains_ask(array, session_funcs) || expr_contains_ask(index, session_funcs)
+        }
+        Expr::FieldAccess { object, .. } => expr_contains_ask(object, session_funcs),
+        Expr::StructInit { fields, .. } => fields
+            .iter()
+            .any(|(_, v)| expr_contains_ask(v, session_funcs)),
+        Expr::InterpolatedString(parts) => {
+            parts.iter().any(|p| expr_contains_ask(p, session_funcs))
+        }
+        _ => false,
+    }
+}
+
+/// Recursively checks if any statement in a statement list invokes `ask`.
+pub fn stmt_contains_ask(stmt: &Stmt, session_funcs: &[(String, String)]) -> bool {
+    match stmt {
+        Stmt::Let { value, .. } | Stmt::Assign { value, .. } => {
+            expr_contains_ask(value, session_funcs)
+        }
+        Stmt::Expr(expr) | Stmt::Say(expr) => expr_contains_ask(expr, session_funcs),
+        Stmt::If {
+            condition,
+            then_block,
+            else_block,
+        } => {
+            expr_contains_ask(condition, session_funcs)
+                || then_block
+                    .iter()
+                    .any(|s| stmt_contains_ask(s, session_funcs))
+                || else_block
+                    .as_ref()
+                    .is_some_and(|b| b.iter().any(|s| stmt_contains_ask(s, session_funcs)))
+        }
+        Stmt::While { condition, body } => {
+            expr_contains_ask(condition, session_funcs)
+                || body.iter().any(|s| stmt_contains_ask(s, session_funcs))
+        }
+        Stmt::Repeat { body } => body.iter().any(|s| stmt_contains_ask(s, session_funcs)),
+        Stmt::For {
+            start, end, body, ..
+        } => {
+            expr_contains_ask(start, session_funcs)
+                || expr_contains_ask(end, session_funcs)
+                || body.iter().any(|s| stmt_contains_ask(s, session_funcs))
+        }
+        Stmt::ForEach { iterable, body, .. } => {
+            expr_contains_ask(iterable, session_funcs)
+                || body.iter().any(|s| stmt_contains_ask(s, session_funcs))
+        }
+        _ => false,
+    }
+}
+
 /// Persistent state of an interactive REPL session.
 pub struct ReplSession {
     pub imports: Vec<String>,
@@ -158,10 +250,35 @@ impl ReplSession {
         self.var_names.clear();
     }
 
+    /// Updates an existing variable statement if it exists in session statements,
+    /// or appends it to the statements list.
+    pub fn update_or_add_statement(&mut self, var_name: &str, new_stmt: &str) {
+        let prefix = format!("let {}", var_name);
+        if let Some(pos) = self.statements.iter().position(|s| {
+            if let Some(rest) = s.strip_prefix(&prefix) {
+                let rest_trim = rest.trim_start();
+                rest_trim.starts_with('=')
+            } else {
+                false
+            }
+        }) {
+            self.statements[pos] = new_stmt.to_string();
+        } else {
+            self.statements.push(new_stmt.to_string());
+        }
+    }
+
     /// Compiles and executes the current session combined with the provided snippet.
     pub fn execute_snippet(&self, snippet: &str) -> Result<(bool, String, String), String> {
         let source = self.assemble_program(snippet);
         execute_code_snippet(&source, self.arch, self.os)
+    }
+
+    /// Compiles and executes the current session combined with the provided snippet interactively,
+    /// inheriting stdin, stdout, and stderr.
+    pub fn execute_snippet_interactive(&self, snippet: &str) -> Result<bool, String> {
+        let source = self.assemble_program(snippet);
+        execute_code_snippet_interactive(&source, self.arch, self.os)
     }
 
     /// Processes a complete user input chunk.
@@ -205,7 +322,42 @@ impl ReplSession {
         // Check if single statement is a bare expression
         if parsed_program.statements.len() == 1 {
             match &parsed_program.statements[0] {
-                Stmt::Expr(_) => {
+                Stmt::Expr(expr) => {
+                    if expr_contains_ask(expr, &self.functions) {
+                        let pid = std::process::id();
+                        let rand_id = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_nanos()
+                            % 1_000_000_000;
+                        let temp_capture_file = format!("temp_repl_val_{}_{}.tmp", pid, rand_id);
+                        let capture_stmt = format!(
+                            "let _repl_ans = {}\nwrite_file(\"{}\", str(_repl_ans))",
+                            trimmed, temp_capture_file
+                        );
+                        let full_source = self.assemble_program(&capture_stmt);
+                        match execute_code_snippet_interactive(&full_source, self.arch, self.os) {
+                            Ok(true) => {
+                                let captured_val =
+                                    fs::read_to_string(&temp_capture_file).unwrap_or_default();
+                                let _ = fs::remove_file(&temp_capture_file);
+                                let out = captured_val.trim();
+                                if !out.is_empty() {
+                                    println!("\x1b[1;36m=>\x1b[0m \x1b[1;32m{}\x1b[0m", out);
+                                }
+                            }
+                            Ok(false) => {
+                                let _ = fs::remove_file(&temp_capture_file);
+                                eprintln!("\x1b[1;31mRuntime Error\x1b[0m");
+                            }
+                            Err(err) => {
+                                let _ = fs::remove_file(&temp_capture_file);
+                                eprintln!("\x1b[1;31mError:\x1b[0m {}", err);
+                            }
+                        }
+                        return;
+                    }
+
                     // Evaluate as an expression wrapped in say (...)
                     let eval_code = format!("say ({})", trimmed);
                     match self.execute_snippet(&eval_code) {
@@ -330,13 +482,87 @@ impl ReplSession {
                     }
                     return;
                 }
-                Stmt::Let { name, .. } => {
+                Stmt::Let { name, value } => {
                     let var_name = name.clone();
+                    if expr_contains_ask(value, &self.functions) {
+                        let pid = std::process::id();
+                        let rand_id = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_nanos()
+                            % 1_000_000_000;
+                        let temp_capture_file = format!("temp_repl_val_{}_{}.tmp", pid, rand_id);
+                        let is_str = crate::codegen::analysis::is_string_expr(
+                            value,
+                            &std::collections::HashMap::new(),
+                        );
+                        let write_call = if is_str {
+                            format!("write_file(\"{}\", {})", temp_capture_file, var_name)
+                        } else {
+                            format!("write_file(\"{}\", str({}))", temp_capture_file, var_name)
+                        };
+                        let capture_stmt = format!("{}\n{}", trimmed, write_call);
+                        let full_source = self.assemble_program(&capture_stmt);
+
+                        match execute_code_snippet_interactive(&full_source, self.arch, self.os) {
+                            Ok(true) => {
+                                let captured_val =
+                                    fs::read_to_string(&temp_capture_file).unwrap_or_default();
+                                let _ = fs::remove_file(&temp_capture_file);
+
+                                let is_flt = crate::codegen::analysis::is_float_expr(
+                                    value,
+                                    &std::collections::HashMap::new(),
+                                );
+
+                                let literal_repr = if is_str {
+                                    let escaped = captured_val
+                                        .replace('\\', "\\\\")
+                                        .replace('"', "\\\"")
+                                        .replace('\n', "\\n")
+                                        .replace('\r', "\\r");
+                                    format!("\"{}\"", escaped)
+                                } else if is_flt {
+                                    let t = captured_val.trim();
+                                    if t.contains('.') {
+                                        t.to_string()
+                                    } else {
+                                        format!("{}.0", t)
+                                    }
+                                } else {
+                                    let t = captured_val.trim();
+                                    if t.is_empty() {
+                                        "\"\"".to_string()
+                                    } else {
+                                        t.to_string()
+                                    }
+                                };
+
+                                let frozen_stmt = format!("let {} = {}", var_name, literal_repr);
+                                self.update_or_add_statement(&var_name, &frozen_stmt);
+                                if !self.var_names.contains(&var_name) {
+                                    self.var_names.push(var_name);
+                                }
+
+                                println!("\x1b[1;36m=>\x1b[0m \x1b[1;32m{}\x1b[0m", literal_repr);
+                            }
+                            Ok(false) => {
+                                let _ = fs::remove_file(&temp_capture_file);
+                                eprintln!("\x1b[1;31mRuntime Error\x1b[0m");
+                            }
+                            Err(err) => {
+                                let _ = fs::remove_file(&temp_capture_file);
+                                eprintln!("\x1b[1;31mError:\x1b[0m {}", err);
+                            }
+                        }
+                        return;
+                    }
+
                     // Execute let statement and inspect its value
                     let eval_code = format!("{}\nsay ({})", trimmed, var_name);
                     match self.execute_snippet(&eval_code) {
                         Ok((true, stdout, stderr)) => {
-                            self.statements.push(trimmed.to_string());
+                            self.update_or_add_statement(&var_name, trimmed);
                             if !self.var_names.contains(&var_name) {
                                 self.var_names.push(var_name);
                             }
@@ -362,8 +588,79 @@ impl ReplSession {
                     }
                     return;
                 }
-                Stmt::Assign { name, .. } => {
+                Stmt::Assign { name, value } => {
                     let var_name = name.clone();
+                    if expr_contains_ask(value, &self.functions) {
+                        let pid = std::process::id();
+                        let rand_id = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap_or_default()
+                            .as_nanos()
+                            % 1_000_000_000;
+                        let temp_capture_file = format!("temp_repl_val_{}_{}.tmp", pid, rand_id);
+                        let is_str = crate::codegen::analysis::is_string_expr(
+                            value,
+                            &std::collections::HashMap::new(),
+                        );
+                        let write_call = if is_str {
+                            format!("write_file(\"{}\", {})", temp_capture_file, var_name)
+                        } else {
+                            format!("write_file(\"{}\", str({}))", temp_capture_file, var_name)
+                        };
+                        let capture_stmt = format!("{}\n{}", trimmed, write_call);
+                        let full_source = self.assemble_program(&capture_stmt);
+
+                        match execute_code_snippet_interactive(&full_source, self.arch, self.os) {
+                            Ok(true) => {
+                                let captured_val =
+                                    fs::read_to_string(&temp_capture_file).unwrap_or_default();
+                                let _ = fs::remove_file(&temp_capture_file);
+
+                                let is_flt = crate::codegen::analysis::is_float_expr(
+                                    value,
+                                    &std::collections::HashMap::new(),
+                                );
+
+                                let literal_repr = if is_str {
+                                    let escaped = captured_val
+                                        .replace('\\', "\\\\")
+                                        .replace('"', "\\\"")
+                                        .replace('\n', "\\n")
+                                        .replace('\r', "\\r");
+                                    format!("\"{}\"", escaped)
+                                } else if is_flt {
+                                    let t = captured_val.trim();
+                                    if t.contains('.') {
+                                        t.to_string()
+                                    } else {
+                                        format!("{}.0", t)
+                                    }
+                                } else {
+                                    let t = captured_val.trim();
+                                    if t.is_empty() {
+                                        "\"\"".to_string()
+                                    } else {
+                                        t.to_string()
+                                    }
+                                };
+
+                                let frozen_stmt = format!("let {} = {}", var_name, literal_repr);
+                                self.update_or_add_statement(&var_name, &frozen_stmt);
+
+                                println!("\x1b[1;36m=>\x1b[0m \x1b[1;32m{}\x1b[0m", literal_repr);
+                            }
+                            Ok(false) => {
+                                let _ = fs::remove_file(&temp_capture_file);
+                                eprintln!("\x1b[1;31mRuntime Error\x1b[0m");
+                            }
+                            Err(err) => {
+                                let _ = fs::remove_file(&temp_capture_file);
+                                eprintln!("\x1b[1;31mError:\x1b[0m {}", err);
+                            }
+                        }
+                        return;
+                    }
+
                     let eval_code = format!("{}\nsay ({})", trimmed, var_name);
                     match self.execute_snippet(&eval_code) {
                         Ok((true, stdout, stderr)) => {
@@ -404,6 +701,36 @@ impl ReplSession {
                     | Stmt::FieldAssign { .. }
             )
         });
+
+        let has_ask = parsed_program
+            .statements
+            .iter()
+            .any(|s| stmt_contains_ask(s, &self.functions));
+
+        if has_ask {
+            let full_source = self.assemble_program(trimmed);
+            match execute_code_snippet_interactive(&full_source, self.arch, self.os) {
+                Ok(true) => {
+                    if has_mutations {
+                        self.statements.push(trimmed.to_string());
+                        for s in &parsed_program.statements {
+                            if let Stmt::Let { name, .. } = s {
+                                if !self.var_names.contains(name) {
+                                    self.var_names.push(name.clone());
+                                }
+                            }
+                        }
+                    }
+                }
+                Ok(false) => {
+                    eprintln!("\x1b[1;31mRuntime Error\x1b[0m");
+                }
+                Err(err) => {
+                    eprintln!("\x1b[1;31mError:\x1b[0m {}", err);
+                }
+            }
+            return;
+        }
 
         match self.execute_snippet(trimmed) {
             Ok((true, stdout, stderr)) => {
@@ -534,14 +861,15 @@ impl ReplSession {
     }
 }
 
-/// Compiles and runs a source snippet, returning (success, stdout, stderr).
-pub fn execute_code_snippet(
+/// Compiles a source snippet to a temporary executable binary using GCC.
+/// Returns the name of the executable file (or empty string if source was empty).
+pub fn compile_snippet_to_temp_exe(
     source: &str,
     arch: Architecture,
     os: OperatingSystem,
-) -> Result<(bool, String, String), String> {
+) -> Result<String, String> {
     if source.trim().is_empty() {
-        return Ok((true, String::new(), String::new()));
+        return Ok(String::new());
     }
 
     // 1. Lexer
@@ -584,7 +912,20 @@ pub fn execute_code_snippet(
 
     gcc_res?;
 
-    // 6. Execute binary
+    Ok(temp_exe)
+}
+
+/// Compiles and runs a source snippet, capturing stdout and stderr.
+pub fn execute_code_snippet(
+    source: &str,
+    arch: Architecture,
+    os: OperatingSystem,
+) -> Result<(bool, String, String), String> {
+    let temp_exe = compile_snippet_to_temp_exe(source, arch, os)?;
+    if temp_exe.is_empty() {
+        return Ok((true, String::new(), String::new()));
+    }
+
     let exe_path = if matches!(os, OperatingSystem::Windows) {
         format!(".\\{}", temp_exe)
     } else {
@@ -603,6 +944,37 @@ pub fn execute_code_snippet(
             let stderr = String::from_utf8_lossy(&output.stderr).to_string();
             Ok((output.status.success(), stdout, stderr))
         }
+        Err(e) => Err(format!("Execution failed: {}", e)),
+    }
+}
+
+/// Compiles and runs a source snippet interactively, inheriting stdin, stdout, and stderr.
+pub fn execute_code_snippet_interactive(
+    source: &str,
+    arch: Architecture,
+    os: OperatingSystem,
+) -> Result<bool, String> {
+    let temp_exe = compile_snippet_to_temp_exe(source, arch, os)?;
+    if temp_exe.is_empty() {
+        return Ok(true);
+    }
+
+    let exe_path = if matches!(os, OperatingSystem::Windows) {
+        format!(".\\{}", temp_exe)
+    } else {
+        format!("./{}", temp_exe)
+    };
+
+    let status = Command::new(&exe_path)
+        .stdin(std::process::Stdio::inherit())
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .status();
+
+    let _ = fs::remove_file(&temp_exe);
+
+    match status {
+        Ok(s) => Ok(s.success()),
         Err(e) => Err(format!("Execution failed: {}", e)),
     }
 }
@@ -728,5 +1100,77 @@ mod tests {
             assert!(success);
             assert_eq!(stdout.trim(), "100");
         }
+    }
+
+    #[test]
+    fn test_ask_detection_and_freezing() {
+        let empty_funcs = Vec::new();
+
+        // 1. Direct ask call in expr
+        let mut lexer = Lexer::new("ask \"Name? \"");
+        let tokens = lexer.tokenize().unwrap();
+        let mut parser = Parser::new(tokens);
+        let ast = parser.parse().unwrap();
+        assert_eq!(ast.statements.len(), 1);
+        if let Stmt::Expr(ref expr) = ast.statements[0] {
+            assert!(expr_contains_ask(expr, &empty_funcs));
+        } else {
+            panic!("Expected Stmt::Expr");
+        }
+
+        // 2. Pure expr should NOT contain ask
+        let mut lexer = Lexer::new("10 + 20 * 3");
+        let tokens = lexer.tokenize().unwrap();
+        let mut parser = Parser::new(tokens);
+        let ast = parser.parse().unwrap();
+        if let Stmt::Expr(ref expr) = ast.statements[0] {
+            assert!(!expr_contains_ask(expr, &empty_funcs));
+        } else {
+            panic!("Expected Stmt::Expr");
+        }
+
+        // 3. Stmt::Let with ask
+        let mut lexer = Lexer::new("let name = ask(\"Name? \")");
+        let tokens = lexer.tokenize().unwrap();
+        let mut parser = Parser::new(tokens);
+        let ast = parser.parse().unwrap();
+        assert!(stmt_contains_ask(&ast.statements[0], &empty_funcs));
+
+        // 4. Stmt::Let with nested ask: int(ask "Age: ")
+        let mut lexer = Lexer::new("let age = int(ask \"Age: \")");
+        let tokens = lexer.tokenize().unwrap();
+        let mut parser = Parser::new(tokens);
+        let ast = parser.parse().unwrap();
+        assert!(stmt_contains_ask(&ast.statements[0], &empty_funcs));
+
+        // 5. Custom function calling ask
+        let funcs = vec![(
+            "prompt_user".to_string(),
+            "function prompt_user() return ask \"Input: \" end".to_string(),
+        )];
+        let mut lexer = Lexer::new("let x = prompt_user()");
+        let tokens = lexer.tokenize().unwrap();
+        let mut parser = Parser::new(tokens);
+        let ast = parser.parse().unwrap();
+        assert!(stmt_contains_ask(&ast.statements[0], &funcs));
+    }
+
+    #[test]
+    fn test_update_or_add_statement() {
+        let mut session = ReplSession::new(Architecture::X64, OperatingSystem::Windows);
+        session.update_or_add_statement("x", "let x = 10");
+        assert_eq!(session.statements.len(), 1);
+        assert_eq!(session.statements[0], "let x = 10");
+
+        // Updating x should replace, not append
+        session.update_or_add_statement("x", "let x = 20");
+        assert_eq!(session.statements.len(), 1);
+        assert_eq!(session.statements[0], "let x = 20");
+
+        // Adding x_coord should NOT replace x
+        session.update_or_add_statement("x_coord", "let x_coord = 50");
+        assert_eq!(session.statements.len(), 2);
+        assert_eq!(session.statements[0], "let x = 20");
+        assert_eq!(session.statements[1], "let x_coord = 50");
     }
 }
