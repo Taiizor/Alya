@@ -73,7 +73,11 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
         out.push_str(".extern _pthread_mutex_init\n");
         out.push_str(".extern _pthread_mutex_lock\n");
         out.push_str(".extern _pthread_mutex_unlock\n");
-        out.push_str(".extern _pthread_mutex_destroy\n\n");
+        out.push_str(".extern _pthread_mutex_destroy\n");
+        out.push_str(".extern _getpid\n");
+        out.push_str(".extern _getcwd\n");
+        out.push_str(".extern _chdir\n");
+        out.push_str(".extern _rmdir\n\n");
         out.push_str(".text\n");
         out.push_str("_main:\n");
         out.push_str("    push %rbp\n");
@@ -151,7 +155,12 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
             out.push_str(".extern CloseHandle\n");
             out.push_str(".extern GetCurrentThreadId\n");
             out.push_str(".extern CreateMutexA\n");
-            out.push_str(".extern ReleaseMutex\n\n");
+            out.push_str(".extern ReleaseMutex\n");
+            out.push_str(".extern GetCurrentProcessId\n");
+            out.push_str(".extern GetCurrentDirectoryA\n");
+            out.push_str(".extern SetCurrentDirectoryA\n");
+            out.push_str(".extern GetFileAttributesA\n");
+            out.push_str(".extern _rmdir\n\n");
         } else {
             out.push_str(".extern usleep\n");
             out.push_str(".extern mkdir\n");
@@ -198,7 +207,11 @@ pub fn emit_header(out: &mut String, os: OperatingSystem) {
             out.push_str(".extern pthread_mutex_init\n");
             out.push_str(".extern pthread_mutex_lock\n");
             out.push_str(".extern pthread_mutex_unlock\n");
-            out.push_str(".extern pthread_mutex_destroy\n\n");
+            out.push_str(".extern pthread_mutex_destroy\n");
+            out.push_str(".extern getpid\n");
+            out.push_str(".extern getcwd\n");
+            out.push_str(".extern chdir\n");
+            out.push_str(".extern rmdir\n\n");
         }
         out.push_str(".text\n");
         out.push_str("main:\n");

@@ -1587,3 +1587,166 @@ say "mutex: ok"
         );
     }
 }
+
+#[test]
+fn test_e2e_stdlib_time_upgrades() {
+    let code = r#"
+import "std/time"
+
+let dt = epoch_to_date(0)
+say "y: " + str(dt["year"]) + " m: " + str(dt["month"]) + " d: " + str(dt["day"])
+say "iso: " + format_iso(0)
+say "date: " + format_date(0)
+say "time: " + format_time_hhmmss(0)
+say "map: " + format_date_map(dt)
+say "month: " + month_name(1)
+say "weekday: " + weekday_name(4)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("y: 1970 m: 1 d: 1"), "Got: {}", output);
+        assert!(output.contains("iso: 1970-01-01T00:00:00Z"), "Got: {}", output);
+        assert!(output.contains("date: 1970-01-01"), "Got: {}", output);
+        assert!(output.contains("time: 00:00:00"), "Got: {}", output);
+        assert!(output.contains("map: 1970-01-01T00:00:00Z"), "Got: {}", output);
+        assert!(output.contains("month: January"), "Got: {}", output);
+        assert!(output.contains("weekday: Thursday"), "Got: {}", output);
+    }
+}
+
+#[test]
+fn test_e2e_stdlib_os_upgrades() {
+    let code = r#"
+import "std/os"
+
+let p = get_pid()
+if p > 0
+    say "pid: ok"
+end
+
+let cur = get_cwd()
+if len(cur) > 0
+    say "cwd: ok"
+end
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("pid: ok"), "Got: {}", output);
+        assert!(output.contains("cwd: ok"), "Got: {}", output);
+    }
+}
+
+#[test]
+fn test_e2e_stdlib_fs_upgrades() {
+    let code = r#"
+import "std/fs"
+
+let base = file_basename("foo/bar/hello.txt")
+say "base: " + base
+let ext = file_extension("foo/bar/hello.txt")
+say "ext: " + ext
+let parent = file_parent("foo/bar/hello.txt")
+say "parent: " + parent
+
+ensure_dir("temp_e2e_fs_dir/sub")
+say "sub is dir: " + str(is_dir("temp_e2e_fs_dir/sub"))
+write_file("temp_e2e_fs_dir/sub/sample.txt", "one\ntwo\nthree\n")
+let c = file_lines_count("temp_e2e_fs_dir/sub/sample.txt")
+say "lines: " + str(c)
+
+let items = list_dir_recursive("temp_e2e_fs_dir")
+say "items: " + str(len(items))
+
+remove_dir_recursive("temp_e2e_fs_dir")
+say "cleaned: " + str(is_dir("temp_e2e_fs_dir") == 0)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("base: hello.txt"), "Got: {}", output);
+        assert!(output.contains("ext: txt"), "Got: {}", output);
+        assert!(output.contains("parent: foo/bar"), "Got: {}", output);
+        assert!(output.contains("sub is dir: 1"), "Got: {}", output);
+        assert!(output.contains("lines: 3"), "Got: {}", output);
+        assert!(output.contains("items: 2"), "Got: {}", output);
+        assert!(output.contains("cleaned: 1"), "Got: {}", output);
+    }
+}
+
+#[test]
+fn test_e2e_stdlib_thread_concurrency() {
+    let code = r#"
+import "std/thread"
+
+let ch = channel_new()
+channel_send(ch, 100)
+channel_send(ch, 200)
+say "size: " + str(channel_size(ch))
+
+let v1 = channel_recv(ch, 100)
+let v2 = channel_recv(ch, 100)
+say "recv: " + str(v1) + " and " + str(v2)
+channel_free(ch)
+
+let wg = wait_group_new()
+wait_group_add(wg, 2)
+wait_group_done(wg)
+wait_group_done(wg)
+let ok = wait_group_wait(wg, 100)
+say "wg ok: " + str(ok)
+wait_group_free(wg)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("size: 2"), "Got: {}", output);
+        assert!(output.contains("recv: 100 and 200"), "Got: {}", output);
+        assert!(output.contains("wg ok: 1"), "Got: {}", output);
+    }
+}
+
+#[test]
+fn test_e2e_stdlib_console_tui() {
+    let code = r#"
+import "std/console"
+
+let bar = console_progress_bar(75, 100, 20)
+say bar
+
+let s0 = console_spinner_char(0)
+let s1 = console_spinner_char(1)
+say "spin: " + s0 + s1
+
+let headers = ["Key", "Val"]
+let rows = [
+    ["name", "Alya"],
+    ["ver", "0.0.5"]
+]
+console_table(headers, rows)
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("75%"), "Got: {}", output);
+        assert!(output.contains("spin: |/"), "Got: {}", output);
+        assert!(output.contains("Alya"), "Got: {}", output);
+        assert!(output.contains("0.0.5"), "Got: {}", output);
+    }
+}
+
+#[test]
+fn test_e2e_stdlib_net_helpers() {
+    let code = r#"
+import "std/net"
+
+say "200: " + http_status_text(200)
+say "404: " + http_status_text(404)
+say "500: " + http_status_text(500)
+say "auth: " + basic_auth("admin", "secret")
+"#;
+    if let Some((code, output)) = run_alya_code_full(code) {
+        assert_eq!(code, 0, "Execution failed: {}", output);
+        assert!(output.contains("200: OK"), "Got: {}", output);
+        assert!(output.contains("404: Not Found"), "Got: {}", output);
+        assert!(output.contains("500: Internal Server Error"), "Got: {}", output);
+        assert!(output.contains("auth: Basic YWRtaW46c2VjcmV0"), "Got: {}", output);
+    }
+}
+

@@ -81,7 +81,16 @@ pub fn emit_header(out: &mut String) {
     out.push_str(".extern pthread_mutex_init\n");
     out.push_str(".extern pthread_mutex_lock\n");
     out.push_str(".extern pthread_mutex_unlock\n");
-    out.push_str(".extern pthread_mutex_destroy\n\n");
+    out.push_str(".extern pthread_mutex_destroy\n");
+    out.push_str(".extern GetCurrentProcessId\n");
+    out.push_str(".extern GetCurrentDirectoryA\n");
+    out.push_str(".extern SetCurrentDirectoryA\n");
+    out.push_str(".extern GetFileAttributesA\n");
+    out.push_str(".extern _rmdir\n");
+    out.push_str(".extern getpid\n");
+    out.push_str(".extern getcwd\n");
+    out.push_str(".extern chdir\n");
+    out.push_str(".extern rmdir\n\n");
     out.push_str(".text\n");
     out.push_str("main:\n");
     out.push_str("    push %ebp\n");

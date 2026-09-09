@@ -100,6 +100,27 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "net_peer_ip"
                     | "tcp_peer_ip"
                     | "tcp_peer_addr"
+                    | "get_cwd"
+                    | "cwd"
+                    | "__native_get_cwd"
+                    | "format_iso"
+                    | "format_date"
+                    | "format_time_hhmmss"
+                    | "month_name"
+                    | "month_short_name"
+                    | "weekday_name"
+                    | "weekday_short_name"
+                    | "iso_now"
+                    | "date_now"
+                    | "time_now"
+                    | "file_basename"
+                    | "file_extension"
+                    | "file_parent"
+                    | "console_progress_bar"
+                    | "console_spinner_char"
+                    | "console_prompt"
+                    | "http_status_text"
+                    | "basic_auth"
             ) {
                 return true;
             }
@@ -231,6 +252,8 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "read_dir"
                     | "fs_list_dir"
                     | "fs_read_dir"
+                    | "list_dir_recursive"
+                    | "fs_list_dir_recursive"
                     | "json_parse_array"
             )
         }
@@ -349,7 +372,20 @@ pub fn is_string_array(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             let bare = bare.rsplit("__").next().unwrap_or(bare);
             matches!(
                 bare,
-                "split" | "args" | "cli_args" | "lines" | "read_lines" | "keys"
+                "split"
+                    | "args"
+                    | "cli_args"
+                    | "lines"
+                    | "read_lines"
+                    | "keys"
+                    | "list_dir"
+                    | "read_dir"
+                    | "fs_list_dir"
+                    | "fs_read_dir"
+                    | "list_dir_recursive"
+                    | "glob"
+                    | "glob_dir"
+                    | "glob_filter"
             )
         }
         _ => false,

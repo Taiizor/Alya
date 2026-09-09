@@ -36,6 +36,14 @@ fn expr_is_definitely_array(expr: &Expr, known_arrays: &HashSet<String>) -> bool
                     | "rand_sample"
                     | "rand_shuffle"
                     | "rand_shuffled"
+                    | "list_dir"
+                    | "read_dir"
+                    | "fs_list_dir"
+                    | "fs_read_dir"
+                    | "list_dir_recursive"
+                    | "fs_list_dir_recursive"
+                    | "glob"
+                    | "glob_dir"
             )
         }
         _ => false,

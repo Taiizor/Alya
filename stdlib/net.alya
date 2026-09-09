@@ -2,6 +2,7 @@
 # Provides TCP/UDP socket networking (client & server) and production-ready HTTP/HTTPS client.
 
 import "std/url"
+import "std/hash"
 
 # --- Low-Level TCP Socket Functions ---
 
@@ -453,3 +454,156 @@ function http_post(url_str, body, content_type)
 
     return http_request("POST", host, port, path, headers, body)
 end
+
+# Convenience PUT request supporting HTTP & HTTPS
+function http_put(url_str, body, content_type)
+    let parsed = url_parse(url_str)
+    let host = parsed.url_host
+    if host == ""
+        return HttpResponse(-1, "Invalid URL host", {}, "")
+    end
+
+    if content_type == null or content_type == ""
+        content_type = "application/json"
+    end
+    let headers = {"content-type": content_type}
+
+    if parsed.url_scheme == "https"
+        return _http_curl_bridge("PUT", url_str, headers, body)
+    end
+
+    let port = parsed.url_port
+    if port <= 0
+        port = 80
+    end
+    let path = parsed.url_path
+    if path == ""
+        path = "/"
+    end
+    if parsed.url_query != ""
+        path = path + "?" + parsed.url_query
+    end
+
+    return http_request("PUT", host, port, path, headers, body)
+end
+
+# Convenience PATCH request supporting HTTP & HTTPS
+function http_patch(url_str, body, content_type)
+    let parsed = url_parse(url_str)
+    let host = parsed.url_host
+    if host == ""
+        return HttpResponse(-1, "Invalid URL host", {}, "")
+    end
+
+    if content_type == null or content_type == ""
+        content_type = "application/json"
+    end
+    let headers = {"content-type": content_type}
+
+    if parsed.url_scheme == "https"
+        return _http_curl_bridge("PATCH", url_str, headers, body)
+    end
+
+    let port = parsed.url_port
+    if port <= 0
+        port = 80
+    end
+    let path = parsed.url_path
+    if path == ""
+        path = "/"
+    end
+    if parsed.url_query != ""
+        path = path + "?" + parsed.url_query
+    end
+
+    return http_request("PATCH", host, port, path, headers, body)
+end
+
+# Convenience DELETE request supporting HTTP & HTTPS
+function http_delete(url_str)
+    let parsed = url_parse(url_str)
+    let host = parsed.url_host
+    if host == ""
+        return HttpResponse(-1, "Invalid URL host", {}, "")
+    end
+
+    if parsed.url_scheme == "https"
+        return _http_curl_bridge("DELETE", url_str, {}, "")
+    end
+
+    let port = parsed.url_port
+    if port <= 0
+        port = 80
+    end
+    let path = parsed.url_path
+    if path == ""
+        path = "/"
+    end
+    if parsed.url_query != ""
+        path = path + "?" + parsed.url_query
+    end
+
+    return http_request("DELETE", host, port, path, {}, "")
+end
+
+# Convenience HEAD request supporting HTTP & HTTPS
+function http_head(url_str)
+    let parsed = url_parse(url_str)
+    let host = parsed.url_host
+    if host == ""
+        return HttpResponse(-1, "Invalid URL host", {}, "")
+    end
+
+    if parsed.url_scheme == "https"
+        return _http_curl_bridge("HEAD", url_str, {}, "")
+    end
+
+    let port = parsed.url_port
+    if port <= 0
+        port = 80
+    end
+    let path = parsed.url_path
+    if path == ""
+        path = "/"
+    end
+    if parsed.url_query != ""
+        path = path + "?" + parsed.url_query
+    end
+
+    return http_request("HEAD", host, port, path, {}, "")
+end
+
+# Returns standard HTTP status code description.
+function http_status_text(code)
+    when code
+        is 200 then return "OK"
+        is 201 then return "Created"
+        is 202 then return "Accepted"
+        is 204 then return "No Content"
+        is 301 then return "Moved Permanently"
+        is 302 then return "Found"
+        is 304 then return "Not Modified"
+        is 307 then return "Temporary Redirect"
+        is 308 then return "Permanent Redirect"
+        is 400 then return "Bad Request"
+        is 401 then return "Unauthorized"
+        is 403 then return "Forbidden"
+        is 404 then return "Not Found"
+        is 405 then return "Method Not Allowed"
+        is 408 then return "Request Timeout"
+        is 409 then return "Conflict"
+        is 422 then return "Unprocessable Entity"
+        is 429 then return "Too Many Requests"
+        is 500 then return "Internal Server Error"
+        is 502 then return "Bad Gateway"
+        is 503 then return "Service Unavailable"
+        is 504 then return "Gateway Timeout"
+        else return "Unknown Status"
+    end
+end
+
+# Generates standard HTTP Basic Authentication header string.
+function basic_auth(username, password)
+    return "Basic " + base64_encode(username + ":" + password)
+end
+

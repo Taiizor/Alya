@@ -135,6 +135,88 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
 
+    // fn___native_get_pid
+    out.push_str(".global fn___native_get_pid\n");
+    out.push_str("fn___native_get_pid:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    if is_win {
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    call GetCurrentProcessId\n");
+        out.push_str("    add $32, %rsp\n");
+    } else {
+        out.push_str(&format!("    call {}getpid\n", p));
+    }
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
 
+    // fn___native_get_cwd
+    out.push_str(".global fn___native_get_cwd\n");
+    out.push_str("fn___native_get_cwd:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    sub $1072, %rsp\n");
+    if is_win {
+        out.push_str("    mov $1024, %rcx\n");
+        out.push_str("    lea 32(%rsp), %rdx\n");
+        out.push_str("    call GetCurrentDirectoryA\n");
+        out.push_str("    test %rax, %rax\n");
+        out.push_str("    jz .L_x64_gcwd_empty\n");
+        out.push_str("    lea 32(%rsp), %rcx\n");
+        out.push_str("    call fn_str_clone\n");
+        out.push_str("    jmp .L_x64_gcwd_done\n");
+    } else {
+        out.push_str("    lea 32(%rsp), %rdi\n");
+        out.push_str("    mov $1024, %rsi\n");
+        out.push_str(&format!("    call {}getcwd\n", p));
+        out.push_str("    test %rax, %rax\n");
+        out.push_str("    jz .L_x64_gcwd_empty\n");
+        out.push_str("    mov %rax, %rdi\n");
+        out.push_str("    call fn_str_clone\n");
+        out.push_str("    jmp .L_x64_gcwd_done\n");
+    }
+    out.push_str(".L_x64_gcwd_empty:\n");
+    out.push_str("    lea alya_str_empty(%rip), %rax\n");
+    out.push_str(".L_x64_gcwd_done:\n");
+    out.push_str("    add $1072, %rsp\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
 
+    // fn___native_set_cwd
+    out.push_str(".global fn___native_set_cwd\n");
+    out.push_str("fn___native_set_cwd:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    if is_win {
+        out.push_str("    sub $32, %rsp\n");
+        out.push_str("    test %rcx, %rcx\n");
+        out.push_str("    jz .L_x64_scwd_fail\n");
+        out.push_str("    call SetCurrentDirectoryA\n");
+        out.push_str("    test %rax, %rax\n");
+        out.push_str("    setne %al\n");
+        out.push_str("    movzbq %al, %rax\n");
+        out.push_str("    jmp .L_x64_scwd_done\n");
+        out.push_str(".L_x64_scwd_fail:\n");
+        out.push_str("    xor %rax, %rax\n");
+        out.push_str(".L_x64_scwd_done:\n");
+        out.push_str("    add $32, %rsp\n");
+    } else {
+        out.push_str("    sub $8, %rsp\n");
+        out.push_str("    test %rdi, %rdi\n");
+        out.push_str("    jz .L_x64_scwd_fail\n");
+        out.push_str(&format!("    call {}chdir\n", p));
+        out.push_str("    test %rax, %rax\n");
+        out.push_str("    sete %al\n");
+        out.push_str("    movzbq %al, %rax\n");
+        out.push_str("    jmp .L_x64_scwd_done\n");
+        out.push_str(".L_x64_scwd_fail:\n");
+        out.push_str("    xor %rax, %rax\n");
+        out.push_str(".L_x64_scwd_done:\n");
+        out.push_str("    add $8, %rsp\n");
+    }
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
 }

@@ -236,6 +236,43 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    ldp x29, x30, [sp], #16\n");
     out.push_str("    ret\n\n");
 
+    // fn_remove_dir / fn_rmdir
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_remove_dir\n");
+    out.push_str("fn_remove_dir:\n");
+    out.push_str(".global fn_rmdir\n");
+    out.push_str("fn_rmdir:\n");
+    out.push_str("    stp x29, x30, [sp, #-16]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    cbz x0, .L_arm64_rmdir_fail\n");
+    out.push_str(&format!("    bl {}rmdir\n", p));
+    out.push_str("    cmp x0, #0\n");
+    out.push_str("    cset x0, eq\n");
+    out.push_str("    ldp x29, x30, [sp], #16\n");
+    out.push_str("    ret\n");
+    out.push_str(".L_arm64_rmdir_fail:\n");
+    out.push_str("    mov x0, #0\n");
+    out.push_str("    ldp x29, x30, [sp], #16\n");
+    out.push_str("    ret\n\n");
+
+    // fn_is_dir
+    out.push_str(".align 2\n");
+    out.push_str(".global fn_is_dir\n");
+    out.push_str("fn_is_dir:\n");
+    out.push_str("    stp x29, x30, [sp, #-16]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    cbz x0, .L_arm64_isdir_no\n");
+    out.push_str(&format!("    bl {}opendir\n", p));
+    out.push_str("    cbz x0, .L_arm64_isdir_no\n");
+    out.push_str(&format!("    bl {}closedir\n", p));
+    out.push_str("    mov x0, #1\n");
+    out.push_str("    ldp x29, x30, [sp], #16\n");
+    out.push_str("    ret\n");
+    out.push_str(".L_arm64_isdir_no:\n");
+    out.push_str("    mov x0, #0\n");
+    out.push_str("    ldp x29, x30, [sp], #16\n");
+    out.push_str("    ret\n\n");
+
     // fn_list_dir / fn_read_dir
     let is_mac = matches!(os, OperatingSystem::MacOS);
     let d_off = if is_mac { 21 } else { 19 };

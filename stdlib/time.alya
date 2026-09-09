@@ -79,3 +79,198 @@ function format_duration(sec)
     res = res + str(s) + "s"
     return res
 end
+
+function timestamp()
+    return time()
+end
+
+function _time_pad2(n)
+    if n < 10
+        return "0" + str(n)
+    end
+    return str(n)
+end
+
+# Converts epoch seconds (UTC) to a calendar date/time map
+# Returns: {"year", "month", "day", "hour", "minute", "second", "weekday"}
+function epoch_to_date(epoch_sec)
+    let days = epoch_sec / 86400
+    let rem = epoch_sec % 86400
+    if rem < 0
+        rem = rem + 86400
+        days = days - 1
+    end
+    let hour = rem / 3600
+    let minute = (rem % 3600) / 60
+    let second = rem % 60
+    let weekday = (days + 4) % 7
+    if weekday < 0
+        weekday = weekday + 7
+    end
+
+    let z = days + 719468
+    let era = z / 146097
+    if z < 0 and z % 146097 != 0
+        era = era - 1
+    end
+    let doe = z - (era * 146097)
+    let yoe = (doe - (doe / 1460) + (doe / 36524) - (doe / 146096)) / 365
+    let y = yoe + (era * 400)
+    let doy = doe - ((365 * yoe) + (yoe / 4) - (yoe / 100))
+    let mp = ((5 * doy) + 2) / 153
+    let d = doy - (((153 * mp) + 2) / 5) + 1
+    let m = 0
+    if mp < 10
+        m = mp + 3
+    else
+        m = mp - 9
+    end
+    let year = y
+    if m <= 2
+        year = y + 1
+    end
+    return {
+        "year": year,
+        "month": m,
+        "day": d,
+        "hour": hour,
+        "minute": minute,
+        "second": second,
+        "weekday": weekday
+    }
+end
+
+# Converts year, month (1-12), day (1-31) to epoch seconds at 00:00:00 UTC
+function date_ymd_to_epoch(year, month, day)
+    let y = year
+    if month <= 2
+        y = y - 1
+    end
+    let era = y / 400
+    if y < 0 and y % 400 != 0
+        era = era - 1
+    end
+    let yoe = y - (era * 400)
+    let m_adj = 0
+    if month > 2
+        m_adj = month - 3
+    else
+        m_adj = month + 9
+    end
+    let doy = (((153 * m_adj) + 2) / 5) + day - 1
+    let doe = (yoe * 365) + (yoe / 4) - (yoe / 100) + doy
+    let days = (era * 146097) + doe - 719468
+    return days * 86400
+end
+
+# Converts a date map {"year", "month", "day", "hour", "minute", "second"} to epoch seconds
+function date_to_epoch(d)
+    let ymd_sec = date_ymd_to_epoch(d["year"], d["month"], d["day"])
+    let h = 0
+    let m = 0
+    let s = 0
+    if d.has("hour") h = d["hour"] end
+    if d.has("minute") m = d["minute"] end
+    if d.has("second") s = d["second"] end
+    return ymd_sec + (h * 3600) + (m * 60) + s
+end
+
+# Formats epoch seconds into an ISO 8601 string: "YYYY-MM-DDTHH:MM:SSZ"
+function format_iso(epoch_sec)
+    let d = epoch_to_date(epoch_sec)
+    return str(d["year"]) + "-" + _time_pad2(d["month"]) + "-" + _time_pad2(d["day"]) + "T" + _time_pad2(d["hour"]) + ":" + _time_pad2(d["minute"]) + ":" + _time_pad2(d["second"]) + "Z"
+end
+
+# Formats a calendar date/time map into an ISO 8601 string: "YYYY-MM-DDTHH:MM:SSZ"
+function format_date_map(d)
+    return str(d["year"]) + "-" + _time_pad2(d["month"]) + "-" + _time_pad2(d["day"]) + "T" + _time_pad2(d["hour"]) + ":" + _time_pad2(d["minute"]) + ":" + _time_pad2(d["second"]) + "Z"
+end
+
+# Formats epoch seconds into "YYYY-MM-DD"
+function format_date(epoch_sec)
+    let d = epoch_to_date(epoch_sec)
+    return str(d["year"]) + "-" + _time_pad2(d["month"]) + "-" + _time_pad2(d["day"])
+end
+
+# Formats epoch seconds into "HH:MM:SS"
+function format_time_hhmmss(epoch_sec)
+    let d = epoch_to_date(epoch_sec)
+    return _time_pad2(d["hour"]) + ":" + _time_pad2(d["minute"]) + ":" + _time_pad2(d["second"])
+end
+
+function month_name(month)
+    when month
+        is 1 then return "January"
+        is 2 then return "February"
+        is 3 then return "March"
+        is 4 then return "April"
+        is 5 then return "May"
+        is 6 then return "June"
+        is 7 then return "July"
+        is 8 then return "August"
+        is 9 then return "September"
+        is 10 then return "October"
+        is 11 then return "November"
+        is 12 then return "December"
+        else return "Unknown"
+    end
+end
+
+function month_short_name(month)
+    when month
+        is 1 then return "Jan"
+        is 2 then return "Feb"
+        is 3 then return "Mar"
+        is 4 then return "Apr"
+        is 5 then return "May"
+        is 6 then return "Jun"
+        is 7 then return "Jul"
+        is 8 then return "Aug"
+        is 9 then return "Sep"
+        is 10 then return "Oct"
+        is 11 then return "Nov"
+        is 12 then return "Dec"
+        else return "Unk"
+    end
+end
+
+function weekday_name(weekday)
+    when weekday
+        is 0 then return "Sunday"
+        is 1 then return "Monday"
+        is 2 then return "Tuesday"
+        is 3 then return "Wednesday"
+        is 4 then return "Thursday"
+        is 5 then return "Friday"
+        is 6 then return "Saturday"
+        else return "Unknown"
+    end
+end
+
+function weekday_short_name(weekday)
+    when weekday
+        is 0 then return "Sun"
+        is 1 then return "Mon"
+        is 2 then return "Tue"
+        is 3 then return "Wed"
+        is 4 then return "Thu"
+        is 5 then return "Fri"
+        is 6 then return "Sat"
+        else return "Unk"
+    end
+end
+
+# Returns current UTC time as ISO 8601 string
+function iso_now()
+    return format_iso(time())
+end
+
+# Returns current UTC date as "YYYY-MM-DD"
+function date_now()
+    return format_date(time())
+end
+
+# Returns current UTC time as "HH:MM:SS"
+function time_now()
+    return format_time_hhmmss(time())
+end

@@ -66,6 +66,30 @@ function exit_process(code)
     exit(code)
 end
 
+function get_pid()
+    return __native_get_pid()
+end
+
+function pid()
+    return __native_get_pid()
+end
+
+function get_cwd()
+    return __native_get_cwd()
+end
+
+function cwd()
+    return __native_get_cwd()
+end
+
+function set_cwd(path)
+    return __native_set_cwd(path)
+end
+
+function chdir(path)
+    return __native_set_cwd(path)
+end
+
 # --- Command Line Arguments ---
 
 function cli_args()

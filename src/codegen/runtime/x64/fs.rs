@@ -464,6 +464,93 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %rbp\n");
     out.push_str("    ret\n\n");
 
+    // fn_remove_dir / fn_rmdir
+    out.push_str(".global fn_remove_dir\n");
+    out.push_str("fn_remove_dir:\n");
+    out.push_str(".global fn_rmdir\n");
+    out.push_str("fn_rmdir:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rbx\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    sub $40, %rsp\n");
+        out.push_str("    mov %rcx, %rbx\n");
+    } else {
+        out.push_str("    sub $8, %rsp\n");
+        out.push_str("    mov %rdi, %rbx\n");
+    }
+    out.push_str("    test %rbx, %rbx\n");
+    out.push_str("    jz .L_x64_rmdir_fail\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    mov %rbx, %rcx\n");
+        out.push_str("    call _rmdir\n");
+    } else {
+        out.push_str("    mov %rbx, %rdi\n");
+        out.push_str(&format!("    call {}rmdir\n", p));
+    }
+    out.push_str("    test %rax, %rax\n");
+    out.push_str("    jnz .L_x64_rmdir_fail\n");
+    out.push_str("    mov $1, %rax\n");
+    out.push_str("    jmp .L_x64_rmdir_end\n");
+    out.push_str(".L_x64_rmdir_fail:\n");
+    out.push_str("    xor %rax, %rax\n");
+    out.push_str(".L_x64_rmdir_end:\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    add $40, %rsp\n");
+    } else {
+        out.push_str("    add $8, %rsp\n");
+    }
+    out.push_str("    pop %rbx\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
+    // fn_is_dir
+    out.push_str(".global fn_is_dir\n");
+    out.push_str("fn_is_dir:\n");
+    out.push_str("    push %rbp\n");
+    out.push_str("    mov %rsp, %rbp\n");
+    out.push_str("    push %rbx\n");
+    if matches!(os, OperatingSystem::Windows) {
+        out.push_str("    sub $40, %rsp\n");
+        out.push_str("    mov %rcx, %rbx\n");
+        out.push_str("    test %rbx, %rbx\n");
+        out.push_str("    jz .L_x64_isdir_no\n");
+        out.push_str("    mov %rbx, %rcx\n");
+        out.push_str("    call GetFileAttributesA\n");
+        out.push_str("    cmp $-1, %eax\n");
+        out.push_str("    je .L_x64_isdir_no\n");
+        out.push_str("    test $0x10, %eax\n");
+        out.push_str("    jz .L_x64_isdir_no\n");
+        out.push_str("    mov $1, %rax\n");
+        out.push_str("    jmp .L_x64_isdir_end\n");
+        out.push_str(".L_x64_isdir_no:\n");
+        out.push_str("    xor %rax, %rax\n");
+        out.push_str(".L_x64_isdir_end:\n");
+        out.push_str("    add $40, %rsp\n");
+    } else {
+        out.push_str("    sub $8, %rsp\n");
+        out.push_str("    mov %rdi, %rbx\n");
+        out.push_str("    test %rbx, %rbx\n");
+        out.push_str("    jz .L_x64_isdir_no\n");
+        out.push_str("    mov %rbx, %rdi\n");
+        out.push_str(&format!("    call {}opendir\n", p));
+        out.push_str("    test %rax, %rax\n");
+        out.push_str("    jz .L_x64_isdir_no\n");
+        out.push_str("    mov %rax, %rdi\n");
+        out.push_str(&format!("    call {}closedir\n", p));
+        out.push_str("    mov $1, %rax\n");
+        out.push_str("    jmp .L_x64_isdir_end\n");
+        out.push_str(".L_x64_isdir_no:\n");
+        out.push_str("    xor %rax, %rax\n");
+        out.push_str(".L_x64_isdir_end:\n");
+        out.push_str("    add $8, %rsp\n");
+    }
+    out.push_str("    pop %rbx\n");
+    out.push_str("    mov %rbp, %rsp\n");
+    out.push_str("    pop %rbp\n");
+    out.push_str("    ret\n\n");
+
     // fn_list_dir / fn_read_dir
     out.push_str(".global fn_list_dir\n");
     out.push_str("fn_list_dir:\n");

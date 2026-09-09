@@ -96,6 +96,54 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    ldp x29, x30, [sp], #16\n");
     out.push_str("    ret\n\n");
 
+    // fn___native_get_pid
+    out.push_str(".align 2\n");
+    out.push_str(".global fn___native_get_pid\n");
+    out.push_str("fn___native_get_pid:\n");
+    out.push_str("    stp x29, x30, [sp, #-16]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str(&format!("    bl {}getpid\n", p));
+    out.push_str("    ldp x29, x30, [sp], #16\n");
+    out.push_str("    ret\n\n");
 
+    // fn___native_get_cwd
+    out.push_str(".align 2\n");
+    out.push_str(".global fn___native_get_cwd\n");
+    out.push_str("fn___native_get_cwd:\n");
+    out.push_str("    stp x29, x30, [sp, #-1056]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    add x0, sp, #16\n");
+    out.push_str("    mov x1, #1024\n");
+    out.push_str(&format!("    bl {}getcwd\n", p));
+    out.push_str("    cbz x0, .L_arm64_gcwd_empty\n");
+    out.push_str("    bl fn_str_clone\n");
+    out.push_str("    b .L_arm64_gcwd_done\n");
+    out.push_str(".L_arm64_gcwd_empty:\n");
+    if matches!(os, OperatingSystem::MacOS) {
+        out.push_str("    adrp x0, alya_str_empty@PAGE\n");
+        out.push_str("    add x0, x0, alya_str_empty@PAGEOFF\n");
+    } else {
+        out.push_str("    adrp x0, alya_str_empty\n");
+        out.push_str("    add x0, x0, :lo12:alya_str_empty\n");
+    }
+    out.push_str(".L_arm64_gcwd_done:\n");
+    out.push_str("    ldp x29, x30, [sp], #1056\n");
+    out.push_str("    ret\n\n");
 
+    // fn___native_set_cwd
+    out.push_str(".align 2\n");
+    out.push_str(".global fn___native_set_cwd\n");
+    out.push_str("fn___native_set_cwd:\n");
+    out.push_str("    stp x29, x30, [sp, #-16]!\n");
+    out.push_str("    mov x29, sp\n");
+    out.push_str("    cbz x0, .L_arm64_scwd_fail\n");
+    out.push_str(&format!("    bl {}chdir\n", p));
+    out.push_str("    cmp x0, #0\n");
+    out.push_str("    cset x0, eq\n");
+    out.push_str("    b .L_arm64_scwd_done\n");
+    out.push_str(".L_arm64_scwd_fail:\n");
+    out.push_str("    mov x0, #0\n");
+    out.push_str(".L_arm64_scwd_done:\n");
+    out.push_str("    ldp x29, x30, [sp], #16\n");
+    out.push_str("    ret\n\n");
 }

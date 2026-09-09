@@ -100,5 +100,87 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    pop %ebp\n");
     out.push_str("    ret\n\n");
 
+    // fn___native_get_pid
+    out.push_str(".global fn___native_get_pid\n");
+    out.push_str("fn___native_get_pid:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    if is_win {
+        out.push_str("    call GetCurrentProcessId\n");
+    } else {
+        out.push_str("    call getpid\n");
+    }
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
 
+    // fn___native_get_cwd
+    out.push_str(".global fn___native_get_cwd\n");
+    out.push_str("fn___native_get_cwd:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    sub $1028, %esp\n");
+    out.push_str("    lea -1024(%ebp), %eax\n");
+    if is_win {
+        out.push_str("    push %eax\n");
+        out.push_str("    push $1024\n");
+        out.push_str("    call GetCurrentDirectoryA\n");
+        out.push_str("    add $8, %esp\n");
+        out.push_str("    test %eax, %eax\n");
+        out.push_str("    jz .L_x86_gcwd_empty\n");
+        out.push_str("    lea -1024(%ebp), %eax\n");
+        out.push_str("    push %eax\n");
+        out.push_str("    call fn_str_clone\n");
+        out.push_str("    add $4, %esp\n");
+        out.push_str("    jmp .L_x86_gcwd_done\n");
+    } else {
+        out.push_str("    push $1024\n");
+        out.push_str("    push %eax\n");
+        out.push_str("    call getcwd\n");
+        out.push_str("    add $8, %esp\n");
+        out.push_str("    test %eax, %eax\n");
+        out.push_str("    jz .L_x86_gcwd_empty\n");
+        out.push_str("    push %eax\n");
+        out.push_str("    call fn_str_clone\n");
+        out.push_str("    add $4, %esp\n");
+        out.push_str("    jmp .L_x86_gcwd_done\n");
+    }
+    out.push_str(".L_x86_gcwd_empty:\n");
+    out.push_str("    mov $alya_str_empty, %eax\n");
+    out.push_str(".L_x86_gcwd_done:\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
+
+    // fn___native_set_cwd
+    out.push_str(".global fn___native_set_cwd\n");
+    out.push_str("fn___native_set_cwd:\n");
+    out.push_str("    push %ebp\n");
+    out.push_str("    mov %esp, %ebp\n");
+    out.push_str("    mov 8(%ebp), %eax\n");
+    out.push_str("    test %eax, %eax\n");
+    out.push_str("    jz .L_x86_scwd_fail\n");
+    if is_win {
+        out.push_str("    push %eax\n");
+        out.push_str("    call SetCurrentDirectoryA\n");
+        out.push_str("    add $4, %esp\n");
+        out.push_str("    test %eax, %eax\n");
+        out.push_str("    setne %al\n");
+        out.push_str("    movzbl %al, %eax\n");
+        out.push_str("    jmp .L_x86_scwd_done\n");
+    } else {
+        out.push_str("    push %eax\n");
+        out.push_str("    call chdir\n");
+        out.push_str("    add $4, %esp\n");
+        out.push_str("    test %eax, %eax\n");
+        out.push_str("    sete %al\n");
+        out.push_str("    movzbl %al, %eax\n");
+        out.push_str("    jmp .L_x86_scwd_done\n");
+    }
+    out.push_str(".L_x86_scwd_fail:\n");
+    out.push_str("    xor %eax, %eax\n");
+    out.push_str(".L_x86_scwd_done:\n");
+    out.push_str("    mov %ebp, %esp\n");
+    out.push_str("    pop %ebp\n");
+    out.push_str("    ret\n\n");
 }

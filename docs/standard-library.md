@@ -53,7 +53,20 @@ import "std/path"
   * `fs_append(path, content)`: Append content to file.
   * `fs_size(path)`: File size in bytes.
   * `fs_remove(path)`: Delete file from disk.
-  * `copy_file(src, dest)`, `move_file(src, dest)`
+  * `fs_mkdir(path)`: Create single directory.
+  * `fs_rmdir(path)`: Remove empty directory.
+  * `is_dir(path)` / `fs_is_dir(path)`: Returns `1` if path is an existing directory, else `0`.
+  * `ensure_dir(path)`: Recursively creates parent directories if needed.
+  * `list_dir_recursive(path)`: Recursively lists all files and directories in a directory tree.
+  * `copy_dir_recursive(src, dest)`: Recursively copies an entire directory tree.
+  * `remove_dir_recursive(path)`: Recursively removes a directory and all its contents.
+  * `copy_file(src, dest)`, `move_file(src, dest)`.
+  * `read_lines(path)`: Read file into array of line strings.
+  * `write_lines(path, lines)`, `append_line(path, line)`, `append_lines(path, lines)`.
+  * `file_lines_count(path)`: Fast line count of a file.
+  * `file_basename(path)`: Extract file name component (e.g. `"foo/bar.txt"` -> `"bar.txt"`).
+  * `file_extension(path)`: Extract file extension (e.g. `"foo/bar.txt"` -> `"txt"`).
+  * `file_parent(path)`: Extract parent directory path (e.g. `"foo/bar.txt"` -> `"foo"`).
 * **`std/path`**:
   * `path_join(dir, file)`: Normalize and join path segments.
   * `file_name(path)`, `file_ext(path)`, `file_stem(path)`, `parent_dir(path)`.
@@ -134,8 +147,14 @@ Production-grade networking supporting TCP & UDP sockets, socket timeouts, remot
 * **HTTP & HTTPS Client**:
   * `http_get(url)`: Perform HTTP/HTTPS GET request; returns `HttpResponse` struct.
   * `http_post(url, body, content_type)`: Perform HTTP/HTTPS POST request with content-type (defaults to `application/json`).
+  * `http_put(url, body, content_type)`: Perform HTTP/HTTPS PUT request.
+  * `http_patch(url, body, content_type)`: Perform HTTP/HTTPS PATCH request.
+  * `http_delete(url)`: Perform HTTP/HTTPS DELETE request.
+  * `http_head(url)`: Perform HTTP/HTTPS HEAD request.
   * `http_request(method, host, port, path, headers, body)`: Configurable HTTP/HTTPS request with header map and body.
   * `http_parse_response(raw)`: Parse raw HTTP response string into `HttpResponse(status_code, status_text, headers, body)`.
+  * `http_status_text(code)`: Returns standard status phrase for status code (e.g. `200` -> `"OK"`, `404` -> `"Not Found"`).
+  * `basic_auth(username, password)`: Generates `"Basic <base64>"` header string.
   * **Response Status Helpers**:
     * `http_is_success(res)`: Returns `1` if status code is `2xx`, else `0`.
     * `http_is_redirect(res)`: Returns `1` if status code is `3xx`, else `0`.
@@ -146,11 +165,11 @@ Production-grade networking supporting TCP & UDP sockets, socket timeouts, remot
 
 ---
 
-### 🖥️ `std/console` — Terminal Control & Code Pages
+### 🖥️ `std/console` — Terminal Control, Code Pages & TUI
 ```alya
 import "std/console"
 ```
-Cross-platform terminal control, ANSI sequences, and Windows code page management:
+Cross-platform terminal control, ANSI sequences, Windows code page management, and UI/TUI components:
 * `console_utf8()`: Switch console to UTF-8 (CP 65001) and enable ANSI virtual terminal processing.
 * `console_clear()`: Clear terminal screen buffer.
 * `console_title(title)`: Set terminal window title.
@@ -158,6 +177,12 @@ Cross-platform terminal control, ANSI sequences, and Windows code page managemen
 * `console_cursor_to(row, col)`: Position cursor at specified row and column.
 * `console_cursor_hide()`, `console_cursor_show()`: Toggle cursor visibility.
 * `console_output_cp()`, `console_input_cp()`: Inspect active code page.
+* **UI & TUI Components**:
+  * `console_progress_bar(current, total, width)`: Formats progress bar (e.g. `"[==========>          ] 50%"`).
+  * `console_spinner_char(step)`: Cycles through `'|'`, `'/'`, `'-'`, `'\\'`.
+  * `console_prompt(prompt_text)`: Prompts user and reads full line from stdin.
+  * `console_confirm(prompt_text, default_yes)`: Yes/No confirmation prompt (returns `1` or `0`).
+  * `console_table(headers, rows)`: Prints formatted ASCII table with auto-aligned column widths.
 
 ---
 
@@ -236,13 +261,26 @@ import "std/time"
 * **`std/os`**:
   * `os_name()`: Target OS (`"windows"`, `"linux"`, `"macos"`).
   * `arch_name()`: Target architecture (`"x64"`, `"arm64"`, `"x86"`).
+  * `get_pid()` / `pid()`: Current process OS Process ID integer.
+  * `get_cwd()` / `cwd()`: Current working directory path string.
+  * `set_cwd(path)` / `chdir(path)`: Change current working directory.
   * `env(key)`: Retrieve environment variable value.
   * `env_or(key, default)`: Retrieve environment variable with fallback.
   * `os_exit(code)`: Terminate process with exit code.
 * **`std/time`**:
-  * `time()`: Current Unix timestamp in seconds.
-  * `clock_ms()`: High-resolution millisecond timer.
-  * `sleep_ms(ms)`: Suspend thread execution.
+  * `time()` / `now()`: Current Unix timestamp in seconds.
+  * `clock_ms()` / `now_ms()`: High-resolution millisecond timer.
+  * `sleep_ms(ms)` / `delay(ms)`: Suspend thread execution in milliseconds.
+  * `epoch_to_date(epoch_sec)`: Converts epoch seconds to date map (`"year"`, `"month"`, `"day"`, `"hour"`, `"minute"`, `"second"`, `"weekday"`).
+  * `date_ymd_to_epoch(year, month, day)`: Converts calendar Y-M-D to epoch seconds UTC.
+  * `date_to_epoch(date_map)`: Converts date map to epoch seconds.
+  * `format_iso(epoch_sec)`: Formats ISO 8601 string (`"1970-01-01T00:00:00Z"`).
+  * `format_date(epoch_sec)`: Formats date string (`"YYYY-MM-DD"`).
+  * `format_time_hhmmss(epoch_sec)`: Formats time string (`"HH:MM:SS"`).
+  * `format_date_map(map)`: Formats date map into ISO 8601 string.
+  * `month_name(m)`, `month_short_name(m)`: English month names.
+  * `weekday_name(w)`, `weekday_short_name(w)`: English weekday names.
+  * `iso_now()`, `date_now()`, `time_now()`: Current date/time formatted strings.
 
 ---
 
@@ -411,6 +449,25 @@ mutex_free(lock)
 # 3. Join thread and retrieve 64-bit return value
 let result = thread_join(handle)
 say "Result from thread: {result}"    # 42
+
+# 4. Thread-Safe Channel (Producer-Consumer Queue)
+let ch = channel_new()
+channel_send(ch, 100)
+channel_send(ch, 200)
+let v1 = channel_recv(ch, 1000)       # 100
+let v2 = channel_try_recv(ch)         # 200
+channel_close(ch)
+channel_free(ch)
+
+# 5. WaitGroup Synchronization
+let wg = wait_group_new()
+wait_group_add(wg, 2)
+# Background workers call wait_group_done(wg) upon completion
+wait_group_done(wg)
+wait_group_done(wg)
+let completed = wait_group_wait(wg, 5000) # 1 if counter reached 0
+wait_group_free(wg)
 ```
+
 
 
