@@ -308,7 +308,8 @@ fn test_import_with_alias_resolution() {
 #[test]
 fn test_import_modular_submodules_with_alias_resolution() {
     use std::fs;
-    let temp_dir = std::env::temp_dir().join(format!("alya_modular_alias_test_{}", std::process::id()));
+    let temp_dir =
+        std::env::temp_dir().join(format!("alya_modular_alias_test_{}", std::process::id()));
     let _ = fs::create_dir_all(&temp_dir);
 
     let helper_path = temp_dir.join("core.alya");
