@@ -16,7 +16,7 @@ Each application showcases the language's capabilities: near-C execution perform
 | **[Port Scanner](#4-tcp-port-scanner-port_scanner)** | [`apps/port_scanner/`](port_scanner/main.alya) | Security / Networking | Asynchronous TCP port prober, service identification, ASCII progress bar, `std/net`, `std/time` |
 | **[Snake](#5-snake-arcade-game-snake)** | [`apps/snake/`](snake/main.alya) | Terminal Game / AI | Interactive manual mode (WASD), autonomous AI autopilot mode, high-score tracking, `std/color` |
 | **[Tic Tac Toe](#6-tic-tac-toe-tictactoe)** | [`apps/tictactoe/`](tictactoe/main.alya) | Terminal Game / AI | Player-vs-Player and Player-vs-AI with unbeatable Minimax algorithm, ANSI board, `std/console` |
-| **[Todo Manager](#7-terminal-todo-manager-todo)** | [`apps/todo/`](todo/main.alya) | Productivity / Tooling | Persistent task database, ANSI priority badges, category tags, progress bar, `std/fs`, `std/color` |
+| **[Todo Manager](#7-terminal-todo-manager-todo)** | [`apps/todo/`](todo/src/main.alya) | Productivity / Tooling | Package manager integration (`term_table`), task DB, ANSI badges, progress bar, `std/fs` |
 
 ---
 
@@ -137,30 +137,34 @@ An interactive, ANSI-colored board game supporting two-player local matches and 
 ---
 
 ### 7. Terminal Todo Manager (`todo`)
-A persistent terminal task manager and productivity tracker with ANSI color coding.
+A persistent terminal task manager and productivity tracker built using the **Alya Package Manager (`alyac pkg`)**.
 
-* **Key Features**: Auto-increment IDs, priority classification (🔴 HIGH, 🟡 MED, 🟢 LOW), category tags (`#core`, `#docs`, `#apps`), disk persistence (`todo.db`), real-time completion progress bar, productivity dashboard, and dual CLI / interactive REPL modes.
+* **Key Features**: Consumes the reusable [`packages/term_table`](../packages/term_table) package (`import "term_table" as ui`) locked in `Alya.lock`, auto-increment IDs, priority classification (🔴 HIGH, 🟡 MED, 🟢 LOW), category tags (`#core`, `#docs`, `#apps`), disk persistence (`todo.db`), real-time completion progress bar, and dual CLI / interactive REPL modes.
 * **Run**:
   ```bash
-  # Run as a package (inside apps/todo)
+  # Run as a package (automatically resolves alya.toml and dependencies)
   cd apps/todo
   alyac run
 
+  # Inspect package dependencies and lockfile
+  cd apps/todo
+  alyac pkg list
+
   # Add new tasks
-  alyac run apps/todo/main.alya -- add "Build C FFI engine" --pri high --tag core
-  alyac run apps/todo/main.alya -- add "Write LSP docs" --pri med --tag docs
+  alyac run apps/todo/src/main.alya -- add "Build C FFI engine" --pri high --tag core
+  alyac run apps/todo/src/main.alya -- add "Write LSP docs" --pri med --tag docs
 
   # List tasks and view progress
-  alyac run apps/todo/main.alya -- list
+  alyac run apps/todo/src/main.alya -- list
 
   # Mark task completed
-  alyac run apps/todo/main.alya -- done 1
+  alyac run apps/todo/src/main.alya -- done 1
 
   # View productivity metrics
-  alyac run apps/todo/main.alya -- stats
+  alyac run apps/todo/src/main.alya -- stats
 
   # Automated test suite
-  alyac run apps/todo/main.alya -- --test
+  alyac run apps/todo/src/main.alya -- --test
   ```
 
 ---

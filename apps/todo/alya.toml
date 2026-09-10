@@ -1,8 +1,9 @@
 [package]
 name = "todo"
 version = "1.0.0"
-entry = "main.alya"
+entry = "src/main.alya"
 description = "A sleek terminal task manager with priorities, tags, and persistence"
 license = "MIT"
 
 [dependencies]
+term_table = { path = "../../packages/term_table" }

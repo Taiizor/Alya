@@ -1,26 +1,12 @@
 # ═══════════════════════════════════════════════════════════════
 # Alya Todo Manager (todo)
 # Part of the Alya Apps Collection
-# ═══════════════════════════════════════════════════════════════
 #
-# Features:
-#   - Persistent task management stored in local disk database
-#   - Task attributes: auto-increment ID, status, priority, tag, title
-#   - Priority classification with ANSI color badges (HIGH, MED, LOW)
-#   - Flexible filtering: by completion status, tag, or priority
-#   - Productive statistics dashboard with visual completion progress
-#   - Dual operational mode: direct CLI subcommands & interactive REPL
-#   - Automated non-interactive test suite (--test)
-#
-# Usage:
-#   alyac run apps/todo/main.alya
-#   alyac run apps/todo/main.alya -- add "Implement feature" --pri high --tag dev
-#   alyac run apps/todo/main.alya -- list
-#   alyac run apps/todo/main.alya -- done 1
-#   alyac run apps/todo/main.alya -- stats
-#   alyac run apps/todo/main.alya -- --test
+# Uses Package Manager Dependency:
+#   import "term_table" as ui  (from ../../packages/term_table)
 # ═══════════════════════════════════════════════════════════════
 
+import "term_table" as ui
 import "std/fs"
 import "std/str"
 import "std/color"
@@ -112,18 +98,18 @@ end
 
 function format_priority(pri)
     when pri
-        is "HIGH" then return style_bold(color_red("HIGH")) + "    "
-        is "MED" then return color_yellow("MED") + "     "
-        is "LOW" then return color_cyan("LOW") + "     "
-        else return color_gray(pad_right(pri, 8, " "))
+        is "HIGH" then return ui::badge("HIGH", "red") + "    "
+        is "MED" then return ui::badge("MED", "yellow") + "     "
+        is "LOW" then return ui::badge("LOW", "cyan") + "     "
+        else return ui::badge(pad_right(pri, 8, " "), "gray")
     end
 end
 
 function format_status(done)
     if done == 1
-        return color_green("[✓]")
+        return ui::badge("[✓]", "green")
     else
-        return color_gray("[ ]")
+        return ui::badge("[ ]", "gray")
     end
 end
 
@@ -131,6 +117,7 @@ function print_banner()
     say color_cyan("╔═══════════════════════════════════════════════════════════════╗")
     say color_cyan("║") + "                      " + style_bold(color_bright_white("ALYA TODO MANAGER")) + "                        " + color_cyan("║")
     say color_cyan("║") + "             " + color_gray("Terminal Task & Productivity Suite") + "                " + color_cyan("║")
+    say color_cyan("║") + "           " + color_gray("Powered by 'term_table' Alya Package") + "            " + color_cyan("║")
     say color_cyan("╚═══════════════════════════════════════════════════════════════╝")
     say ""
 end
@@ -197,9 +184,9 @@ function cmd_list(db_path, filter_status, filter_tag)
         i += 1
     end
 
-    say "  ┌──────┬─────┬──────────┬─────────────────────────────────┬──────────┐"
-    say "  │ " + style_bold("ID  ") + " │ " + style_bold("ST ") + " │ " + style_bold("PRIORITY") + " │ " + style_bold("TASK TITLE                     ") + " │ " + style_bold("TAG     ") + " │"
-    say "  ├──────┼─────┼──────────┼─────────────────────────────────┼──────────┤"
+    say "  " + ui::box_top(4, 3, 8, 31, 8)
+    say "  " + ui::row(style_bold("ID  "), style_bold("ST "), style_bold("PRIORITY"), style_bold("TASK TITLE                     "), style_bold("TAG     "))
+    say "  " + ui::box_mid(4, 3, 8, 31, 8)
 
     if arr_len(matching) == 0
         say "  │ " + pad_right(color_gray("No matching tasks found."), 61, " ") + " │"
@@ -220,12 +207,12 @@ function cmd_list(db_path, filter_status, filter_tag)
             end
             let tag_pad = pad_right("#" + t.tag, 8, " ")
 
-            say "  │ " + id_str + " │ " + st_str + " │ " + pri_str + " │ " + title_pad + " │ " + color_magenta(tag_pad) + " │"
+            say "  " + ui::row(id_str, st_str, pri_str, title_pad, ui::badge(tag_pad, "magenta"))
             m_idx += 1
         end
     end
 
-    say "  └──────┴─────┴──────────┴─────────────────────────────────┴──────────┘"
+    say "  " + ui::box_bot(4, 3, 8, 31, 8)
 
     let pbar = console_progress_bar(done_count, total_count, 16)
     say "  " + style_bold("Progress") + ": " + pbar + " (" + str(done_count) + "/" + str(total_count) + " completed, " + str(total_count - done_count) + " pending)"
@@ -336,9 +323,9 @@ function cmd_stats(db_path)
     say "  Pending:          " + color_yellow(str(total - done))
     say ""
     say "  Priority Distribution:"
-    say "    • " + format_priority("HIGH") + ": " + str(high) + " task(s)"
-    say "    • " + format_priority("MED") + ": " + str(med) + " task(s)"
-    say "    • " + format_priority("LOW") + ": " + str(low) + " task(s)"
+    say "    • " + ui::badge("HIGH", "red") + "    : " + str(high) + " task(s)"
+    say "    • " + ui::badge("MED", "yellow") + "     : " + str(med) + " task(s)"
+    say "    • " + ui::badge("LOW", "cyan") + "     : " + str(low) + " task(s)"
     say "  ─────────────────────────────────────────────────────────────"
     say ""
 end
@@ -363,7 +350,7 @@ function run_test_suite()
         fs_remove(test_db)
     end
 
-    say color_yellow("[TODO]") + " Running automated test suite..."
+    say color_yellow("[TODO]") + " Running automated test suite (with 'term_table' package)..."
     cmd_add(test_db, "Implement C FFI engine", "HIGH", "core")
     cmd_add(test_db, "Write comprehensive LSP docs", "MED", "docs")
     cmd_add(test_db, "Refactor snake collision neighbors", "LOW", "apps")
@@ -398,7 +385,7 @@ function run_test_suite()
         fs_remove(test_db)
     end
 
-    say color_green("[SUCCESS]") + " Todo application verified cleanly."
+    say color_green("[SUCCESS]") + " Todo application with 'term_table' package verified cleanly."
     return 0
 end
 

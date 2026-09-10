@@ -1,0 +1,8 @@
+[package]
+name = "term_table"
+version = "0.1.0"
+entry = "src/lib.alya"
+description = "A lightweight Unicode and ANSI table formatting library for Alya"
+license = "MIT"
+
+[dependencies]
