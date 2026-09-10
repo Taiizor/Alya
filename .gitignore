@@ -53,3 +53,8 @@ pnpm-lock.yaml
 bun.lock
 bun.lockb
 deno.lock
+
+# Alya runtime, packages, and lockfile backups
+.alya/
+alya.lock.bak
+Alya.lock.bak

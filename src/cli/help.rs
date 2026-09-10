@@ -31,7 +31,7 @@ pub fn print_usage() {
     println!(
         "  add <name>            Add a dependency to alya.toml (--path, --git, --tag, --branch)"
     );
-    println!("  install               Resolve and lock all dependencies in Alya.lock");
+    println!("  install               Resolve and lock all dependencies in alya.lock");
     println!("  pkg <cmd>             Package manager commands (init, add, install, list, update)");
     println!("  help                  Display help information");
     println!("  version               Display version information\n");

@@ -80,7 +80,7 @@ Enable community library sharing, versioned dependency resolution, and automated
 - **Project Manifest (`alya.toml`)**:
   - Pure Rust zero-dependency TOML parser and serializer for `[package]` and `[dependencies]`.
   - Supports local path dependencies (`{ path = "..." }`), remote Git repositories (`{ git = "...", tag = "...", branch = "..." }`), and version constraints.
-- **Deterministic Lockfile (`Alya.lock`)**:
+- **Deterministic Lockfile (`alya.lock`)**:
   - Embedded pure Rust SHA-256 cryptographic verification (FIPS 180-4 / RFC 6234).
   - Reproducible builds recording resolved dependencies, entry points, sources, and content checksums.
 - **CLI Subcommands & Shortcuts**:

@@ -117,7 +117,7 @@ function print_banner()
     say color_cyan("╔═══════════════════════════════════════════════════════════════╗")
     say color_cyan("║") + "                      " + style_bold(color_bright_white("ALYA TODO MANAGER")) + "                        " + color_cyan("║")
     say color_cyan("║") + "             " + color_gray("Terminal Task & Productivity Suite") + "                " + color_cyan("║")
-    say color_cyan("║") + "           " + color_gray("Powered by 'term_table' Alya Package") + "            " + color_cyan("║")
+    say color_cyan("║") + "            " + color_gray("Powered by 'term_table' Alya Package") + "               " + color_cyan("║")
     say color_cyan("╚═══════════════════════════════════════════════════════════════╝")
     say ""
 end

@@ -2,7 +2,7 @@
 
 A sleek, persistent terminal task manager and productivity tracker built in **Alya**.
 
-Demonstrates the **Alya Package Manager (`alyac pkg`)** in action by consuming the external reusable package **`term_table`** declared in [`alya.toml`](alya.toml) and deterministically locked in [`Alya.lock`](Alya.lock).
+Demonstrates the **Alya Package Manager (`alyac pkg`)** in action by consuming the external reusable package **`term_table`** declared in [`alya.toml`](alya.toml) and deterministically locked in [`alya.lock`](alya.lock).
 
 ---
 
@@ -113,5 +113,5 @@ alyac run apps/todo/src/main.alya -- --test
 ## Architecture & Structure
 
 - [`alya.toml`](alya.toml): Project manifest declaring the `term_table` package dependency.
-- [`Alya.lock`](Alya.lock): Cryptographic SHA-256 lockfile ensuring reproducible dependency resolution.
+- [`alya.lock`](alya.lock): Cryptographic SHA-256 lockfile ensuring reproducible dependency resolution.
 - [`src/main.alya`](src/main.alya): Application entry importing `term_table` as `ui`.

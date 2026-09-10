@@ -139,7 +139,7 @@ An interactive, ANSI-colored board game supporting two-player local matches and 
 ### 7. Terminal Todo Manager (`todo`)
 A persistent terminal task manager and productivity tracker built using the **Alya Package Manager (`alyac pkg`)**.
 
-* **Key Features**: Consumes the reusable [`packages/term_table`](../packages/term_table) package (`import "term_table" as ui`) locked in `Alya.lock`, auto-increment IDs, priority classification (🔴 HIGH, 🟡 MED, 🟢 LOW), category tags (`#core`, `#docs`, `#apps`), disk persistence (`todo.db`), real-time completion progress bar, and dual CLI / interactive REPL modes.
+* **Key Features**: Consumes the reusable [`packages/term_table`](../packages/term_table) package (`import "term_table" as ui`) locked in `alya.lock`, auto-increment IDs, priority classification (🔴 HIGH, 🟡 MED, 🟢 LOW), category tags (`#core`, `#docs`, `#apps`), disk persistence (`todo.db`), real-time completion progress bar, and dual CLI / interactive REPL modes.
 * **Run**:
   ```bash
   # Run as a package (automatically resolves alya.toml and dependencies)

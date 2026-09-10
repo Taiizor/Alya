@@ -824,7 +824,11 @@ pub fn run_init(path: Option<&str>, name: Option<&str>, is_lib: bool) -> Result<
 
     let gitignore_path = target_dir.join(".gitignore");
     if !gitignore_path.exists() {
-        let gitignore = "/target/\n.alya/\n*.exe\n*.s\n*.o\n*.app\n";
+        let gitignore = if is_lib {
+            "/target/\n.alya/\nalya.lock\nalya.lock.bak\n*.exe\n*.s\n*.o\n*.app\n"
+        } else {
+            "/target/\n.alya/\nalya.lock.bak\n*.exe\n*.s\n*.o\n*.app\n"
+        };
         let _ = fs::write(gitignore_path, gitignore);
     }
 
@@ -1348,12 +1352,22 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
         packages: locked_packages,
     };
 
-    let lockfile_path = manifest_dir.join("Alya.lock");
+    let lockfile_path = manifest_dir.join("alya.lock");
     fs::write(&lockfile_path, serialize_lockfile(&lock))
-        .map_err(|e| format!("Failed to write Alya.lock: {}", e))?;
+        .map_err(|e| format!("Failed to write alya.lock: {}", e))?;
+
+    // On case-sensitive filesystems, remove legacy Alya.lock if distinct from alya.lock
+    let legacy_lock = manifest_dir.join("Alya.lock");
+    if legacy_lock.exists() {
+        if let (Ok(p1), Ok(p2)) = (lockfile_path.canonicalize(), legacy_lock.canonicalize()) {
+            if p1 != p2 {
+                let _ = fs::remove_file(&legacy_lock);
+            }
+        }
+    }
 
     println!(
-        "✓ Locked {} package{} in Alya.lock",
+        "✓ Locked {} package{} in alya.lock",
         lock.packages.len(),
         if lock.packages.len() == 1 { "" } else { "s" }
     );
@@ -1386,7 +1400,11 @@ pub fn run_list() -> Result<(), String> {
 
     println!("Dependencies ({}):", manifest.dependencies.len());
 
-    let lock_path = manifest_dir.join("Alya.lock");
+    let lock_path = if manifest_dir.join("alya.lock").exists() {
+        manifest_dir.join("alya.lock")
+    } else {
+        manifest_dir.join("Alya.lock")
+    };
     let lock = if lock_path.exists() {
         fs::read_to_string(&lock_path)
             .ok()
@@ -1442,7 +1460,7 @@ pub fn run_update() -> Result<(), String> {
 
 pub fn print_pkg_help() {
     println!("Alya Package Manager (alyac pkg)");
-    println!("Manage project dependencies, manifests (alya.toml), and lockfiles (Alya.lock).\n");
+    println!("Manage project dependencies, manifests (alya.toml), and lockfiles (alya.lock).\n");
     println!("USAGE:");
     println!("  alyac pkg <COMMAND> [OPTIONS]");
     println!("  alyac init [path] [OPTIONS]          # Shortcut for pkg init");
@@ -1630,8 +1648,8 @@ checksum = "sha256:abcdef1234567890"
         // Run install in app_dir
         run_install_in(&app_dir).unwrap();
 
-        assert!(app_dir.join("Alya.lock").exists());
-        let lock = parse_lockfile(&fs::read_to_string(app_dir.join("Alya.lock")).unwrap()).unwrap();
+        assert!(app_dir.join("alya.lock").exists());
+        let lock = parse_lockfile(&fs::read_to_string(app_dir.join("alya.lock")).unwrap()).unwrap();
         assert_eq!(lock.packages.len(), 1);
         assert_eq!(lock.packages[0].name, "math_lib");
         assert!(lock.packages[0].checksum.starts_with("sha256:"));
