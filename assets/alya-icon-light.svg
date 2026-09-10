@@ -78,13 +78,13 @@
     <g filter="url(#logo-beam-glow-light)">
       <polygon points="160,256 256,234 352,256 335,278 256,258 177,278" 
                fill="url(#logo-neon-beam-light)" 
-               stroke="#ffffff" stroke-width="1.2" />
+                />
       <!-- Glowing Center Energy Spark -->
       <polygon points="256,239 264,247 256,254 248,247" fill="#ffffff" />
     </g>
 
     <!-- 6. Apex Diamond Shard -->
-    <polygon points="256,101 269,130 256,144 243,130" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8" />
+    <polygon points="256,101 269,130 256,144 243,130" fill="#ffffff"  />
     <polygon points="256,101 269,130 256,134" fill="#bae6fd" />
   </g>
 </svg>
