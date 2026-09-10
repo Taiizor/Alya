@@ -132,15 +132,13 @@ impl BundleOptions {
 
         // Try local asset file first if available, otherwise write embedded ICNS
         let local_candidates = [
-            "assets/brand/icons/alyac-dark.icns",
-            "../assets/brand/icons/alyac-dark.icns",
+            "assets/brand/logos/alya-icon-dark.icns",
+            "../assets/brand/logos/alya-icon-dark.icns",
         ];
 
         for candidate in &local_candidates {
-            if Path::new(candidate).exists() {
-                if fs::copy(candidate, &target_icon).is_ok() {
-                    return Ok(());
-                }
+            if Path::new(candidate).exists() && fs::copy(candidate, &target_icon).is_ok() {
+                return Ok(());
             }
         }
 
