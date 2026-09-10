@@ -1,0 +1,235 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="64 34 384 464" width="424" height="512">
+  <defs>
+    <!-- Document Card Surface Gradient (Clean Pearl White) -->
+    <linearGradient id="doc-surface-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="60%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+
+    <!-- Document Card Outer Border -->
+    <linearGradient id="doc-stroke-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.45" />
+      <stop offset="35%" stop-color="#818cf8" stop-opacity="0.25" />
+      <stop offset="70%" stop-color="#0ea5e9" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#cbd5e1" stop-opacity="0.8" />
+    </linearGradient>
+
+    <!-- Fold Flap Gradients (Light Metallic/Paper fold) -->
+    <linearGradient id="flap-surface-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f1f5f9" />
+      <stop offset="50%" stop-color="#e2e8f0" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+
+    <linearGradient id="flap-stroke-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0.5" />
+    </linearGradient>
+
+    <!-- Left Wing (Deep Rich Amethyst) -->
+    <linearGradient id="left-outer-light" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#581c87" />
+      <stop offset="40%" stop-color="#7e22ce" />
+      <stop offset="80%" stop-color="#9333ea" />
+      <stop offset="100%" stop-color="#c084fc" />
+    </linearGradient>
+
+    <linearGradient id="left-inner-light" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b0764" />
+      <stop offset="50%" stop-color="#581c87" />
+      <stop offset="100%" stop-color="#6b21a8" />
+    </linearGradient>
+
+    <!-- Right Wing (Deep Rich Sky/Azure) -->
+    <linearGradient id="right-outer-light" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#0369a1" />
+      <stop offset="40%" stop-color="#0284c7" />
+      <stop offset="80%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+
+    <linearGradient id="right-inner-light" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#082f49" />
+      <stop offset="50%" stop-color="#075985" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+
+    <!-- Neon Speed Chevron Beam (Vibrant Prismatic Blade) -->
+    <linearGradient id="neon-beam-light" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#9333ea" />
+      <stop offset="25%" stop-color="#c084fc" />
+      <stop offset="50%" stop-color="#ffffff" />
+      <stop offset="75%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+
+    <!-- Badge Gradients (Light) -->
+    <linearGradient id="badge-bg-light" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(168, 85, 247, 0.08)" />
+      <stop offset="100%" stop-color="rgba(14, 165, 233, 0.08)" />
+    </linearGradient>
+
+    <linearGradient id="badge-border-light" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0.35" />
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="card-shadow-light" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#0f172a" flood-opacity="0.14" />
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08" />
+    </filter>
+
+    <filter id="flap-shadow-light" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="-3" dy="4" stdDeviation="5" flood-color="#0f172a" flood-opacity="0.22" />
+    </filter>
+
+    <filter id="emblem-ambient-light" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="20" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="beam-glow-light" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.25" />
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Clip Path for Document Body -->
+    <clipPath id="doc-clip-light">
+      <path d="M 116 42 
+               L 332 42 
+               L 424 134 
+               L 424 442 
+               A 26 26 0 0 1 398 468 
+               L 114 468 
+               A 26 26 0 0 1 88 442 
+               L 88 70 
+               A 26 26 0 0 1 116 42 Z" />
+    </clipPath>
+  </defs>
+
+  <!-- Document Card Shadow & Base -->
+  <g filter="url(#card-shadow-light)">
+    <path d="M 116 42 
+             L 332 42 
+             L 424 134 
+             L 424 442 
+             A 26 26 0 0 1 398 468 
+             L 114 468 
+             A 26 26 0 0 1 88 442 
+             L 88 70 
+             A 26 26 0 0 1 116 42 Z" 
+          fill="url(#doc-surface-light)" 
+          stroke="url(#doc-stroke-light)" 
+          stroke-width="2" 
+          stroke-linejoin="round" />
+  </g>
+
+  <!-- Clipped Inner Highlights & Code Watermarks -->
+  <g clip-path="url(#doc-clip-light)">
+    <!-- Ambient Radial Corner Tints -->
+    <circle cx="110" cy="70" r="150" fill="#a855f7" opacity="0.06" />
+    <circle cx="410" cy="430" r="160" fill="#0ea5e9" opacity="0.06" />
+
+    <!-- Subtle Code Watermark Lines (Light) -->
+    <g opacity="0.25">
+      <rect x="124" y="94" width="60" height="6" rx="3" fill="#7c3aed" opacity="0.5" />
+      <rect x="190" y="94" width="48" height="6" rx="3" fill="#0284c7" opacity="0.5" />
+      <rect x="144" y="114" width="96" height="5" rx="2.5" fill="#94a3b8" />
+      <rect x="144" y="129" width="128" height="5" rx="2.5" fill="#94a3b8" />
+      <rect x="144" y="144" width="76" height="5" rx="2.5" fill="#94a3b8" />
+      <rect x="124" y="162" width="32" height="5" rx="2.5" fill="#7c3aed" opacity="0.5" />
+
+      <!-- Bottom Lines -->
+      <rect x="124" y="375" width="44" height="5" rx="2.5" fill="#94a3b8" />
+      <rect x="174" y="375" width="76" height="5" rx="2.5" fill="#059669" opacity="0.6" />
+    </g>
+
+    <!-- Circuit / Trace Lines -->
+    <path d="M 88 325 H 132 L 152 345 H 164" stroke="#a855f7" stroke-width="1.2" opacity="0.2" fill="none" stroke-dasharray="3 3" />
+    <circle cx="164" cy="345" r="2" fill="#a855f7" opacity="0.3" />
+    <path d="M 424 295 H 380 L 360 275 H 348" stroke="#0ea5e9" stroke-width="1.2" opacity="0.2" fill="none" stroke-dasharray="3 3" />
+    <circle cx="348" cy="275" r="2" fill="#0ea5e9" opacity="0.3" />
+  </g>
+
+  <!-- Folded Corner Flap -->
+  <g filter="url(#flap-shadow-light)">
+    <path d="M 332 42 
+             L 332 122 
+             A 12 12 0 0 0 344 134 
+             L 424 134 Z" 
+          fill="url(#flap-surface-light)" 
+          stroke="url(#flap-stroke-light)" 
+          stroke-width="1.8" 
+          stroke-linejoin="round" />
+    <line x1="332" y1="42" x2="424" y2="134" stroke="rgba(255, 255, 255, 0.7)" stroke-width="1.5" />
+  </g>
+
+  <!-- ALYA EMBLEM: 3D FACETED DELTA (LIGHT THEME TUNED) -->
+  <g transform="translate(0, 10)">
+    <!-- Soft Backlight Glow -->
+    <circle cx="256" cy="226" r="95" fill="#a855f7" opacity="0.12" filter="url(#emblem-ambient-light)" />
+    <circle cx="256" cy="226" r="60" fill="#0ea5e9" opacity="0.15" filter="url(#emblem-ambient-light)" />
+
+    <!-- The "A" Structure -->
+    <g id="alya-prism-light">
+      <!-- 1. Left Outer Facet (Purple) -->
+      <polygon points="256,126 160,324 186,324 256,182" fill="url(#left-outer-light)" />
+
+      <!-- 2. Left Inner Facet (Darker Violet) -->
+      <polygon points="256,182 186,324 212,324 256,236" fill="url(#left-inner-light)" />
+
+      <!-- 3. Right Outer Facet (Azure Cyan) -->
+      <polygon points="256,126 352,324 326,324 256,182" fill="url(#right-outer-light)" />
+
+      <!-- 4. Right Inner Facet (Darker Azure) -->
+      <polygon points="256,182 326,324 300,324 256,236" fill="url(#right-inner-light)" />
+
+      <!-- 5. Prismatic Energy Crossbeam -->
+      <g filter="url(#beam-glow-light)">
+        <polygon points="176,252 256,234 336,252 322,270 256,254 190,270" 
+                 fill="url(#neon-beam-light)" 
+                 stroke="#ffffff" stroke-width="1" />
+        <!-- Glowing Center Energy Spark -->
+        <polygon points="256,238 263,245 256,251 249,245" fill="#ffffff" />
+      </g>
+
+      <!-- 6. Apex Diamond Shard -->
+      <polygon points="256,122 267,146 256,158 245,146" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.8" />
+      <polygon points="256,122 267,146 256,149" fill="#bae6fd" />
+    </g>
+  </g>
+
+  <!-- FILE TYPE BADGE (.ALYA) - LIGHT THEME -->
+  <g transform="translate(256, 412)">
+    <!-- Pill Container -->
+    <rect x="-82" y="-19" width="164" height="38" rx="19" 
+          fill="url(#badge-bg-light)" 
+          stroke="url(#badge-border-light)" 
+          stroke-width="1.5" />
+
+    <!-- Pulse Status Dot -->
+    <circle cx="-52" cy="0" r="3.5" fill="#0284c7" />
+    <circle cx="-52" cy="0" r="7.5" fill="#0ea5e9" opacity="0.25" />
+
+    <!-- Pure Vector Glyph Letterforms for ALYA (High Contrast Dark Slate) -->
+    <g transform="translate(10, 0)">
+      <!-- A -->
+      <path d="M -28 -9 L -19 9 L -23.5 9 L -25 5.2 L -30 5.2 L -31.5 9 L -36 9 Z M -27.5 -4.5 L -29 2 L -26 2 Z" fill="#0f172a" />
+      <!-- L -->
+      <path d="M -13 -9 L -8.5 -9 L -8.5 5 L -1 5 L -1 9 L -13 9 Z" fill="#0f172a" />
+      <!-- Y -->
+      <path d="M 5 -9 L 9.5 -9 L 12.5 -2.5 L 15.5 -9 L 20 -9 L 15 0.5 L 15 9 L 10.5 9 L 10.5 0.5 Z" fill="#0f172a" />
+      <!-- A -->
+      <path d="M 32 -9 L 41 9 L 36.5 9 L 35 5.2 L 30 5.2 L 28.5 9 L 24 9 Z M 32.5 -4.5 L 31 2 L 34 2 Z" fill="#0f172a" />
+    </g>
+  </g>
+</svg>
