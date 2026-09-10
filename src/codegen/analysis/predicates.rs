@@ -314,7 +314,8 @@ pub fn is_map_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "url_parse_query"
                     | "json_parse"
                     | "json_parse_object"
-            )
+            ) || vars.contains_key(&format!("fn_ret_map:{}", name))
+                || vars.contains_key(&format!("fn_ret_map:{}", bare))
         }
         Expr::Map(_) => true,
         Expr::Index { array, index } => {

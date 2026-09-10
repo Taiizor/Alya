@@ -19,7 +19,8 @@ fn expr_is_definitely_map(expr: &Expr, known_maps: &HashSet<String>) -> bool {
                     | "map_clone"
                     | "map_merge"
                     | "map_from_entries"
-            )
+            ) || known_maps.contains(&format!("fn_ret_map:{}", name))
+                || known_maps.contains(&format!("fn_ret_map:{}", bare))
         }
         Expr::Map(_) => true,
         Expr::Identifier(name) => known_maps.contains(name),
@@ -38,6 +39,39 @@ fn expr_is_definitely_map(expr: &Expr, known_maps: &HashSet<String>) -> bool {
         }
         _ => false,
     }
+}
+
+fn stmts_return_map(stmts: &[Stmt], known_maps: &HashSet<String>) -> bool {
+    stmts.iter().any(|s| match s {
+        Stmt::Return(Some(expr)) => expr_is_definitely_map(expr, known_maps),
+        Stmt::If {
+            then_block,
+            else_block,
+            ..
+        } => {
+            stmts_return_map(then_block, known_maps)
+                || else_block
+                    .as_ref()
+                    .is_some_and(|eb| stmts_return_map(eb, known_maps))
+        }
+        Stmt::While { body, .. }
+        | Stmt::Repeat { body }
+        | Stmt::For { body, .. }
+        | Stmt::ForEach { body, .. } => stmts_return_map(body, known_maps),
+        Stmt::TryCatch {
+            try_block,
+            catch_block,
+            finally_block,
+            ..
+        } => {
+            stmts_return_map(try_block, known_maps)
+                || stmts_return_map(catch_block, known_maps)
+                || finally_block
+                    .as_ref()
+                    .is_some_and(|fb| stmts_return_map(fb, known_maps))
+        }
+        _ => false,
+    })
 }
 
 fn collect_map_vars_from_stmts(stmts: &[Stmt], known_maps: &mut HashSet<String>) {
@@ -101,7 +135,13 @@ pub fn collect_known_map_vars(program: &Program) -> HashSet<String> {
     for _ in 0..5 {
         let prev_len = known_maps.len();
         collect_map_vars_from_stmts(&program.statements, &mut known_maps);
-        for (name, params, _) in &funcs {
+        for (name, params, body) in &funcs {
+            if stmts_return_map(body, &known_maps) {
+                known_maps.insert(format!("fn_ret_map:{}", name));
+                let bare = name.rsplit("::").next().unwrap_or(name);
+                let bare = bare.rsplit("__").next().unwrap_or(bare);
+                known_maps.insert(format!("fn_ret_map:{}", bare));
+            }
             for (idx, param) in params.iter().enumerate() {
                 if known_maps.contains(param) {
                     continue;
