@@ -1,0 +1,519 @@
+# ═══════════════════════════════════════════════════════════════
+# Alya Todo Manager (todo)
+# Part of the Alya Apps Collection
+# ═══════════════════════════════════════════════════════════════
+#
+# Features:
+#   - Persistent task management stored in local disk database
+#   - Task attributes: auto-increment ID, status, priority, tag, title
+#   - Priority classification with ANSI color badges (HIGH, MED, LOW)
+#   - Flexible filtering: by completion status, tag, or priority
+#   - Productive statistics dashboard with visual completion progress
+#   - Dual operational mode: direct CLI subcommands & interactive REPL
+#   - Automated non-interactive test suite (--test)
+#
+# Usage:
+#   alyac run apps/todo/main.alya
+#   alyac run apps/todo/main.alya -- add "Implement feature" --pri high --tag dev
+#   alyac run apps/todo/main.alya -- list
+#   alyac run apps/todo/main.alya -- done 1
+#   alyac run apps/todo/main.alya -- stats
+#   alyac run apps/todo/main.alya -- --test
+# ═══════════════════════════════════════════════════════════════
+
+import "std/fs"
+import "std/str"
+import "std/color"
+import "std/console"
+import "std/time"
+import "std/os"
+
+struct Task
+    id
+    done
+    priority
+    tag
+    title
+end
+
+function split_by_char(s, delim)
+    let res = []
+    let slen = len(s)
+    let cur = ""
+    let i = 0
+    while i < slen
+        let ch = char_at(s, i)
+        if ch == delim
+            res.push(cur)
+            cur = ""
+        else
+            cur += ch
+        end
+        i += 1
+    end
+    res.push(cur)
+    return res
+end
+
+function load_tasks(db_path)
+    let tasks = []
+    if fs_exists(db_path) == 0
+        return tasks
+    end
+
+    let raw = fs_read(db_path)
+    if is_empty(raw)
+        return tasks
+    end
+
+    let raw_lines = lines(raw)
+    let i = 0
+    while i < arr_len(raw_lines)
+        let line = trim(raw_lines[i])
+        if len(line) > 0 and char_at(line, 0) != "#"
+            let parts = split_by_char(line, "|")
+            if arr_len(parts) >= 5
+                let t_id = to_int(parts[0])
+                let t_done = to_int(parts[1])
+                let t_pri = parts[2]
+                let t_tag = parts[3]
+                let t_title = parts[4]
+                tasks.push(Task(t_id, t_done, t_pri, t_tag, t_title))
+            end
+        end
+        i += 1
+    end
+    return tasks
+end
+
+function save_tasks(db_path, tasks)
+    let content = "# Alya Todo Database\n"
+    let i = 0
+    while i < arr_len(tasks)
+        let t = tasks[i]
+        content += str(t.id) + "|" + str(t.done) + "|" + t.priority + "|" + t.tag + "|" + t.title + "\n"
+        i += 1
+    end
+    fs_write(db_path, content)
+end
+
+function get_next_id(tasks)
+    let max_id = 0
+    let i = 0
+    while i < arr_len(tasks)
+        let t = tasks[i]
+        if t.id > max_id
+            max_id = t.id
+        end
+        i += 1
+    end
+    return max_id + 1
+end
+
+function format_priority(pri)
+    when pri
+        is "HIGH" then return style_bold(color_red("HIGH")) + "    "
+        is "MED" then return color_yellow("MED") + "     "
+        is "LOW" then return color_cyan("LOW") + "     "
+        else return color_gray(pad_right(pri, 8, " "))
+    end
+end
+
+function format_status(done)
+    if done == 1
+        return color_green("[✓]")
+    else
+        return color_gray("[ ]")
+    end
+end
+
+function print_banner()
+    say color_cyan("╔═══════════════════════════════════════════════════════════════╗")
+    say color_cyan("║") + "                      " + style_bold(color_bright_white("ALYA TODO MANAGER")) + "                        " + color_cyan("║")
+    say color_cyan("║") + "             " + color_gray("Terminal Task & Productivity Suite") + "                " + color_cyan("║")
+    say color_cyan("╚═══════════════════════════════════════════════════════════════╝")
+    say ""
+end
+
+function cmd_add(db_path, title, priority, tag)
+    if is_blank(title)
+        say color_red("Error: Task title cannot be empty.")
+        return
+    end
+
+    let pri_upper = upper(priority)
+    if pri_upper != "HIGH" and pri_upper != "MED" and pri_upper != "LOW"
+        pri_upper = "MED"
+    end
+
+    let clean_tag = lower(tag)
+    if is_blank(clean_tag)
+        clean_tag = "general"
+    end
+
+    let tasks = load_tasks(db_path)
+    let new_id = get_next_id(tasks)
+    let new_task = Task(new_id, 0, pri_upper, clean_tag, title)
+    tasks.push(new_task)
+    save_tasks(db_path, tasks)
+
+    say color_green("✓ Added task #") + style_bold(str(new_id)) + ": " + title + " (" + style_bold(pri_upper) + ", #" + clean_tag + ")"
+end
+
+function cmd_list(db_path, filter_status, filter_tag)
+    let tasks = load_tasks(db_path)
+    if arr_len(tasks) == 0
+        say "  " + color_gray("No tasks recorded yet. Use 'add \"<title>\"' to create one.")
+        say ""
+        return
+    end
+
+    let matching = []
+    let done_count = 0
+    let total_count = arr_len(tasks)
+
+    let i = 0
+    while i < total_count
+        let t = tasks[i]
+        if t.done == 1
+            done_count += 1
+        end
+
+        let pass_status = 1
+        if filter_status == 1 and t.done != 1
+            pass_status = 0
+        elif filter_status == 0 and t.done != 0
+            pass_status = 0
+        end
+
+        let pass_tag = 1
+        if len(filter_tag) > 0 and t.tag != filter_tag
+            pass_tag = 0
+        end
+
+        if pass_status == 1 and pass_tag == 1
+            matching.push(t)
+        end
+        i += 1
+    end
+
+    say "  ┌──────┬─────┬──────────┬─────────────────────────────────┬──────────┐"
+    say "  │ " + style_bold("ID  ") + " │ " + style_bold("ST ") + " │ " + style_bold("PRIORITY") + " │ " + style_bold("TASK TITLE                     ") + " │ " + style_bold("TAG     ") + " │"
+    say "  ├──────┼─────┼──────────┼─────────────────────────────────┼──────────┤"
+
+    if arr_len(matching) == 0
+        say "  │ " + pad_right(color_gray("No matching tasks found."), 61, " ") + " │"
+    else
+        let m_idx = 0
+        while m_idx < arr_len(matching)
+            let t = matching[m_idx]
+            let id_str = pad_right("#" + str(t.id), 4, " ")
+            let st_str = format_status(t.done)
+            let pri_str = format_priority(t.priority)
+            let title_disp = t.title
+            if len(title_disp) > 31
+                title_disp = substring(title_disp, 0, 28) + "..."
+            end
+            let title_pad = pad_right(title_disp, 31, " ")
+            if t.done == 1
+                title_pad = style_dim(title_pad)
+            end
+            let tag_pad = pad_right("#" + t.tag, 8, " ")
+
+            say "  │ " + id_str + " │ " + st_str + " │ " + pri_str + " │ " + title_pad + " │ " + color_magenta(tag_pad) + " │"
+            m_idx += 1
+        end
+    end
+
+    say "  └──────┴─────┴──────────┴─────────────────────────────────┴──────────┘"
+
+    let pbar = console_progress_bar(done_count, total_count, 16)
+    say "  " + style_bold("Progress") + ": " + pbar + " (" + str(done_count) + "/" + str(total_count) + " completed, " + str(total_count - done_count) + " pending)"
+    say ""
+end
+
+function cmd_set_done(db_path, task_id, is_done)
+    let tasks = load_tasks(db_path)
+    let found = 0
+    let i = 0
+    while i < arr_len(tasks)
+        let t = tasks[i]
+        if t.id == task_id
+            t.done = is_done
+            found = 1
+            if is_done == 1
+                say color_green("✓ Marked task #") + str(task_id) + " as completed: " + t.title
+            else
+                say color_yellow("↺ Reopened task #") + str(task_id) + ": " + t.title
+            end
+            break
+        end
+        i += 1
+    end
+
+    if found == 0
+        say color_red("Error: Task #") + str(task_id) + " not found."
+    else
+        save_tasks(db_path, tasks)
+    end
+end
+
+function cmd_delete(db_path, task_id)
+    let tasks = load_tasks(db_path)
+    let new_tasks = []
+    let found = 0
+    let i = 0
+    while i < arr_len(tasks)
+        let t = tasks[i]
+        if t.id == task_id
+            found = 1
+            say color_green("✓ Removed task #") + str(task_id) + ": " + t.title
+        else
+            new_tasks.push(t)
+        end
+        i += 1
+    end
+
+    if found == 0
+        say color_red("Error: Task #") + str(task_id) + " not found."
+    else
+        save_tasks(db_path, new_tasks)
+    end
+end
+
+function cmd_clear(db_path)
+    let tasks = load_tasks(db_path)
+    let active_tasks = []
+    let cleared = 0
+    let i = 0
+    while i < arr_len(tasks)
+        let t = tasks[i]
+        if t.done == 1
+            cleared += 1
+        else
+            active_tasks.push(t)
+        end
+        i += 1
+    end
+
+    save_tasks(db_path, active_tasks)
+    say color_green("✓ Cleared ") + str(cleared) + " completed task(s). " + str(arr_len(active_tasks)) + " active task(s) remaining."
+end
+
+function cmd_stats(db_path)
+    let tasks = load_tasks(db_path)
+    let total = arr_len(tasks)
+    let done = 0
+    let high = 0
+    let med = 0
+    let low = 0
+
+    let i = 0
+    while i < total
+        let t = tasks[i]
+        if t.done == 1
+            done += 1
+        end
+        if t.priority == "HIGH"
+            high += 1
+        elif t.priority == "MED"
+            med += 1
+        elif t.priority == "LOW"
+            low += 1
+        end
+        i += 1
+    end
+
+    let pct = 0
+    if total > 0
+        pct = (done * 100) / total
+    end
+
+    say "  " + style_bold("Productivity Metrics & Breakdown:")
+    say "  ─────────────────────────────────────────────────────────────"
+    say "  Total Tasks:      " + str(total)
+    say "  Completed:        " + color_green(str(done)) + " (" + str(pct) + "%)"
+    say "  Pending:          " + color_yellow(str(total - done))
+    say ""
+    say "  Priority Distribution:"
+    say "    • " + format_priority("HIGH") + ": " + str(high) + " task(s)"
+    say "    • " + format_priority("MED") + ": " + str(med) + " task(s)"
+    say "    • " + format_priority("LOW") + ": " + str(low) + " task(s)"
+    say "  ─────────────────────────────────────────────────────────────"
+    say ""
+end
+
+function print_help()
+    say "Commands:"
+    say "  add <title> [--pri high|med|low] [--tag <name>]  Add new task"
+    say "  list [--all] [--pending] [--done] [--tag <name>] List recorded tasks"
+    say "  done <id>                                        Mark task as completed"
+    say "  undone <id>                                      Reopen completed task"
+    say "  rm <id> / delete <id>                            Delete task permanently"
+    say "  clear                                            Purge all completed tasks"
+    say "  stats                                            Display productivity statistics"
+    say "  help                                             Show this help message"
+    say "  exit / quit                                      Exit application"
+    say ""
+end
+
+function run_test_suite()
+    let test_db = "test_todo_runner.db"
+    if fs_exists(test_db)
+        fs_remove(test_db)
+    end
+
+    say color_yellow("[TODO]") + " Running automated test suite..."
+    cmd_add(test_db, "Implement C FFI engine", "HIGH", "core")
+    cmd_add(test_db, "Write comprehensive LSP docs", "MED", "docs")
+    cmd_add(test_db, "Refactor snake collision neighbors", "LOW", "apps")
+
+    let tasks = load_tasks(test_db)
+    if arr_len(tasks) != 3
+        say color_red("[FAIL] Expected 3 tasks, found " + str(arr_len(tasks)))
+        return 1
+    end
+
+    cmd_set_done(test_db, 1, 1)
+    tasks = load_tasks(test_db)
+    if tasks[0].done != 1
+        say color_red("[FAIL] Task #1 should be marked done")
+        return 1
+    end
+
+    cmd_delete(test_db, 2)
+    tasks = load_tasks(test_db)
+    if arr_len(tasks) != 2
+        say color_red("[FAIL] Expected 2 tasks after deletion")
+        return 1
+    end
+
+    say color_yellow("[TODO]") + " Displaying test list:"
+    cmd_list(test_db, -1, "")
+
+    say color_yellow("[TODO]") + " Displaying test statistics:"
+    cmd_stats(test_db)
+
+    if fs_exists(test_db)
+        fs_remove(test_db)
+    end
+
+    say color_green("[SUCCESS]") + " Todo application verified cleanly."
+    return 0
+end
+
+function interactive_mode(db_path)
+    print_banner()
+    print_help()
+    cmd_list(db_path, -1, "")
+
+    while 1
+        let line = trim(ask(color_cyan("alya-todo> ")))
+        if is_empty(line)
+            continue
+        end
+
+        if line == "exit" or line == "quit" or line == "q"
+            say "Goodbye!"
+            break
+        elif line == "help" or line == "-h" or line == "--help"
+            print_help()
+        elif line == "list" or line == "ls"
+            cmd_list(db_path, -1, "")
+        elif line == "clear"
+            cmd_clear(db_path)
+        elif line == "stats"
+            cmd_stats(db_path)
+        elif starts_with(line, "add ")
+            let title = trim(substring(line, 4, len(line) - 4))
+            cmd_add(db_path, title, "MED", "general")
+        elif starts_with(line, "done ")
+            let id_str = trim(substring(line, 5, len(line) - 5))
+            let tid = to_int(id_str)
+            cmd_set_done(db_path, tid, 1)
+        elif starts_with(line, "undone ")
+            let id_str = trim(substring(line, 7, len(line) - 7))
+            let tid = to_int(id_str)
+            cmd_set_done(db_path, tid, 0)
+        elif starts_with(line, "rm ") or starts_with(line, "delete ")
+            let skip = 3
+            if starts_with(line, "delete ")
+                skip = 7
+            end
+            let id_str = trim(substring(line, skip, len(line) - skip))
+            let tid = to_int(id_str)
+            cmd_delete(db_path, tid)
+        else
+            say color_red("Unknown command: '") + line + color_red("'. Type 'help' for available commands.")
+        end
+    end
+end
+
+function main()
+    let cli_args = args()
+    let db_path = "todo.db"
+
+    let is_test = 0
+    let arg_idx = 0
+    let cmd = ""
+    let cmd_target = ""
+    let pri = "MED"
+    let tag = "general"
+    let filter_status = -1
+
+    while arg_idx < arr_len(cli_args)
+        let a = cli_args[arg_idx]
+        if a == "--test" or a == "test"
+            is_test = 1
+        elif (a == "--pri" or a == "-p") and arg_idx + 1 < arr_len(cli_args)
+            pri = cli_args[arg_idx + 1]
+            arg_idx += 1
+        elif (a == "--tag" or a == "-t") and arg_idx + 1 < arr_len(cli_args)
+            tag = cli_args[arg_idx + 1]
+            arg_idx += 1
+        elif a == "--pending"
+            filter_status = 0
+        elif a == "--done"
+            filter_status = 1
+        elif a == "--all"
+            filter_status = -1
+        elif len(cmd) == 0 and char_at(a, 0) != "-"
+            cmd = a
+        elif len(cmd_target) == 0 and char_at(a, 0) != "-"
+            cmd_target = a
+        end
+        arg_idx += 1
+    end
+
+    if is_test == 1
+        run_test_suite()
+        return
+    end
+
+    if len(cmd) == 0
+        interactive_mode(db_path)
+        return
+    end
+
+    let filter_t = ""
+    if tag != "general"
+        filter_t = tag
+    end
+
+    when cmd
+        is "add" then cmd_add(db_path, cmd_target, pri, tag)
+        is "list", "ls" then cmd_list(db_path, filter_status, filter_t)
+        is "done" then cmd_set_done(db_path, to_int(cmd_target), 1)
+        is "undone" then cmd_set_done(db_path, to_int(cmd_target), 0)
+        is "rm", "delete" then cmd_delete(db_path, to_int(cmd_target))
+        is "clear" then cmd_clear(db_path)
+        is "stats" then cmd_stats(db_path)
+        is "help" then
+            print_banner()
+            print_help()
+        else
+            say color_red("Unknown command '") + cmd + color_red("'. Run 'help' for usage instructions.")
+    end
+end
+
+main()

@@ -466,15 +466,15 @@ impl CodeGen {
 
                 if (name == "int" || name == "to_int" || name == "parse_int") && args.len() == 1 {
                     self.generate_expression(&args[0]);
-                    if is_string_expr(&args[0], &self.ctx.variables) {
+                    if is_float_expr(&args[0], &self.ctx.variables) {
+                        arch::emit_float_to_int(&mut self.output, self.arch);
+                    } else {
                         arch::emit_call_str_to_int(
                             &mut self.output,
                             self.arch,
                             self.ctx.stack_offset,
                             self.os,
                         );
-                    } else if is_float_expr(&args[0], &self.ctx.variables) {
-                        arch::emit_float_to_int(&mut self.output, self.arch);
                     }
                     return;
                 }

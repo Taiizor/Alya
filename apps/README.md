@@ -16,6 +16,7 @@ Each application showcases the language's capabilities: near-C execution perform
 | **[Port Scanner](#4-tcp-port-scanner-port_scanner)** | [`apps/port_scanner/`](port_scanner/main.alya) | Security / Networking | Asynchronous TCP port prober, service identification, ASCII progress bar, `std/net`, `std/time` |
 | **[Snake](#5-snake-arcade-game-snake)** | [`apps/snake/`](snake/main.alya) | Terminal Game / AI | Interactive manual mode (WASD), autonomous AI autopilot mode, high-score tracking, `std/color` |
 | **[Tic Tac Toe](#6-tic-tac-toe-tictactoe)** | [`apps/tictactoe/`](tictactoe/main.alya) | Terminal Game / AI | Player-vs-Player and Player-vs-AI with unbeatable Minimax algorithm, ANSI board, `std/console` |
+| **[Todo Manager](#7-terminal-todo-manager-todo)** | [`apps/todo/`](todo/main.alya) | Productivity / Tooling | Persistent task database, ANSI priority badges, category tags, progress bar, `std/fs`, `std/color` |
 
 ---
 
@@ -135,6 +136,35 @@ An interactive, ANSI-colored board game supporting two-player local matches and 
 
 ---
 
+### 7. Terminal Todo Manager (`todo`)
+A persistent terminal task manager and productivity tracker with ANSI color coding.
+
+* **Key Features**: Auto-increment IDs, priority classification (🔴 HIGH, 🟡 MED, 🟢 LOW), category tags (`#core`, `#docs`, `#apps`), disk persistence (`todo.db`), real-time completion progress bar, productivity dashboard, and dual CLI / interactive REPL modes.
+* **Run**:
+  ```bash
+  # Run as a package (inside apps/todo)
+  cd apps/todo
+  alyac run
+
+  # Add new tasks
+  alyac run apps/todo/main.alya -- add "Build C FFI engine" --pri high --tag core
+  alyac run apps/todo/main.alya -- add "Write LSP docs" --pri med --tag docs
+
+  # List tasks and view progress
+  alyac run apps/todo/main.alya -- list
+
+  # Mark task completed
+  alyac run apps/todo/main.alya -- done 1
+
+  # View productivity metrics
+  alyac run apps/todo/main.alya -- stats
+
+  # Automated test suite
+  alyac run apps/todo/main.alya -- --test
+  ```
+
+---
+
 ## Building & Packaging Applications
 
 ### 1. Compile to a Standalone Executable
@@ -190,4 +220,5 @@ alyac run apps/http_bench/main.alya -- --test
 alyac run apps/http_server/main.alya -- --test
 alyac run apps/port_scanner/main.alya -- --test
 alyac run apps/snake/main.alya -- --test
+alyac run apps/todo/main.alya -- --test
 ```
