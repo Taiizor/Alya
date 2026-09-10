@@ -142,9 +142,56 @@ function runner_assert_eq(r, actual, expected, msg)
         return 1
     else
         r.failed += 1
-        say "  [FAIL] {msg} (expected: " + str(expected) + ", got: " + str(actual) + ")"
+        say "  [FAIL] {msg} (expected: {expected}, got: {actual})"
         return 0
     end
+end
+
+function runner_assert_ne(r, actual, expected, msg)
+    r.total += 1
+    if actual != expected
+        r.passed += 1
+        say "  [PASS] {msg}"
+        return 1
+    else
+        r.failed += 1
+        say "  [FAIL] {msg} (expected not: {expected})"
+        return 0
+    end
+end
+
+function runner_assert_str_eq(r, actual, expected, msg)
+    r.total += 1
+    if streq(actual, expected)
+        r.passed += 1
+        say "  [PASS] {msg}"
+        return 1
+    else
+        r.failed += 1
+        say "  [FAIL] {msg} (expected: \"" + expected + "\", got: \"" + actual + "\")"
+        return 0
+    end
+end
+
+function runner_assert_str_ne(r, actual, expected, msg)
+    r.total += 1
+    if streq(actual, expected) == 0
+        r.passed += 1
+        say "  [PASS] {msg}"
+        return 1
+    else
+        r.failed += 1
+        say "  [FAIL] {msg} (expected not: \"" + expected + "\")"
+        return 0
+    end
+end
+
+function runner_assert_true(r, cond, msg)
+    return runner_assert(r, cond, msg)
+end
+
+function runner_assert_false(r, cond, msg)
+    return runner_assert(r, cond == 0, msg)
 end
 
 function runner_summary(r)
