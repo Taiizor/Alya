@@ -36,6 +36,7 @@ Every topic in this wiki is structured in three progressive tiers:
 
 ## ⚡ Quick Links
 * 🚀 **GitHub Repository**: [Taiizor/Alya](https://github.com/Taiizor/Alya)
+* 🗺️ **Project Roadmap**: [ROADMAP.md](../ROADMAP.md)
 * 📱 **Applications Showcase**: [apps/](../apps/README.md)
 * 📊 **Performance Benchmarks**: [benchmarks/README.md](../benchmarks/README.md)
 * 💡 **Code Examples**: [examples/](../examples/)
