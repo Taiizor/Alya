@@ -43,3 +43,13 @@ desktop.ini
 # Test and coverage artifacts
 *.lcov
 coverage/
+
+# Node / Bun / Deno dependencies & lockfiles
+node_modules/
+.pnpm-store/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lock
+bun.lockb
+deno.lock

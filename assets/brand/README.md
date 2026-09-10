@@ -24,7 +24,8 @@ assets/brand/
 │   ├── alya-icon-light.svg       # Vector 3D prism emblem (Light theme)
 │   ├── alya-icon-light.png       # 485×512 transparent PNG (Light theme)
 │   └── alya-icon-light.ico       # Multi-resolution Windows ICO (Light theme)
-├── build.py                      # One-command asset regenerator script
+├── build.ts                      # One-command asset regenerator (Bun + Rust resvg)
+├── package.json                  # Bun dependencies
 └── README.md                     # This documentation
 ```
 
@@ -75,15 +76,15 @@ Every `.ico` file contains 7 embedded resolutions with **32-bit RGBA transparenc
 
 ## Regenerating Assets
 
-### Option A: One-Command Build Script (Recommended)
+### One-Command Pipeline with Bun & Rust resvg (Recommended)
 
-Run the included `build.py` script to rasterize all SVGs to transparent PNGs and package multi-resolution ICOs automatically:
+Run the included `build.ts` script using [Bun](https://bun.sh/). It renders vector SVGs to transparent PNGs and directly packages 7-resolution ICO files without any browser overhead:
 
 ```bash
-python assets/brand/build.py
+bun assets/brand/build.ts
 ```
 
-*Requirements: Python 3.8+ with Pillow (`pip install Pillow`), and Google Chrome or Microsoft Edge installed.*
+Powered by **`@resvg/resvg-js`** (the official precompiled native Rust `resvg` engine for Bun), achieving sub-second pixel-perfect rendering across Windows, Linux, and macOS.
 
 ---
 
