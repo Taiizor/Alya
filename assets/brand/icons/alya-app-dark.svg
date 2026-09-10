@@ -1,0 +1,222 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Chassis Surface Gradient -->
+    <linearGradient id="chassis-surface" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#141928" />
+      <stop offset="50%" stop-color="#0e1322" />
+      <stop offset="100%" stop-color="#070a14" />
+    </linearGradient>
+
+    <!-- Chassis Outer Stroke Gradient -->
+    <linearGradient id="chassis-stroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc" stop-opacity="0.85" />
+      <stop offset="35%" stop-color="#818cf8" stop-opacity="0.45" />
+      <stop offset="70%" stop-color="#38bdf8" stop-opacity="0.75" />
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0.3" />
+    </linearGradient>
+
+    <!-- App Viewport Header Surface -->
+    <linearGradient id="header-surface" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(255, 255, 255, 0.05)" />
+      <stop offset="100%" stop-color="rgba(255, 255, 255, 0.015)" />
+    </linearGradient>
+
+    <!-- Alya Left Wing (Amethyst Purple) -->
+    <linearGradient id="left-outer" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6b21a8" />
+      <stop offset="40%" stop-color="#9333ea" />
+      <stop offset="80%" stop-color="#c084fc" />
+      <stop offset="100%" stop-color="#e9d5ff" />
+    </linearGradient>
+
+    <linearGradient id="left-inner" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4c1d95" />
+      <stop offset="50%" stop-color="#6d28d9" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+
+    <!-- Alya Right Wing (Electric Sky / Cyan) -->
+    <linearGradient id="right-outer" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#0369a1" />
+      <stop offset="40%" stop-color="#0284c7" />
+      <stop offset="80%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#e0f2fe" />
+    </linearGradient>
+
+    <linearGradient id="right-inner" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#075985" />
+      <stop offset="50%" stop-color="#0369a1" />
+      <stop offset="100%" stop-color="#0ea5e9" />
+    </linearGradient>
+
+    <!-- Neon Speed Chevron Beam -->
+    <linearGradient id="neon-beam" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#c084fc" />
+      <stop offset="25%" stop-color="#e9d5ff" />
+      <stop offset="50%" stop-color="#ffffff" />
+      <stop offset="75%" stop-color="#bae6fd" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+
+    <!-- App Chip Gradients -->
+    <linearGradient id="app-chip-bg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(168, 85, 247, 0.18)" />
+      <stop offset="100%" stop-color="rgba(56, 189, 248, 0.18)" />
+    </linearGradient>
+
+    <linearGradient id="app-chip-border" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7" stop-opacity="0.65" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.65" />
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="chassis-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="22" stdDeviation="26" flood-color="#000000" flood-opacity="0.6" />
+      <feDropShadow dx="0" dy="6" stdDeviation="10" flood-color="#000000" flood-opacity="0.38" />
+    </filter>
+
+    <filter id="prism-ambient" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="22" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="beam-glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Clip Path for Squircle Chassis -->
+    <clipPath id="chassis-clip">
+      <rect x="36" y="36" width="440" height="440" rx="92" />
+    </clipPath>
+  </defs>
+
+  <!-- Squircle Chassis with Shadow -->
+  <g filter="url(#chassis-shadow)">
+    <rect x="36" y="36" width="440" height="440" rx="92"
+          fill="url(#chassis-surface)"
+          stroke="url(#chassis-stroke)"
+          stroke-width="2.5" />
+  </g>
+
+  <!-- Clipped App Canvas Interior -->
+  <g clip-path="url(#chassis-clip)">
+    <!-- App Window Viewport Header -->
+    <rect x="36" y="36" width="440" height="56" fill="url(#header-surface)" />
+    <line x1="36" y1="92" x2="476" y2="92" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1.2" />
+
+    <!-- App Identity Jewel (Diamond Spark) -->
+    <polygon points="76,57 83,64 76,71 69,64" fill="#38bdf8" />
+    <polygon points="76,60 80,64 76,68 72,64" fill="#ffffff" />
+    <circle cx="76" cy="64" r="8" fill="#38bdf8" opacity="0.25" />
+
+    <!-- App Segment Tab (UI Architecture nodes) -->
+    <g transform="translate(256, 64)">
+      <rect x="-42" y="-11" width="84" height="22" rx="5" fill="rgba(255, 255, 255, 0.04)" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1" />
+      <!-- 3 UI Architecture Nodes -->
+      <rect x="-26" y="-3" width="12" height="6" rx="1.5" fill="#c084fc" opacity="0.8" />
+      <rect x="-6" y="-3" width="12" height="6" rx="1.5" fill="#38bdf8" opacity="0.8" />
+      <rect x="14" y="-3" width="12" height="6" rx="1.5" fill="#22c55e" opacity="0.8" />
+    </g>
+
+    <!-- Runtime Active LED Node -->
+    <circle cx="436" cy="64" r="3.5" fill="#38bdf8" />
+    <circle cx="436" cy="64" r="7.5" fill="#38bdf8" opacity="0.25" />
+
+    <!-- Precision Application Blueprint / Geometry Alignment Guides -->
+    <g opacity="0.04" stroke="#94a3b8" stroke-width="1">
+      <!-- Crosshairs -->
+      <line x1="256" y1="92" x2="256" y2="476" />
+      <line x1="36" y1="240" x2="476" y2="240" />
+      <!-- Precision concentric circular guides -->
+      <circle cx="256" cy="240" r="80" fill="none" stroke="#94a3b8" />
+      <circle cx="256" cy="240" r="140" fill="none" stroke="#94a3b8" stroke-dasharray="6 4" />
+      <!-- Corner layout accents -->
+      <line x1="90" y1="140" x2="110" y2="140" />
+      <line x1="90" y1="140" x2="90" y2="160" />
+      <line x1="422" y1="140" x2="402" y2="140" />
+      <line x1="422" y1="140" x2="422" y2="160" />
+    </g>
+
+    <!-- Ambient Corner Glows -->
+    <circle cx="70" cy="130" r="140" fill="#a855f7" opacity="0.12" />
+    <circle cx="440" cy="440" r="150" fill="#38bdf8" opacity="0.1" />
+  </g>
+
+  <!-- ALYA PRISM EMBLEM -->
+  <g transform="translate(0, 16)">
+    <!-- Radial Aura Behind Emblem -->
+    <ellipse cx="256" cy="226" rx="95" ry="90" fill="#a855f7" opacity="0.22" filter="url(#prism-ambient)" />
+    <ellipse cx="256" cy="226" rx="65" ry="60" fill="#38bdf8" opacity="0.26" filter="url(#prism-ambient)" />
+
+    <!-- The 'A' Structure -->
+    <g id="alya-prism">
+      <!-- 1. Left Outer Facet (Light Purple) -->
+      <polygon points="256,106 142,342 173,342 256,172" fill="url(#left-outer)" />
+
+      <!-- 2. Left Inner Facet (Shadow Violet) -->
+      <polygon points="256,172 173,342 204,342 256,236" fill="url(#left-inner)" />
+
+      <!-- 3. Right Outer Facet (Light Cyan) -->
+      <polygon points="256,106 370,342 339,342 256,172" fill="url(#right-outer)" />
+
+      <!-- 4. Right Inner Facet (Shadow Azure) -->
+      <polygon points="256,172 339,342 308,342 256,236" fill="url(#right-inner)" />
+
+      <!-- 5. Dynamic Forward-Angle Speed Chevron (Crossbeam) -->
+      <g filter="url(#beam-glow)">
+        <polygon points="160,256 256,234 352,256 335,278 256,258 177,278" fill="url(#neon-beam)" />
+        <!-- Glowing Center Energy Spark -->
+        <polygon points="256,239 264,247 256,254 248,247" fill="#ffffff" />
+      </g>
+
+      <!-- 6. Apex Diamond Shard (Light Crown) -->
+      <polygon points="256,101 269,130 256,144 243,130" fill="#ffffff" opacity="0.98" />
+      <polygon points="256,101 269,130 256,134" fill="#bae6fd" opacity="0.85" />
+    </g>
+  </g>
+
+  <!-- APP IDENTITY BADGE PILL (ALYA APP) -->
+  <g transform="translate(256, 412)">
+    <!-- Pill Container -->
+    <rect x="-106" y="-19" width="212" height="38" rx="19"
+          fill="url(#app-chip-bg)"
+          stroke="url(#app-chip-border)"
+          stroke-width="1.5" />
+
+    <!-- 4-Tile Application Matrix Glyph -->
+    <g transform="translate(-86, -6)">
+      <rect x="0" y="0" width="5.5" height="5.5" rx="1.5" fill="#c084fc" />
+      <rect x="7.5" y="0" width="5.5" height="5.5" rx="1.5" fill="#38bdf8" />
+      <rect x="0" y="7.5" width="5.5" height="5.5" rx="1.5" fill="#38bdf8" />
+      <rect x="7.5" y="7.5" width="5.5" height="5.5" rx="1.5" fill="#c084fc" />
+    </g>
+
+    <!-- Pure Vector Letterforms for ALYA APP (No Font Dependencies) -->
+    <g fill="#f8fafc">
+      <!-- A -->
+      <path d="M -56 9 L -47.5 -9 L -39 9 L -43.5 9 L -45 5.2 L -50 5.2 L -51.5 9 Z M -47.5 -4.5 L -49 2 L -46 2 Z" />
+      <!-- L -->
+      <path d="M -33 -9 L -28.5 -9 L -28.5 5 L -21 5 L -21 9 L -33 9 Z" />
+      <!-- Y -->
+      <path d="M -16 -9 L -11.5 -9 L -8.5 -2.5 L -5.5 -9 L -1 -9 L -6 0.5 L -6 9 L -10.5 9 L -10.5 0.5 Z" />
+      <!-- A -->
+      <path d="M 4 9 L 12.5 -9 L 21 9 L 16.5 9 L 15 5.2 L 10 5.2 L 8.5 9 Z M 12.5 -4.5 L 11 2 L 14 2 Z" />
+
+      <!-- Word Gap -->
+
+      <!-- A -->
+      <path d="M 29 9 L 37.5 -9 L 46 9 L 41.5 9 L 40 5.2 L 35 5.2 L 33.5 9 Z M 37.5 -4.5 L 36 2 L 39 2 Z" />
+      <!-- P -->
+      <path d="M 51 9 L 51 -9 L 60.5 -9 C 64.5 -9 66 -6.5 66 -3.5 C 66 -0.5 64.5 2 60.5 2 L 55.5 2 L 55.5 9 Z M 55.5 -5.2 L 60.5 -5.2 C 61.8 -5.2 61.8 -1.8 60.5 -1.8 L 55.5 -1.8 Z" />
+      <!-- P -->
+      <path d="M 70 9 L 70 -9 L 79.5 -9 C 83.5 -9 85 -6.5 85 -3.5 C 85 -0.5 83.5 2 79.5 2 L 74.5 2 L 74.5 9 Z M 74.5 -5.2 L 79.5 -5.2 C 80.8 -5.2 80.8 -1.8 79.5 -1.8 L 74.5 -1.8 Z" />
+    </g>
+  </g>
+</svg>

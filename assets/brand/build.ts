@@ -193,6 +193,24 @@ function main() {
       height: 512,
       squareViewBox: "0 0 512 512",
     },
+    {
+      svgPath: join(ICONS_DIR, "alya-app-dark.svg"),
+      pngPath: join(ICONS_DIR, "alya-app-dark.png"),
+      icoPath: join(ICONS_DIR, "alya-app-dark.ico"),
+      icnsPath: join(ICONS_DIR, "alya-app-dark.icns"),
+      width: 512,
+      height: 512,
+      squareViewBox: "0 0 512 512",
+    },
+    {
+      svgPath: join(ICONS_DIR, "alya-app-light.svg"),
+      pngPath: join(ICONS_DIR, "alya-app-light.png"),
+      icoPath: join(ICONS_DIR, "alya-app-light.ico"),
+      icnsPath: join(ICONS_DIR, "alya-app-light.icns"),
+      width: 512,
+      height: 512,
+      squareViewBox: "0 0 512 512",
+    },
   ];
 
   const startTime = performance.now();

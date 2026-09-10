@@ -1,8 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Default embedded Apple ICNS icon (pure Alya prism emblem) for standalone zero-dependency bundling.
-const DEFAULT_APP_ICON_ICNS: &[u8] = include_bytes!("../../assets/brand/logos/alya-icon-dark.icns");
+/// Default embedded Apple ICNS icon (Alya Application icon) for standalone zero-dependency bundling.
+const DEFAULT_APP_ICON_ICNS: &[u8] = include_bytes!("../../assets/brand/icons/alya-app-dark.icns");
 
 #[derive(Debug, Clone)]
 pub struct BundleOptions {
@@ -132,8 +132,8 @@ impl BundleOptions {
 
         // Try local asset file first if available, otherwise write embedded ICNS
         let local_candidates = [
-            "assets/brand/logos/alya-icon-dark.icns",
-            "../assets/brand/logos/alya-icon-dark.icns",
+            "assets/brand/icons/alya-app-dark.icns",
+            "../assets/brand/icons/alya-app-dark.icns",
         ];
 
         for candidate in &local_candidates {

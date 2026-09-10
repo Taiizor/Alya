@@ -26,16 +26,24 @@ assets/brand/
 │   ├── alyac-light.svg           # Compiler application icon (Light theme)
 │   ├── alyac-light.png           # 512×512 transparent PNG (Light theme)
 │   ├── alyac-light.ico           # Multi-resolution Windows ICO for alyac.exe (Light theme)
-│   └── alyac-light.icns          # Multi-resolution Apple ICNS for alyac macOS CLI/tool (Light theme)
+│   ├── alyac-light.icns          # Multi-resolution Apple ICNS for alyac macOS CLI/tool (Light theme)
+│   ├── alya-app-dark.svg         # Application package icon (Dark theme)
+│   ├── alya-app-dark.png         # 512×512 transparent PNG (Dark theme)
+│   ├── alya-app-dark.ico         # Multi-resolution Windows ICO for bundled applications (Dark theme)
+│   ├── alya-app-dark.icns        # Multi-resolution Apple ICNS for bundled macOS .app (Dark theme)
+│   ├── alya-app-light.svg        # Application package icon (Light theme)
+│   ├── alya-app-light.png        # 512×512 transparent PNG (Light theme)
+│   ├── alya-app-light.ico        # Multi-resolution Windows ICO for bundled applications (Light theme)
+│   └── alya-app-light.icns       # Multi-resolution Apple ICNS for bundled macOS .app (Light theme)
 ├── logos/                        # Standalone Alya monogram emblems
 │   ├── alya-icon-dark.svg        # Vector 3D prism emblem (Dark theme)
 │   ├── alya-icon-dark.png        # 485×512 transparent PNG (Dark theme)
 │   ├── alya-icon-dark.ico        # Multi-resolution Windows ICO (Dark theme)
-│   ├── alya-icon-dark.icns       # Multi-resolution Apple ICNS (Default fallback for bundled .app) (Dark theme)
+│   ├── alya-icon-dark.icns       # Multi-resolution Apple ICNS (Dark theme)
 │   ├── alya-icon-light.svg       # Vector 3D prism emblem (Light theme)
 │   ├── alya-icon-light.png       # 485×512 transparent PNG (Light theme)
 │   ├── alya-icon-light.ico       # Multi-resolution Windows ICO (Light theme)
-│   └── alya-icon-light.icns      # Multi-resolution Apple ICNS (Default fallback for bundled .app) (Light theme)
+│   └── alya-icon-light.icns      # Multi-resolution Apple ICNS (Light theme)
 ├── build.ts                      # One-command asset regenerator (Bun + Rust resvg)
 ├── package.json                  # Bun dependencies
 └── README.md                     # This documentation
@@ -57,7 +65,14 @@ assets/brand/
 - **Badge**: Bottom interactive CLI command pill `>_ ALYAC` with a terminal prompt chevron, glowing cursor, and 100% vector-drawn letterforms.
 - **Native Dimensions**: **`512 × 512 px`** (Square 1:1, perfectly engineered for embedding directly into `alyac.exe` binaries via Windows Resource tools or system application launchers).
 
-### 3. Standalone Emblems (`logos/`)
+### 3. Application Package Icons (`icons/alya-app-*`)
+- **Silhouette**: Universal desktop squircle app container with glassmorphism elevation shadow, frosted viewport header bar, app identity jewel (`◆`), and runtime execution status LED.
+- **Stage Layout**: Precision application blueprint alignment crosshairs and concentric geometry calibration rings (`0.04` opacity).
+- **Centerpiece**: Full-glory 3D Alya Delta Prism with supersonic speed chevron and glowing core spark.
+- **Badge**: Bottom native application pill `▦ ALYA APP` with a 4-tile UI architecture matrix glyph in alternating amethyst violet and azure cyan.
+- **Native Dimensions**: **`512 × 512 px`** (Square 1:1, default embedded icon for macOS `.app` bundles via `alyac build --bundle` and desktop application packages).
+
+### 4. Standalone Emblems (`logos/`)
 - **Motif**: 3D chiseled Delta Prism forming the letter **A**, featuring:
   - **Left Wing**: Ascending Electric Amethyst & Violet gradient (`#9333ea` → `#c084fc`).
   - **Right Wing**: Descending Vivid Sky & Azure Cyan gradient (`#0284c7` → `#38bdf8`).
@@ -65,7 +80,7 @@ assets/brand/
   - **Summit**: Precision diamond crystal crown.
 - **Native Dimensions**: **`485 × 512 px`** (Height: 512px, Width: 485px, tightly bounded to the glyph).
 
-### 4. Windows Multi-Resolution Containers (`*.ico`)
+### 5. Windows Multi-Resolution Containers (`*.ico`)
 Every `.ico` file contains 7 embedded resolutions with **32-bit RGBA transparency**:
 - `16×16 px` — Taskbar small, File Explorer Details / List view
 - `24×24 px` — Start menu, high-DPI taskbar
@@ -75,7 +90,7 @@ Every `.ico` file contains 7 embedded resolutions with **32-bit RGBA transparenc
 - `128×128 px` — Touch displays and high-DPI scaling
 - `256×256 px` — Ultra high-resolution (PNG-compressed inside ICO)
 
-### 5. Apple macOS Multi-Resolution Containers (`*.icns`)
+### 6. Apple macOS Multi-Resolution Containers (`*.icns`)
 Every `.icns` container packages 6 embedded standard and Retina resolutions:
 - `16×16 px` (`icp4`) — Finder list / status
 - `32×32 px` (`icp5`) — Finder medium icon
