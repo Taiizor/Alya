@@ -416,6 +416,13 @@ impl CodeGen {
                 }
 
                 if name == "push" && args.len() == 2 {
+                    if is_string_expr(&args[1], &self.ctx.variables) {
+                        if let Expr::Identifier(arr_name) = &args[0] {
+                            self.ctx
+                                .variables
+                                .insert(format!("arr_is_str:{}", arr_name), VarType::Number(0));
+                        }
+                    }
                     self.generate_expression(&args[0]);
                     arch::emit_push_temp(&mut self.output, self.arch);
                     self.generate_expression(&args[1]);

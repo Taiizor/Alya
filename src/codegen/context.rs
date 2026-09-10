@@ -80,6 +80,7 @@ impl CodeGenContext {
             if k.starts_with("map_field_str:")
                 || k.starts_with("map_str:")
                 || k.starts_with("fn_ret_str:")
+                || k.starts_with("fn_ret_str_arr:")
                 || k.starts_with("fn_ret_flt:")
                 || k.starts_with("fn_ret_struct:")
                 || k.starts_with("fn_ret_tuple_str:")

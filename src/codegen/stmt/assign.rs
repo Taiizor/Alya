@@ -32,9 +32,10 @@ impl CodeGen {
                     .insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
             }
             Expr::Array(elements) => {
-                let is_str_arr = elements
-                    .first()
-                    .is_some_and(|e| is_string_expr(e, &self.ctx.variables));
+                let is_str_arr = !elements.is_empty()
+                    && elements
+                        .iter()
+                        .all(|e| is_string_expr(e, &self.ctx.variables));
                 let is_flt_arr = elements
                     .first()
                     .is_some_and(|e| is_float_expr(e, &self.ctx.variables));

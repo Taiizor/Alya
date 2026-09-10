@@ -161,6 +161,9 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
                     return true;
                 }
             }
+            if expr_is_string_array(array, known_strings) {
+                return true;
+            }
             match &**array {
                 Expr::Identifier(arr_name) => {
                     known_strings.contains(&format!("arr_is_str:{}", arr_name))
@@ -172,7 +175,8 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
                     matches!(
                         bare,
                         "split" | "args" | "cli_args" | "lines" | "read_lines" | "keys"
-                    )
+                    ) || known_strings.contains(&format!("fn_ret_str_arr:{}", name))
+                        || known_strings.contains(&format!("fn_ret_str_arr:{}", bare))
                 }
                 _ => expr_is_definitely_string(array, known_strings),
             }
@@ -183,17 +187,24 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
 
 fn expr_is_string_array(expr: &Expr, known_strings: &HashSet<String>) -> bool {
     match expr {
-        Expr::Array(elems) => elems
-            .first()
-            .is_some_and(|e| expr_is_definitely_string(e, known_strings)),
-        Expr::Identifier(name) => known_strings.contains(&format!("arr_is_str:{}", name)),
+        Expr::Array(elems) => {
+            !elems.is_empty()
+                && elems
+                    .iter()
+                    .all(|e| expr_is_definitely_string(e, known_strings))
+        }
+        Expr::Identifier(name) => {
+            known_strings.contains(&format!("arr_is_str:{}", name))
+                || known_strings.contains(&format!("fn_param_str_arr:{}", name))
+        }
         Expr::Call { name, .. } => {
             let bare = name.rsplit("::").next().unwrap_or(name.as_str());
             let bare = bare.rsplit("__").next().unwrap_or(bare);
             matches!(
                 bare,
                 "split" | "args" | "cli_args" | "lines" | "read_lines" | "keys"
-            )
+            ) || known_strings.contains(&format!("fn_ret_str_arr:{}", name))
+                || known_strings.contains(&format!("fn_ret_str_arr:{}", bare))
         }
         _ => false,
     }
@@ -280,6 +291,78 @@ fn collect_tuple_returns_string(
     }
 }
 
+fn collect_function_returns_string_array(
+    stmts: &[Stmt],
+    known_strings: &HashSet<String>,
+    fn_name: &str,
+    target_strings: &mut HashSet<String>,
+) {
+    for s in stmts {
+        match s {
+            Stmt::Return(Some(expr)) if expr_is_string_array(expr, known_strings) => {
+                target_strings.insert(format!("fn_ret_str_arr:{}", fn_name));
+                let bare = fn_name.rsplit("::").next().unwrap_or(fn_name);
+                let bare = bare.rsplit("__").next().unwrap_or(bare);
+                target_strings.insert(format!("fn_ret_str_arr:{}", bare));
+            }
+            Stmt::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                collect_function_returns_string_array(
+                    then_block,
+                    known_strings,
+                    fn_name,
+                    target_strings,
+                );
+                if let Some(eb) = else_block {
+                    collect_function_returns_string_array(
+                        eb,
+                        known_strings,
+                        fn_name,
+                        target_strings,
+                    );
+                }
+            }
+            Stmt::While { body, .. }
+            | Stmt::Repeat { body }
+            | Stmt::For { body, .. }
+            | Stmt::ForEach { body, .. } => {
+                collect_function_returns_string_array(body, known_strings, fn_name, target_strings);
+            }
+            Stmt::TryCatch {
+                try_block,
+                catch_block,
+                finally_block,
+                ..
+            } => {
+                collect_function_returns_string_array(
+                    try_block,
+                    known_strings,
+                    fn_name,
+                    target_strings,
+                );
+                collect_function_returns_string_array(
+                    catch_block,
+                    known_strings,
+                    fn_name,
+                    target_strings,
+                );
+                if let Some(fb) = finally_block {
+                    collect_function_returns_string_array(
+                        fb,
+                        known_strings,
+                        fn_name,
+                        target_strings,
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
 fn collect_struct_defs(stmts: &[Stmt], map: &mut HashMap<String, Vec<String>>) {
     for s in stmts {
         match s {
@@ -329,6 +412,14 @@ fn scan_expr_for_strings(
         Expr::Call { name, args } => {
             let bare = name.rsplit("::").next().unwrap_or(name.as_str());
             let bare = bare.rsplit("__").next().unwrap_or(bare);
+            if (bare == "push" || bare == "array_push" || bare == "append")
+                && args.len() >= 2
+                && expr_is_definitely_string(&args[1], known_strings)
+            {
+                if let Expr::Identifier(arr_name) = &args[0] {
+                    known_strings.insert(format!("arr_is_str:{}", arr_name));
+                }
+            }
             for (idx, arg) in args.iter().enumerate() {
                 if expr_is_definitely_string(arg, known_strings) {
                     known_strings.insert(format!("fn_param_str:{}:{}", name, idx));
@@ -576,6 +667,15 @@ fn collect_string_vars_from_stmts(
                         fn_locals.insert(format!("arr_is_str:{}", param));
                     }
                 }
+                let prefix1 = format!("fn_local_str_arr:{}:", name);
+                let prefix2 = format!("fn_local_str_arr:{}:", bare);
+                for item in known_strings.iter() {
+                    if let Some(var_name) = item.strip_prefix(&prefix1) {
+                        fn_locals.insert(format!("arr_is_str:{}", var_name));
+                    } else if let Some(var_name) = item.strip_prefix(&prefix2) {
+                        fn_locals.insert(format!("arr_is_str:{}", var_name));
+                    }
+                }
                 collect_string_vars_from_stmts(body, struct_defs, &mut fn_locals);
                 if stmts_return_string(body, &fn_locals) {
                     known_strings.insert(format!("fn_ret_str:{}", name));
@@ -583,8 +683,15 @@ fn collect_string_vars_from_stmts(
                 }
                 collect_tuple_returns_string(body, &fn_locals, name, known_strings);
                 collect_tuple_returns_string(body, &fn_locals, bare, known_strings);
-                for item in fn_locals {
+                collect_function_returns_string_array(body, &fn_locals, name, known_strings);
+                collect_function_returns_string_array(body, &fn_locals, bare, known_strings);
+                for item in &fn_locals {
+                    if let Some(var_name) = item.strip_prefix("arr_is_str:") {
+                        known_strings.insert(format!("fn_local_str_arr:{}:{}", name, var_name));
+                        known_strings.insert(format!("fn_local_str_arr:{}:{}", bare, var_name));
+                    }
                     if item.starts_with("fn_ret_str:")
+                        || item.starts_with("fn_ret_str_arr:")
                         || item.starts_with("fn_ret_tuple_str:")
                         || item.starts_with("tuple_elem_str:")
                         || item.starts_with("map_field_str:")
@@ -593,7 +700,7 @@ fn collect_string_vars_from_stmts(
                         || item.starts_with("fn_param_str:")
                         || item.starts_with("fn_param_str_arr:")
                     {
-                        known_strings.insert(item);
+                        known_strings.insert(item.clone());
                     }
                 }
             }
@@ -631,8 +738,7 @@ pub fn collect_known_string_vars(program: &Program) -> HashSet<String> {
             let bare = name.rsplit("::").next().unwrap_or(name);
             let bare = bare.rsplit("__").next().unwrap_or(bare);
             for (idx, param) in params.iter().enumerate() {
-                if !known_strings.contains(&format!("arr_is_str:{}", param))
-                    && !known_strings.contains(&format!("fn_param_str_arr:{}:{}", name, idx))
+                if !known_strings.contains(&format!("fn_param_str_arr:{}:{}", name, idx))
                     && !known_strings.contains(&format!("fn_param_str_arr:{}:{}", bare, idx))
                 {
                     let is_str_arr = program.statements.iter().any(|s| {
@@ -645,7 +751,6 @@ pub fn collect_known_string_vars(program: &Program) -> HashSet<String> {
                         }
                     });
                     if is_str_arr {
-                        known_strings.insert(format!("arr_is_str:{}", param));
                         known_strings.insert(format!("fn_param_str_arr:{}:{}", name, idx));
                         known_strings.insert(format!("fn_param_str_arr:{}:{}", bare, idx));
                     }

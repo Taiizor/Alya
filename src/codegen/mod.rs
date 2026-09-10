@@ -51,6 +51,7 @@ impl CodeGen {
             if s.starts_with("map_field_str:")
                 || s.starts_with("map_str:")
                 || s.starts_with("fn_ret_str:")
+                || s.starts_with("fn_ret_str_arr:")
                 || s.starts_with("fn_ret_tuple_str:")
                 || s.starts_with("tuple_elem_str:")
                 || s.starts_with("struct_field_str:")
@@ -125,6 +126,22 @@ impl CodeGen {
         inference: &ProgramInference,
     ) {
         let saved = self.ctx.enter_function();
+
+        let bare = name.rsplit("::").next().unwrap_or(name);
+        let bare = bare.rsplit("__").next().unwrap_or(bare);
+        let prefix1 = format!("fn_local_str_arr:{}:", name);
+        let prefix2 = format!("fn_local_str_arr:{}:", bare);
+        for s in &inference.known_strings {
+            if let Some(var_name) = s.strip_prefix(&prefix1) {
+                self.ctx
+                    .variables
+                    .insert(format!("arr_is_str:{}", var_name), VarType::Number(0));
+            } else if let Some(var_name) = s.strip_prefix(&prefix2) {
+                self.ctx
+                    .variables
+                    .insert(format!("arr_is_str:{}", var_name), VarType::Number(0));
+            }
+        }
 
         arch::emit_function_prologue(&mut self.output, self.arch, name);
 

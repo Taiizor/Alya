@@ -58,3 +58,4 @@ deno.lock
 .alya/
 alya.lock.bak
 Alya.lock.bak
+*.db

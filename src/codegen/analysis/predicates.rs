@@ -256,7 +256,8 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "list_dir_recursive"
                     | "fs_list_dir_recursive"
                     | "json_parse_array"
-            )
+            ) || vars.contains_key(&format!("fn_ret_str_arr:{}", name))
+                || vars.contains_key(&format!("fn_ret_str_arr:{}", bare))
         }
         Expr::FieldAccess { object, field } => {
             if let Expr::Identifier(obj_name) = &**object {
@@ -366,7 +367,7 @@ pub fn is_map_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
 
 pub fn is_string_array(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
     match expr {
-        Expr::Array(elems) => elems.first().is_some_and(|e| is_string_expr(e, vars)),
+        Expr::Array(elems) => !elems.is_empty() && elems.iter().all(|e| is_string_expr(e, vars)),
         Expr::Identifier(name) => vars.contains_key(&format!("arr_is_str:{}", name)),
         Expr::Call { name, .. } => {
             let bare = name.rsplit("::").next().unwrap_or(name.as_str());
@@ -387,7 +388,8 @@ pub fn is_string_array(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "glob"
                     | "glob_dir"
                     | "glob_filter"
-            )
+            ) || vars.contains_key(&format!("fn_ret_str_arr:{}", name))
+                || vars.contains_key(&format!("fn_ret_str_arr:{}", bare))
         }
         _ => false,
     }

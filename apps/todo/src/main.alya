@@ -378,8 +378,53 @@ function run_test_suite()
     say color_yellow("[TODO]") + " Displaying test list:"
     cmd_list(test_db, -1, "")
 
+    # Test interactive tokenization and command execution
+    let add_tokens = tokenize_command("add \"Interactive Task Title\" --pri high --tag interactive")
+    execute_action(add_tokens, test_db)
+
+    tasks = load_tasks(test_db)
+    if arr_len(tasks) != 3
+        say color_red("[FAIL] Expected 3 tasks after interactive add")
+        return 1
+    end
+    let last_t = tasks[2]
+    if last_t.title != "Interactive Task Title" or last_t.priority != "HIGH" or last_t.tag != "interactive"
+        say color_red("[FAIL] Interactive add task properties mismatched")
+        return 1
+    end
+
+    say color_yellow("[TODO]") + " Testing interactive list variations..."
+    execute_action(tokenize_command("list --all"), test_db)
+    execute_action(tokenize_command("list all"), test_db)
+    execute_action(tokenize_command("list -all"), test_db)
+    execute_action(tokenize_command("list pending"), test_db)
+    execute_action(tokenize_command("list --tag interactive"), test_db)
+
+    say color_yellow("[TODO]") + " Testing done / undone / rm with # prefixes..."
+    execute_action(tokenize_command("done 4"), test_db)
+    tasks = load_tasks(test_db)
+    if tasks[2].done != 1
+        say color_red("[FAIL] Task #4 should be completed")
+        return 1
+    end
+
+    execute_action(tokenize_command("undone #4"), test_db)
+    tasks = load_tasks(test_db)
+    if tasks[2].done != 0
+        say color_red("[FAIL] Task #4 should be reopened")
+        return 1
+    end
+
+    execute_action(tokenize_command("done #4"), test_db)
+    execute_action(tokenize_command("clear"), test_db)
+    tasks = load_tasks(test_db)
+    if arr_len(tasks) != 1
+        say color_red("[FAIL] Expected 1 active task after clear")
+        return 1
+    end
+
     say color_yellow("[TODO]") + " Displaying test statistics:"
-    cmd_stats(test_db)
+    execute_action(tokenize_command("stats"), test_db)
 
     if fs_exists(test_db)
         fs_remove(test_db)
@@ -387,6 +432,181 @@ function run_test_suite()
 
     say color_green("[SUCCESS]") + " Todo application with 'term_table' package verified cleanly."
     return 0
+end
+
+function tokenize_command(line)
+    let tokens = []
+    let slen = len(line)
+    let cur = ""
+    let in_quote = 0
+    let quote_char = ""
+    let i = 0
+
+    while i < slen
+        let ch = char_at(line, i)
+        if in_quote == 1
+            if ch == quote_char
+                in_quote = 0
+                tokens.push(cur)
+                cur = ""
+            else
+                cur += ch
+            end
+        else
+            if ch == "\"" or ch == "'"
+                in_quote = 1
+                quote_char = ch
+            elif ch == " " or ch == "\t"
+                if len(cur) > 0
+                    tokens.push(cur)
+                    cur = ""
+                end
+            else
+                cur += ch
+            end
+        end
+        i += 1
+    end
+
+    if len(cur) > 0
+        tokens.push(cur)
+    end
+
+    return tokens
+end
+
+function execute_action(tokens, db_path)
+    if arr_len(tokens) == 0
+        return
+    end
+
+    let raw_cmd = tokens[0]
+    let cmd = lower(raw_cmd)
+
+    if cmd == "help" or cmd == "--help" or cmd == "-h" or cmd == "?"
+        print_banner()
+        print_help()
+        return
+    elif cmd == "clear"
+        cmd_clear(db_path)
+        return
+    elif cmd == "stats"
+        cmd_stats(db_path)
+        return
+    elif cmd == "list" or cmd == "ls"
+        let filter_status = -1
+        let filter_tag = ""
+        let j = 1
+        while j < arr_len(tokens)
+            let tok = tokens[j]
+            let tok_l = lower(tok)
+            if tok_l == "--all" or tok_l == "-all" or tok_l == "all" or tok_l == "-a"
+                filter_status = -1
+            elif tok_l == "--pending" or tok_l == "-pending" or tok_l == "pending" or tok_l == "-p" or tok_l == "todo" or tok_l == "active"
+                filter_status = 0
+            elif tok_l == "--done" or tok_l == "-done" or tok_l == "done" or tok_l == "-d" or tok_l == "completed"
+                filter_status = 1
+            elif (tok_l == "--tag" or tok_l == "-t") and j + 1 < arr_len(tokens)
+                filter_tag = lower(tokens[j + 1])
+                j += 1
+            elif starts_with(tok_l, "--tag=")
+                filter_tag = lower(substring(tok, 6, len(tok) - 6))
+            elif starts_with(tok_l, "#")
+                filter_tag = lower(substring(tok, 1, len(tok) - 1))
+            else
+                filter_tag = tok_l
+            end
+            j += 1
+        end
+        if starts_with(filter_tag, "#")
+            filter_tag = substring(filter_tag, 1, len(filter_tag) - 1)
+        end
+        cmd_list(db_path, filter_status, filter_tag)
+        return
+    elif cmd == "add"
+        let title_parts = []
+        let pri = "MED"
+        let tag = "general"
+        let j = 1
+        while j < arr_len(tokens)
+            let tok = tokens[j]
+            let tok_l = lower(tok)
+            if (tok_l == "--pri" or tok_l == "-p" or tok_l == "--priority") and j + 1 < arr_len(tokens)
+                pri = tokens[j + 1]
+                j += 1
+            elif starts_with(tok_l, "--pri=")
+                pri = substring(tok, 6, len(tok) - 6)
+            elif (tok_l == "--tag" or tok_l == "-t") and j + 1 < arr_len(tokens)
+                tag = tokens[j + 1]
+                j += 1
+            elif starts_with(tok_l, "--tag=")
+                tag = substring(tok, 6, len(tok) - 6)
+            else
+                title_parts.push(tok)
+            end
+            j += 1
+        end
+
+        if starts_with(tag, "#")
+            tag = substring(tag, 1, len(tag) - 1)
+        end
+
+        let title = ""
+        let k = 0
+        while k < arr_len(title_parts)
+            if k > 0
+                title += " "
+            end
+            title += title_parts[k]
+            k += 1
+        end
+
+        if is_blank(title)
+            say color_red("Error: Task title cannot be empty. Usage: add <title> [--pri high|med|low] [--tag <name>]")
+            return
+        end
+
+        cmd_add(db_path, title, pri, tag)
+        return
+    elif cmd == "done" or cmd == "undone"
+        if arr_len(tokens) < 2
+            say color_red("Error: Missing task ID. Usage: ") + cmd + " <id>"
+            return
+        end
+        let raw_id = tokens[1]
+        if starts_with(raw_id, "#")
+            raw_id = substring(raw_id, 1, len(raw_id) - 1)
+        end
+        let tid = to_int(raw_id)
+        if tid <= 0
+            say color_red("Error: Invalid task ID '") + tokens[1] + color_red("'. Please specify a numeric ID.")
+            return
+        end
+        if cmd == "done"
+            cmd_set_done(db_path, tid, 1)
+        else
+            cmd_set_done(db_path, tid, 0)
+        end
+        return
+    elif cmd == "rm" or cmd == "delete" or cmd == "remove"
+        if arr_len(tokens) < 2
+            say color_red("Error: Missing task ID. Usage: ") + cmd + " <id>"
+            return
+        end
+        let raw_id = tokens[1]
+        if starts_with(raw_id, "#")
+            raw_id = substring(raw_id, 1, len(raw_id) - 1)
+        end
+        let tid = to_int(raw_id)
+        if tid <= 0
+            say color_red("Error: Invalid task ID '") + tokens[1] + color_red("'. Please specify a numeric ID.")
+            return
+        end
+        cmd_delete(db_path, tid)
+        return
+    else
+        say color_red("Unknown command: '") + raw_cmd + color_red("'. Type 'help' for available commands.")
+    end
 end
 
 function interactive_mode(db_path)
@@ -400,39 +620,18 @@ function interactive_mode(db_path)
             continue
         end
 
-        if line == "exit" or line == "quit" or line == "q"
+        let tokens = tokenize_command(line)
+        if arr_len(tokens) == 0
+            continue
+        end
+
+        let first = lower(tokens[0])
+        if first == "exit" or first == "quit" or first == "q"
             say "Goodbye!"
             break
-        elif line == "help" or line == "-h" or line == "--help"
-            print_help()
-        elif line == "list" or line == "ls"
-            cmd_list(db_path, -1, "")
-        elif line == "clear"
-            cmd_clear(db_path)
-        elif line == "stats"
-            cmd_stats(db_path)
-        elif starts_with(line, "add ")
-            let title = trim(substring(line, 4, len(line) - 4))
-            cmd_add(db_path, title, "MED", "general")
-        elif starts_with(line, "done ")
-            let id_str = trim(substring(line, 5, len(line) - 5))
-            let tid = to_int(id_str)
-            cmd_set_done(db_path, tid, 1)
-        elif starts_with(line, "undone ")
-            let id_str = trim(substring(line, 7, len(line) - 7))
-            let tid = to_int(id_str)
-            cmd_set_done(db_path, tid, 0)
-        elif starts_with(line, "rm ") or starts_with(line, "delete ")
-            let skip = 3
-            if starts_with(line, "delete ")
-                skip = 7
-            end
-            let id_str = trim(substring(line, skip, len(line) - skip))
-            let tid = to_int(id_str)
-            cmd_delete(db_path, tid)
-        else
-            say color_red("Unknown command: '") + line + color_red("'. Type 'help' for available commands.")
         end
+
+        execute_action(tokens, db_path)
     end
 end
 
@@ -440,67 +639,17 @@ function main()
     let cli_args = args()
     let db_path = "todo.db"
 
-    let is_test = 0
-    let arg_idx = 0
-    let cmd = ""
-    let cmd_target = ""
-    let pri = "MED"
-    let tag = "general"
-    let filter_status = -1
-
-    while arg_idx < arr_len(cli_args)
-        let a = cli_args[arg_idx]
-        if a == "--test" or a == "test"
-            is_test = 1
-        elif (a == "--pri" or a == "-p") and arg_idx + 1 < arr_len(cli_args)
-            pri = cli_args[arg_idx + 1]
-            arg_idx += 1
-        elif (a == "--tag" or a == "-t") and arg_idx + 1 < arr_len(cli_args)
-            tag = cli_args[arg_idx + 1]
-            arg_idx += 1
-        elif a == "--pending"
-            filter_status = 0
-        elif a == "--done"
-            filter_status = 1
-        elif a == "--all"
-            filter_status = -1
-        elif len(cmd) == 0 and char_at(a, 0) != "-"
-            cmd = a
-        elif len(cmd_target) == 0 and char_at(a, 0) != "-"
-            cmd_target = a
-        end
-        arg_idx += 1
-    end
-
-    if is_test == 1
-        run_test_suite()
-        return
-    end
-
-    if len(cmd) == 0
+    if arr_len(cli_args) == 0
         interactive_mode(db_path)
         return
     end
 
-    let filter_t = ""
-    if tag != "general"
-        filter_t = tag
+    if cli_args[0] == "--test" or cli_args[0] == "test"
+        run_test_suite()
+        return
     end
 
-    when cmd
-        is "add" then cmd_add(db_path, cmd_target, pri, tag)
-        is "list", "ls" then cmd_list(db_path, filter_status, filter_t)
-        is "done" then cmd_set_done(db_path, to_int(cmd_target), 1)
-        is "undone" then cmd_set_done(db_path, to_int(cmd_target), 0)
-        is "rm", "delete" then cmd_delete(db_path, to_int(cmd_target))
-        is "clear" then cmd_clear(db_path)
-        is "stats" then cmd_stats(db_path)
-        is "help" then
-            print_banner()
-            print_help()
-        else
-            say color_red("Unknown command '") + cmd + color_red("'. Run 'help' for usage instructions.")
-    end
+    execute_action(cli_args, db_path)
 end
 
 main()
