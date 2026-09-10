@@ -181,4 +181,4 @@ Enhance Alya's Automatic Reference Counting (ARC) with advanced cyclic graph rec
 
 Have ideas or want to champion a roadmap milestone?
 - Review [CONTRIBUTING.md](CONTRIBUTING.md) to get started with the codebase.
-- Open an issue or discussion on [GitHub](https://github.com/Taiizor/Alya/issues) tagged with `[RFC]` or `[Roadmap]`.
+- Open an issue or discussion on [GitHub](https://github.com/alya-lang/alya/issues) tagged with `[RFC]` or `[Roadmap]`.

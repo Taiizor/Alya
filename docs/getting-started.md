@@ -23,14 +23,14 @@ To use `alyac` to build standalone native executables, you need a C linker/assem
 ## 3. Installation
 
 ### Option A: Pre-built Binaries (Recommended)
-Download ready-to-run releases for your platform from the [Alya Releases](https://github.com/Taiizor/Alya/releases) page. Extract the archive and place `alyac` (or `alyac.exe`) into your system `PATH`.
+Download ready-to-run releases for your platform from the [Alya Releases](https://github.com/alya-lang/alya/releases) page. Extract the archive and place `alyac` (or `alyac.exe`) into your system `PATH`.
 
 ### Option B: Building from Source
 Ensure [Rust 1.75+](https://rustup.rs/) is installed on your machine:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Taiizor/Alya.git
+git clone https://github.com/alya-lang/alya.git
 cd Alya
 
 # Build the release binary

@@ -44,7 +44,7 @@ Please review and adhere to our [Code of Conduct](CODE_OF_CONDUCT.md) in all pro
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/Taiizor/Alya.git
+git clone https://github.com/alya-lang/alya.git
 cd Alya
 ```
 

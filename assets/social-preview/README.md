@@ -9,7 +9,7 @@ The repository's social media preview card for **Alya** (the image shown when th
 
 ## Setting the Social Preview on GitHub
 
-1. Navigate to your repository on GitHub: [github.com/Taiizor/Alya](https://github.com/Taiizor/Alya)
+1. Navigate to your repository on GitHub: [github.com/alya-lang/alya](https://github.com/alya-lang/alya)
 2. Go to **Settings** → **General**
 3. Scroll to **Social preview**
 4. Click **Edit** → **Upload an image…**

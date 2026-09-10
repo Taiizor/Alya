@@ -15,7 +15,7 @@ Security fixes and vulnerabilities are actively monitored and supported for the 
 The Alya team takes security bugs seriously. If you discover a vulnerability or security issue in the compiler or runtime:
 
 1. **Do not create a public GitHub issue.**
-2. Please disclose the vulnerability responsibly through [GitHub Security Advisories](https://github.com/Taiizor/Alya/security/advisories/new).
+2. Please disclose the vulnerability responsibly through [GitHub Security Advisories](https://github.com/alya-lang/alya/security/advisories/new).
 3. If GitHub Advisories are not accessible, email details to [taiizor@vegalya.com](mailto:taiizor@vegalya.com).
 
 ### What to Include in Your Report
