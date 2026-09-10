@@ -1,8 +1,8 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Default embedded Apple ICNS icon (alyac-dark) for standalone zero-dependency bundling.
-const DEFAULT_APP_ICON_ICNS: &[u8] = include_bytes!("../../assets/brand/icons/alyac-dark.icns");
+/// Default embedded Apple ICNS icon (pure Alya prism emblem) for standalone zero-dependency bundling.
+const DEFAULT_APP_ICON_ICNS: &[u8] = include_bytes!("../../assets/brand/logos/alya-icon-dark.icns");
 
 #[derive(Debug, Clone)]
 pub struct BundleOptions {
