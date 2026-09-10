@@ -428,7 +428,8 @@ fn resolve_stmt_imports(
             let mut sub_resolved = Vec::new();
             for sub_stmt in sub_program.statements {
                 let is_unaliased_import = matches!(&sub_stmt, Stmt::Import { alias: None, .. });
-                let child_fns = resolve_stmt_imports(sub_stmt, sub_dir, visited, &mut sub_resolved)?;
+                let child_fns =
+                    resolve_stmt_imports(sub_stmt, sub_dir, visited, &mut sub_resolved)?;
                 if is_unaliased_import && !is_embedded_stdlib {
                     local_fns.extend(child_fns);
                 }
