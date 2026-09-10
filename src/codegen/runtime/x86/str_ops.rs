@@ -63,11 +63,18 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    xor %eax, %eax\n");
     out.push_str("    cmp $65536, %edx\n");
     out.push_str("    jb .L_x86_len_end\n");
+    out.push_str("    movl -8(%edx), %ecx\n");
+    out.push_str("    cmpl $0x5A110001, %ecx\n");
+    out.push_str("    je .L_x86_len_obj\n");
+    out.push_str("    cmpl $0x5A110002, %ecx\n");
+    out.push_str("    je .L_x86_len_obj\n");
     out.push_str(".L_x86_len_loop:\n");
     out.push_str("    cmpb $0, (%edx, %eax)\n");
     out.push_str("    je .L_x86_len_end\n");
     out.push_str("    inc %eax\n");
     out.push_str("    jmp .L_x86_len_loop\n");
+    out.push_str(".L_x86_len_obj:\n");
+    out.push_str("    movl (%edx), %eax\n");
     out.push_str(".L_x86_len_end:\n");
     out.push_str("    mov %ebp, %esp\n");
     out.push_str("    pop %ebp\n");
