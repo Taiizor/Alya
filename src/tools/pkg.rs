@@ -33,6 +33,7 @@ pub enum PkgCommand {
 pub struct PackageInfo {
     pub name: String,
     pub version: String,
+    pub alya_version: Option<String>,
     pub authors: Vec<String>,
     pub description: Option<String>,
     pub entry: String,
@@ -284,6 +285,7 @@ fn parse_inline_table(s: &str) -> BTreeMap<String, String> {
 pub fn parse_manifest(content: &str) -> Result<PackageManifest, String> {
     let mut name = String::new();
     let mut version = "0.1.0".to_string();
+    let mut alya_version = None;
     let mut authors = Vec::new();
     let mut description = None;
     let mut entry = "src/main.alya".to_string();
@@ -311,6 +313,7 @@ pub fn parse_manifest(content: &str) -> Result<PackageManifest, String> {
                 "package" => match key {
                     "name" => name = unquote(val),
                     "version" => version = unquote(val),
+                    "alya-version" => alya_version = Some(unquote(val)),
                     "authors" => authors = parse_string_array(val),
                     "description" => description = Some(unquote(val)),
                     "entry" => entry = unquote(val),
@@ -365,6 +368,7 @@ pub fn parse_manifest(content: &str) -> Result<PackageManifest, String> {
         package: PackageInfo {
             name,
             version,
+            alya_version,
             authors,
             description,
             entry,
@@ -379,6 +383,9 @@ pub fn serialize_manifest(manifest: &PackageManifest) -> String {
     out.push_str("[package]\n");
     out.push_str(&format!("name = \"{}\"\n", manifest.package.name));
     out.push_str(&format!("version = \"{}\"\n", manifest.package.version));
+    if let Some(av) = &manifest.package.alya_version {
+        out.push_str(&format!("alya-version = \"{}\"\n", av));
+    }
     out.push_str(&format!("entry = \"{}\"\n", manifest.package.entry));
     if let Some(desc) = &manifest.package.description {
         out.push_str(&format!("description = \"{}\"\n", desc));
@@ -431,6 +438,47 @@ pub fn serialize_manifest(manifest: &PackageManifest) -> String {
         }
     }
     out
+}
+
+pub fn parse_version_tuple(v: &str) -> Option<(u64, u64, u64)> {
+    let clean = v.trim().trim_start_matches(|c| {
+        c == 'v' || c == '^' || c == '~' || c == '=' || c == '>' || c == ' '
+    });
+    let parts: Vec<&str> = clean.split('.').collect();
+    if parts.is_empty() {
+        return None;
+    }
+    let major = parts[0].trim().parse::<u64>().ok()?;
+    let minor = if parts.len() > 1 {
+        parts[1].trim().parse::<u64>().ok()?
+    } else {
+        0
+    };
+    let patch = if parts.len() > 2 {
+        let p = parts[2].split('-').next().unwrap_or(parts[2]).trim();
+        p.parse::<u64>().ok()?
+    } else {
+        0
+    };
+    Some((major, minor, patch))
+}
+
+pub fn check_compiler_compatibility(manifest: &PackageManifest) -> Result<(), String> {
+    if let Some(req_str) = &manifest.package.alya_version {
+        let current_str = env!("CARGO_PKG_VERSION");
+        if let (Some(req), Some(cur)) = (
+            parse_version_tuple(req_str),
+            parse_version_tuple(current_str),
+        ) {
+            if req > cur {
+                return Err(format!(
+                    "Package '{}' requires Alya compiler version >= {}, but current compiler version is {}.",
+                    manifest.package.name, req_str, current_str
+                ));
+            }
+        }
+    }
+    Ok(())
 }
 
 pub fn parse_lockfile(content: &str) -> Result<PackageLock, String> {
@@ -526,6 +574,10 @@ pub fn detect_package_entry() -> Option<String> {
     let manifest_path = manifest_dir.join("alya.toml");
     let content = fs::read_to_string(&manifest_path).ok()?;
     let manifest = parse_manifest(&content).ok()?;
+    if let Err(e) = check_compiler_compatibility(&manifest) {
+        eprintln!("Error: {}", e);
+        return None;
+    }
     let entry_path = manifest_dir.join(&manifest.package.entry);
     if entry_path.exists() {
         Some(entry_path.to_string_lossy().replace('\\', "/"))
@@ -596,6 +648,7 @@ pub fn find_package_entry(pkg_dir: &Path, pkg_name: &str) -> Result<PathBuf, Str
     if manifest_file.exists() {
         if let Ok(content) = fs::read_to_string(&manifest_file) {
             if let Ok(manifest) = parse_manifest(&content) {
+                check_compiler_compatibility(&manifest)?;
                 let candidate = pkg_dir.join(&manifest.package.entry);
                 if candidate.exists() {
                     return Ok(candidate);
@@ -653,6 +706,7 @@ pub fn resolve_package_import(
     let content = fs::read_to_string(&manifest_path)
         .map_err(|e| format!("Failed to read 'alya.toml': {}", e))?;
     let manifest = parse_manifest(&content)?;
+    check_compiler_compatibility(&manifest)?;
 
     let parts: Vec<&str> = import_path.splitn(2, '/').collect();
     let pkg_name = parts[0];
@@ -791,6 +845,7 @@ pub fn run_init(path: Option<&str>, name: Option<&str>, is_lib: bool) -> Result<
         package: PackageInfo {
             name: pkg_name.clone(),
             version: "0.1.0".to_string(),
+            alya_version: Some(env!("CARGO_PKG_VERSION").to_string()),
             authors: Vec::new(),
             description: Some(format!("Alya package {}", pkg_name)),
             entry: entry_file.to_string(),
@@ -857,6 +912,7 @@ pub fn run_add(
     let content = fs::read_to_string(&manifest_path)
         .map_err(|e| format!("Failed to read alya.toml: {}", e))?;
     let mut manifest = parse_manifest(&content)?;
+    check_compiler_compatibility(&manifest)?;
 
     let source = if let Some(p) = path {
         DependencySource::Path {
@@ -1242,6 +1298,7 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
     let content = fs::read_to_string(&manifest_path)
         .map_err(|e| format!("Failed to read alya.toml: {}", e))?;
     let manifest = parse_manifest(&content)?;
+    check_compiler_compatibility(&manifest)?;
 
     let packages_dir = manifest_dir.join(".alya").join("packages");
     let mut locked_packages = Vec::new();
@@ -1547,6 +1604,29 @@ simple_ver = "0.5.0"
         let serialized = serialize_manifest(&manifest);
         let manifest2 = parse_manifest(&serialized).expect("roundtrip parse failed");
         assert_eq!(manifest, manifest2);
+    }
+
+    #[test]
+    fn test_compiler_compatibility() {
+        let toml_ok = r#"
+[package]
+name = "compatible_pkg"
+version = "1.0.0"
+alya-version = "0.0.5"
+"#;
+        let manifest_ok = parse_manifest(toml_ok).unwrap();
+        assert_eq!(manifest_ok.package.alya_version, Some("0.0.5".to_string()));
+        assert!(check_compiler_compatibility(&manifest_ok).is_ok());
+
+        let toml_incompatible = r#"
+[package]
+name = "future_pkg"
+version = "1.0.0"
+alya-version = "99.0.0"
+"#;
+        let manifest_incompatible = parse_manifest(toml_incompatible).unwrap();
+        let err = check_compiler_compatibility(&manifest_incompatible).unwrap_err();
+        assert!(err.contains("requires Alya compiler version >="));
     }
 
     #[test]
