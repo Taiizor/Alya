@@ -70,6 +70,12 @@ impl CodeGen {
             }
         }
 
+        for m in &inference.known_maps {
+            if m.starts_with("fn_ret_map:") {
+                self.ctx.variables.insert(m.clone(), VarType::Map(0));
+            }
+        }
+
         for stmt in &program.statements {
             if let Stmt::Function { name, .. } = stmt {
                 self.ctx.functions.insert(name.clone());
