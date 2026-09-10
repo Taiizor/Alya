@@ -128,9 +128,35 @@ pub fn run(args: CliArgs) -> Result<(), String> {
         .and_then(|s| s.to_str())
         .unwrap_or("output");
 
+    let bundle_opts = if args.bundle {
+        let mut opts =
+            crate::tools::bundle::BundleOptions::new(default_stem, args.output_file.as_deref());
+        opts.bundle_id = args.bundle_id.clone();
+        opts.icon_path = args.icon_path.clone();
+        opts.create_structure()?;
+        Some(opts)
+    } else {
+        None
+    };
+
     let is_binary = args.output_binary || args.command == CommandKind::Run;
 
-    let (asm_file, final_output) = if is_binary {
+    let (asm_file, final_output) = if let Some(ref opts) = bundle_opts {
+        if is_binary {
+            let temp_asm = format!("temp_{}_{}.s", default_stem, std::process::id());
+            let exe_name = opts.binary_path().to_string_lossy().to_string();
+            (temp_asm, Some(exe_name))
+        } else {
+            let asm_name = opts
+                .bundle_dir
+                .join("Contents")
+                .join("MacOS")
+                .join(format!("{}.s", opts.app_name))
+                .to_string_lossy()
+                .to_string();
+            (asm_name, None)
+        }
+    } else if is_binary {
         let temp_asm = format!("temp_{}_{}.s", default_stem, std::process::id());
         let exe_name = args.output_file.clone().unwrap_or_else(|| {
             if args.command == CommandKind::Run {
@@ -168,14 +194,39 @@ pub fn run(args: CliArgs) -> Result<(), String> {
 
     if let Some(exe_file) = final_output {
         if !args.quiet && args.command != CommandKind::Run {
-            println!("Compiling to executable: {}", exe_file);
+            if bundle_opts.is_some() {
+                println!("Compiling macOS App Bundle binary: {}", exe_file);
+            } else {
+                println!("Compiling to executable: {}", exe_file);
+            }
         }
 
         let t_gcc = Instant::now();
         runner::compile_with_gcc(&asm_file, &exe_file, args.arch, args.os)?;
         d_gcc = Some(t_gcc.elapsed());
 
-        if args.command == CommandKind::Run {
+        if let Some(ref opts) = bundle_opts {
+            if !args.quiet {
+                println!(
+                    "✓ Successfully created macOS App Bundle: {}",
+                    opts.bundle_dir.display()
+                );
+                println!("\nBundle contents:");
+                println!(
+                    "  {}",
+                    opts.bundle_dir.join("Contents/Info.plist").display()
+                );
+                println!("  {}", opts.binary_path().display());
+                println!(
+                    "  {}",
+                    opts.bundle_dir
+                        .join("Contents/Resources/AppIcon.icns")
+                        .display()
+                );
+                println!("\nTo launch on macOS:");
+                println!("  open {}", opts.bundle_dir.display());
+            }
+        } else if args.command == CommandKind::Run {
             let t_exec = Instant::now();
             runner::execute_binary(&exe_file, &args.run_args, args.output_file.is_none())?;
             d_exec = Some(t_exec.elapsed());
@@ -187,6 +238,22 @@ pub fn run(args: CliArgs) -> Result<(), String> {
             } else {
                 println!("  ./{}", exe_file);
             }
+        }
+    } else if let Some(ref opts) = bundle_opts {
+        if !args.quiet {
+            println!("✓ Generated macOS App Bundle assembly: {}", asm_file);
+            println!("\nBundle contents:");
+            println!(
+                "  {}",
+                opts.bundle_dir.join("Contents/Info.plist").display()
+            );
+            println!("  {}", asm_file);
+            println!(
+                "  {}",
+                opts.bundle_dir
+                    .join("Contents/Resources/AppIcon.icns")
+                    .display()
+            );
         }
     } else if !args.quiet {
         println!("Compiled successfully to {}", asm_file);

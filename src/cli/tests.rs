@@ -142,3 +142,37 @@ fn test_run_with_program_flags_without_double_dash() {
     assert_eq!(parsed.input_file, "apps/http_server/main.alya");
     assert_eq!(parsed.run_args, vec!["--port", "8080"]);
 }
+
+#[test]
+fn test_bundle_flags() {
+    let args = to_args(&["alyac", "build", "game.alya", "--bundle"]);
+    let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
+    assert!(parsed.bundle);
+    assert!(parsed.output_binary);
+    assert_eq!(parsed.os, OperatingSystem::MacOS);
+
+    let args_arm = to_args(&["alyac", "build", "game.alya", "--bundle", "--arch", "arm64"]);
+    let parsed_arm = CliArgs::parse_from(&args_arm).unwrap().unwrap();
+    assert!(parsed_arm.bundle);
+    assert_eq!(parsed_arm.os, OperatingSystem::MacOS);
+    assert_eq!(parsed_arm.arch, Architecture::ARM64);
+
+    let args_custom = to_args(&[
+        "alyac",
+        "build",
+        "game.alya",
+        "--app",
+        "--bundle-id",
+        "com.mycompany.game",
+        "--icon",
+        "my_icon.icns",
+        "--arch",
+        "x64",
+    ]);
+    let parsed_custom = CliArgs::parse_from(&args_custom).unwrap().unwrap();
+    assert!(parsed_custom.bundle);
+    assert_eq!(parsed_custom.bundle_id, Some("com.mycompany.game".into()));
+    assert_eq!(parsed_custom.icon_path, Some("my_icon.icns".into()));
+    assert_eq!(parsed_custom.os, OperatingSystem::MacOS);
+    assert_eq!(parsed_custom.arch, Architecture::X64);
+}

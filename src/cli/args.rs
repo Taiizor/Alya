@@ -26,6 +26,9 @@ pub struct CliArgs {
     pub time: bool,
     pub stats: bool,
     pub check_only: bool,
+    pub bundle: bool,
+    pub bundle_id: Option<String>,
+    pub icon_path: Option<String>,
     pub run_args: Vec<String>,
 }
 
@@ -70,6 +73,9 @@ impl CliArgs {
                 time: false,
                 stats: false,
                 check_only: false,
+                bundle: false,
+                bundle_id: None,
+                icon_path: None,
                 run_args: Vec::new(),
             }));
         }
@@ -132,6 +138,11 @@ impl CliArgs {
         let mut time = false;
         let mut stats = false;
         let mut check_only = false;
+        let mut bundle = false;
+        let mut bundle_id = None;
+        let mut icon_path = None;
+        let mut os_explicit = false;
+        let mut arch_explicit = false;
         let mut run_args = Vec::new();
         let mut arch = if cfg!(target_arch = "aarch64") {
             Architecture::ARM64
@@ -204,8 +215,29 @@ impl CliArgs {
                     stats = true;
                     time = true;
                 }
+                "--bundle" | "--app" => {
+                    bundle = true;
+                    output_binary = true;
+                }
+                "--bundle-id" | "--identifier" => {
+                    if i + 1 < args.len() {
+                        bundle_id = Some(args[i + 1].clone());
+                        i += 1;
+                    } else {
+                        return Err("Error: Missing argument for '--bundle-id'".to_string());
+                    }
+                }
+                "--icon" => {
+                    if i + 1 < args.len() {
+                        icon_path = Some(args[i + 1].clone());
+                        i += 1;
+                    } else {
+                        return Err("Error: Missing argument for '--icon'".to_string());
+                    }
+                }
                 "--arch" => {
                     if i + 1 < args.len() {
+                        arch_explicit = true;
                         arch = match args[i + 1].as_str() {
                             "x64" => Architecture::X64,
                             "x86" => Architecture::X86,
@@ -224,6 +256,7 @@ impl CliArgs {
                 }
                 "--os" => {
                     if i + 1 < args.len() {
+                        os_explicit = true;
                         os = match args[i + 1].as_str() {
                             "linux" => OperatingSystem::Linux,
                             "windows" => OperatingSystem::Windows,
@@ -286,6 +319,15 @@ impl CliArgs {
             }
         };
 
+        if bundle {
+            if !os_explicit {
+                os = OperatingSystem::MacOS;
+            }
+            if !arch_explicit && !matches!(arch, Architecture::ARM64 | Architecture::X64) {
+                arch = Architecture::ARM64;
+            }
+        }
+
         Ok(Some(Self {
             command,
             input_file,
@@ -297,6 +339,9 @@ impl CliArgs {
             time,
             stats,
             check_only,
+            bundle,
+            bundle_id,
+            icon_path,
             run_args,
         }))
     }

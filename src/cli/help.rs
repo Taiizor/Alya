@@ -32,6 +32,9 @@ pub fn print_usage() {
     println!("  -b, -c, --binary      Compile directly to executable (calls GCC)");
     println!("  -r, --run             Compile and run immediately");
     println!("  -S, --asm             Emit assembly output only");
+    println!("  --bundle, --app       Package output into a macOS .app Application Bundle");
+    println!("  --bundle-id <id>      Set CFBundleIdentifier (default: com.alya.<name>)");
+    println!("  --icon <path>         Set custom application icon (.icns) for macOS bundle");
     println!("  --check               Check formatting without modifying (with fmt)");
     println!(
         "  --arch <arch>         Target architecture: x86, x64, arm64 (default: auto-detected)"
@@ -47,6 +50,7 @@ pub fn print_usage() {
     println!("  alyac repl                           # Start interactive REPL");
     println!("  alyac run hello.alya                 # Compile & run in one step");
     println!("  alyac build hello.alya               # Produce executable (hello.exe / hello)");
+    println!("  alyac build app.alya --bundle        # Produce macOS Application Bundle (app.app)");
     println!("  alyac hello.alya                     # Produce assembly (hello.s)");
     println!("  alyac hello.alya -b -o my_app.exe    # Produce custom named binary");
     println!("  alyac fmt hello.alya                 # Format single file");

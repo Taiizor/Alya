@@ -30,10 +30,13 @@ pub fn compile_with_gcc(
     match gcc_result {
         Ok(output) => {
             if !output.status.success() {
-                Err(format!(
-                    "GCC compilation failed:\n{}",
-                    String::from_utf8_lossy(&output.stderr)
-                ))
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                let hint = if matches!(os, OperatingSystem::MacOS) && !cfg!(target_os = "macos") {
+                    "\nNote: Linking a native macOS Mach-O binary requires macOS (clang/gcc) or an Apple cross-compilation toolchain."
+                } else {
+                    ""
+                };
+                Err(format!("GCC compilation failed:\n{}{}", stderr, hint))
             } else {
                 Ok(())
             }

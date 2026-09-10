@@ -14,22 +14,28 @@ assets/brand/
 │   ├── alya-file-dark.svg        # Source file icon (.alya, Dark theme)
 │   ├── alya-file-dark.png        # 424×512 transparent PNG (Dark theme)
 │   ├── alya-file-dark.ico        # Multi-resolution Windows ICO (Dark theme)
+│   ├── alya-file-dark.icns       # Multi-resolution Apple ICNS (Dark theme)
 │   ├── alya-file-light.svg       # Source file icon (.alya, Light theme)
 │   ├── alya-file-light.png       # 424×512 transparent PNG (Light theme)
 │   ├── alya-file-light.ico       # Multi-resolution Windows ICO (Light theme)
-│   ├── alyac-dark.svg            # Compiler application icon (alyac.exe, Dark theme)
+│   ├── alya-file-light.icns      # Multi-resolution Apple ICNS (Light theme)
+│   ├── alyac-dark.svg            # Compiler application icon (Dark theme)
 │   ├── alyac-dark.png            # 512×512 transparent PNG (Dark theme)
 │   ├── alyac-dark.ico            # Multi-resolution Windows ICO for alyac.exe (Dark theme)
-│   ├── alyac-light.svg           # Compiler application icon (alyac.exe, Light theme)
+│   ├── alyac-dark.icns           # Multi-resolution Apple ICNS for macOS .app (Dark theme)
+│   ├── alyac-light.svg           # Compiler application icon (Light theme)
 │   ├── alyac-light.png           # 512×512 transparent PNG (Light theme)
-│   └── alyac-light.ico           # Multi-resolution Windows ICO for alyac.exe (Light theme)
+│   ├── alyac-light.ico           # Multi-resolution Windows ICO for alyac.exe (Light theme)
+│   └── alyac-light.icns          # Multi-resolution Apple ICNS for macOS .app (Light theme)
 ├── logos/                        # Standalone Alya monogram emblems
 │   ├── alya-icon-dark.svg        # Vector 3D prism emblem (Dark theme)
 │   ├── alya-icon-dark.png        # 485×512 transparent PNG (Dark theme)
 │   ├── alya-icon-dark.ico        # Multi-resolution Windows ICO (Dark theme)
+│   ├── alya-icon-dark.icns       # Multi-resolution Apple ICNS (Dark theme)
 │   ├── alya-icon-light.svg       # Vector 3D prism emblem (Light theme)
 │   ├── alya-icon-light.png       # 485×512 transparent PNG (Light theme)
-│   └── alya-icon-light.ico       # Multi-resolution Windows ICO (Light theme)
+│   ├── alya-icon-light.ico       # Multi-resolution Windows ICO (Light theme)
+│   └── alya-icon-light.icns      # Multi-resolution Apple ICNS (Light theme)
 ├── build.ts                      # One-command asset regenerator (Bun + Rust resvg)
 ├── package.json                  # Bun dependencies
 └── README.md                     # This documentation
@@ -68,6 +74,15 @@ Every `.ico` file contains 7 embedded resolutions with **32-bit RGBA transparenc
 - `64×64 px` — High-DPI displays / Explorer Extra Large
 - `128×128 px` — Touch displays and high-DPI scaling
 - `256×256 px` — Ultra high-resolution (PNG-compressed inside ICO)
+
+### 5. Apple macOS Multi-Resolution Containers (`*.icns`)
+Every `.icns` container packages 6 embedded standard and Retina resolutions:
+- `16×16 px` (`icp4`) — Finder list / status
+- `32×32 px` (`icp5`) — Finder medium icon
+- `64×64 px` (`icp6`) — High-DPI 32@2x
+- `128×128 px` (`ic07`) — Finder standard icon
+- `256×256 px` (`ic08`) — Finder large icon / 128@2x
+- `512×512 px` (`ic09`) — Dock, Launchpad & Finder extra-large preview
 
 *Note: In all `.ico` files, non-square graphics are centered within a square canvas using transparent margins to guarantee zero stretching or distortion by the Windows Shell.*
 

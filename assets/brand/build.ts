@@ -24,6 +24,7 @@ interface AssetConfig {
   svgPath: string;
   pngPath: string;
   icoPath: string;
+  icnsPath?: string;
   width: number;
   height: number;
   squareViewBox: string;
@@ -90,6 +91,50 @@ function renderIco(svgSource: string, squareViewBox: string): Buffer {
   return buildIco(frames);
 }
 
+const ICNS_SPECS = [
+  { tag: "icp4", size: 16 },
+  { tag: "icp5", size: 32 },
+  { tag: "icp6", size: 64 },
+  { tag: "ic07", size: 128 },
+  { tag: "ic08", size: 256 },
+  { tag: "ic09", size: 512 },
+];
+
+/**
+ * Packs multiple PNG image buffers into an Apple ICNS binary container.
+ */
+function buildIcns(entries: { tag: string; data: Buffer }[]): Buffer {
+  let totalLength = 8;
+  const chunks: Buffer[] = [];
+  for (const entry of entries) {
+    const chunkLen = 8 + entry.data.length;
+    totalLength += chunkLen;
+    const header = Buffer.alloc(8);
+    header.write(entry.tag, 0, 4, "ascii");
+    header.writeUInt32BE(chunkLen, 4);
+    chunks.push(header, entry.data);
+  }
+  const fileHeader = Buffer.alloc(8);
+  fileHeader.write("icns", 0, 4, "ascii");
+  fileHeader.writeUInt32BE(totalLength, 4);
+  return Buffer.concat([fileHeader, ...chunks]);
+}
+
+/**
+ * Renders an SVG file directly into an Apple ICNS container at 6 standard resolutions.
+ */
+function renderIcns(svgSource: string, squareViewBox: string): Buffer {
+  const squareSvg = svgSource.replace(/viewBox="[^"]+"/, `viewBox="${squareViewBox}"`);
+  const entries = ICNS_SPECS.map(({ tag, size }) => {
+    const resvg = new Resvg(squareSvg, {
+      fitTo: { mode: "width", value: size },
+    });
+    const data = Buffer.from(resvg.render().asPng());
+    return { tag, data };
+  });
+  return buildIcns(entries);
+}
+
 function main() {
   console.log(`[Alya Brand Builder] Running on Bun v${Bun.version} with Rust resvg\n`);
 
@@ -98,6 +143,7 @@ function main() {
       svgPath: join(ICONS_DIR, "alya-file-dark.svg"),
       pngPath: join(ICONS_DIR, "alya-file-dark.png"),
       icoPath: join(ICONS_DIR, "alya-file-dark.ico"),
+      icnsPath: join(ICONS_DIR, "alya-file-dark.icns"),
       width: 424,
       height: 512,
       squareViewBox: "24 34 464 464", // Centered card in 464x464
@@ -106,6 +152,7 @@ function main() {
       svgPath: join(ICONS_DIR, "alya-file-light.svg"),
       pngPath: join(ICONS_DIR, "alya-file-light.png"),
       icoPath: join(ICONS_DIR, "alya-file-light.ico"),
+      icnsPath: join(ICONS_DIR, "alya-file-light.icns"),
       width: 424,
       height: 512,
       squareViewBox: "24 34 464 464",
@@ -114,6 +161,7 @@ function main() {
       svgPath: join(LOGOS_DIR, "alya-icon-dark.svg"),
       pngPath: join(LOGOS_DIR, "alya-icon-dark.png"),
       icoPath: join(LOGOS_DIR, "alya-icon-dark.ico"),
+      icnsPath: join(LOGOS_DIR, "alya-icon-dark.icns"),
       width: 485,
       height: 512,
       squareViewBox: "131.5 97 249 249", // Centered prism emblem in 249x249
@@ -122,6 +170,7 @@ function main() {
       svgPath: join(LOGOS_DIR, "alya-icon-light.svg"),
       pngPath: join(LOGOS_DIR, "alya-icon-light.png"),
       icoPath: join(LOGOS_DIR, "alya-icon-light.ico"),
+      icnsPath: join(LOGOS_DIR, "alya-icon-light.icns"),
       width: 485,
       height: 512,
       squareViewBox: "131.5 97 249 249",
@@ -130,6 +179,7 @@ function main() {
       svgPath: join(ICONS_DIR, "alyac-dark.svg"),
       pngPath: join(ICONS_DIR, "alyac-dark.png"),
       icoPath: join(ICONS_DIR, "alyac-dark.ico"),
+      icnsPath: join(ICONS_DIR, "alyac-dark.icns"),
       width: 512,
       height: 512,
       squareViewBox: "0 0 512 512",
@@ -138,6 +188,7 @@ function main() {
       svgPath: join(ICONS_DIR, "alyac-light.svg"),
       pngPath: join(ICONS_DIR, "alyac-light.png"),
       icoPath: join(ICONS_DIR, "alyac-light.ico"),
+      icnsPath: join(ICONS_DIR, "alyac-light.icns"),
       width: 512,
       height: 512,
       squareViewBox: "0 0 512 512",
@@ -162,10 +213,17 @@ function main() {
     writeFileSync(asset.pngPath, pngBuffer);
     console.log(`  -> PNG: ${asset.pngPath.split(/[/\\]/).pop()} (${asset.width}x${asset.height}, ${pngBuffer.length} bytes)`);
 
-    // 2. Render ICO (multi-res vector rasterization)
+    // 2. Render ICO (multi-res Windows rasterization)
     const icoBuffer = renderIco(svgSource, asset.squareViewBox);
     writeFileSync(asset.icoPath, icoBuffer);
     console.log(`  -> ICO: ${asset.icoPath.split(/[/\\]/).pop()} (7 resolutions: 16px..256px, ${icoBuffer.length} bytes)`);
+
+    // 3. Render ICNS (multi-res Apple macOS container)
+    if (asset.icnsPath) {
+      const icnsBuffer = renderIcns(svgSource, asset.squareViewBox);
+      writeFileSync(asset.icnsPath, icnsBuffer);
+      console.log(`  -> ICNS: ${asset.icnsPath.split(/[/\\]/).pop()} (6 resolutions: 16px..512px, ${icnsBuffer.length} bytes)`);
+    }
   }
 
   const duration = (performance.now() - startTime).toFixed(1);
