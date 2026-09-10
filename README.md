@@ -147,7 +147,8 @@ Alya is engineered for rapid compilation and high-performance native execution a
 
 - 📚 **[Alya Documentation Wiki](docs/README.md)**: Structured 8-chapter guide progressing from beginner concepts to advanced compiler architectures.
 - 📖 **[Single-Page Language Guide](docs/language-guide.md)**: Quick full-language reference and syntax cheat-sheet.
-- 🧪 **[Code Examples](examples/)**: 50+ practical programs, algorithms, interactive terminal apps (TicTacToe), and self-hosting compiler prototypes.
+- 📱 **[Applications Showcase](apps/README.md)**: Real-world apps (HTTP server, benchmark tool, port scanner, Conway's Game of Life, Snake, TicTacToe) and macOS `.app` bundling guide.
+- 🧪 **[Code Examples](examples/)**: 50+ practical programs, algorithms, interactive terminal apps, and self-hosting compiler prototypes.
 - ⚡ **[Benchmark Suite](benchmarks/)**: Cross-language performance benchmark sources and runner.
 
 ---
