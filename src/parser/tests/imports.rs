@@ -306,6 +306,49 @@ fn test_import_with_alias_resolution() {
 }
 
 #[test]
+fn test_import_modular_submodules_with_alias_resolution() {
+    use std::fs;
+    let temp_dir = std::env::temp_dir().join(format!("alya_modular_alias_test_{}", std::process::id()));
+    let _ = fs::create_dir_all(&temp_dir);
+
+    let helper_path = temp_dir.join("core.alya");
+    fs::write(
+        &helper_path,
+        "function core_calc(x)\n    return x * 10\nend\n",
+    )
+    .unwrap();
+
+    let lib_path = temp_dir.join("lib.alya");
+    fs::write(
+        &lib_path,
+        "import \"./core.alya\"\nfunction lib_run(x)\n    return core_calc(x) + 1\nend\n",
+    )
+    .unwrap();
+
+    let main_code = "import \"lib.alya\" as mymod\nlet res = mymod::lib_run(5)\nsay res";
+    let mut lexer = Lexer::new(main_code);
+    let tokens = lexer.tokenize().expect("Tokenize failed");
+    let mut parser = Parser::new(tokens);
+    let mut ast = parser.parse().expect("Parse failed");
+
+    resolve_imports(&mut ast, &temp_dir).expect("Resolve imports should succeed");
+
+    let fn_names: Vec<String> = ast
+        .statements
+        .iter()
+        .filter_map(|s| match s {
+            Stmt::Function { name, .. } => Some(name.clone()),
+            _ => None,
+        })
+        .collect();
+
+    assert!(fn_names.contains(&"mymod::core_calc".to_string()));
+    assert!(fn_names.contains(&"mymod::lib_run".to_string()));
+
+    let _ = fs::remove_dir_all(&temp_dir);
+}
+
+#[test]
 fn test_duplicate_function_definition_error() {
     use std::fs;
     let temp_dir = std::env::temp_dir().join(format!("alya_dup_err_test_{}", std::process::id()));

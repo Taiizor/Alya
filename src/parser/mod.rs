@@ -313,7 +313,7 @@ fn resolve_stmt_imports(
     current_dir: &std::path::Path,
     visited: &mut std::collections::HashSet<(std::path::PathBuf, Option<String>)>,
     out: &mut Vec<Stmt>,
-) -> Result<(), String> {
+) -> Result<std::collections::HashSet<String>, String> {
     match stmt {
         Stmt::Import {
             path: import_path_str,
@@ -358,7 +358,7 @@ fn resolve_stmt_imports(
                 let canon = std::fs::canonicalize(&cand)
                     .map_err(|e| format!("Failed to resolve path '{}': {}", cand.display(), e))?;
                 if visited.contains(&(canon.clone(), alias.clone())) {
-                    return Ok(());
+                    return Ok(std::collections::HashSet::new());
                 }
                 let src = std::fs::read_to_string(&canon).map_err(|e| {
                     format!(
@@ -373,7 +373,7 @@ fn resolve_stmt_imports(
                     let synthetic =
                         std::path::PathBuf::from(format!("<embedded:{}>", normalized_path));
                     if visited.contains(&(synthetic.clone(), alias.clone())) {
-                        return Ok(());
+                        return Ok(std::collections::HashSet::new());
                     }
                     (synthetic, src.to_string())
                 } else {
@@ -410,32 +410,44 @@ fn resolve_stmt_imports(
                 )
             })?;
 
-            let local_fns: std::collections::HashSet<String> = sub_program
-                .statements
-                .iter()
-                .filter_map(|s| match s {
-                    Stmt::Function { name, .. } => Some(name.clone()),
-                    _ => None,
-                })
-                .collect();
+            let is_embedded_stdlib = canonical.to_string_lossy().starts_with("<embedded:");
+            let mut local_fns: std::collections::HashSet<String> = if !is_embedded_stdlib {
+                sub_program
+                    .statements
+                    .iter()
+                    .filter_map(|s| match s {
+                        Stmt::Function { name, .. } => Some(name.clone()),
+                        _ => None,
+                    })
+                    .collect()
+            } else {
+                std::collections::HashSet::new()
+            };
 
             let sub_dir = canonical.parent().unwrap_or(current_dir);
             let mut sub_resolved = Vec::new();
             for sub_stmt in sub_program.statements {
-                resolve_stmt_imports(sub_stmt, sub_dir, visited, &mut sub_resolved)?;
+                let is_unaliased_import = matches!(&sub_stmt, Stmt::Import { alias: None, .. });
+                let child_fns = resolve_stmt_imports(sub_stmt, sub_dir, visited, &mut sub_resolved)?;
+                if is_unaliased_import && !is_embedded_stdlib {
+                    local_fns.extend(child_fns);
+                }
             }
 
             if let Some(ref alias_str) = alias {
                 apply_module_alias(&mut sub_resolved, alias_str, &local_fns);
+                out.extend(sub_resolved);
+                Ok(std::collections::HashSet::new())
+            } else {
+                out.extend(sub_resolved);
+                Ok(local_fns)
             }
-
-            out.extend(sub_resolved);
         }
         other => {
             out.push(other);
+            Ok(std::collections::HashSet::new())
         }
     }
-    Ok(())
 }
 
 pub fn expand_default_args(program: &mut Program) {
