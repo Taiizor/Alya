@@ -77,14 +77,30 @@ function is_body_collision(x, y, body)
 end
 
 function show_header(score, moves, is_ai)
-    let mode_str = color_green("PLAYER")
+    let mode_str = color_green("MANUAL")
+    let mode_len = 6
     if is_ai == 1
-        mode_str = color_yellow("AI AUTOPILOT")
+        mode_str = color_yellow("AI AUTO")
+        mode_len = 7
     end
+
+    let score_str = str(score)
+    let moves_str = str(moves)
+
+    # Calculate padding to ensure right border lands at exactly column 40
+    let used = 8 + len(score_str) + 9 + len(moves_str) + 8 + mode_len
+    let pad_len = 40 - used
+    let pad = ""
+    let p = 0
+    while p < pad_len
+        pad = pad + " "
+        p += 1
+    end
+
     say color_cyan("  ╔════════════════════════════════════════╗")
-    say color_cyan("  ║") + "           " + style_bold(color_green("🐍 ALYA SNAKE GAME 🐍")) + "         " + color_cyan("║")
+    say color_cyan("  ║") + "         " + style_bold(color_green("🐍 ALYA SNAKE GAME 🐍")) + "          " + color_cyan("║")
     say color_cyan("  ╠════════════════════════════════════════╣")
-    say color_cyan("  ║") + "  Score: " + style_bold(str(score)) + "    Moves: " + str(moves) + "    Mode: " + mode_str + " " + color_cyan("║")
+    say color_cyan("  ║") + " Score: " + style_bold(color_bright_yellow(score_str)) + "  Moves: " + moves_str + "  Mode: " + mode_str + pad + color_cyan("║")
     say color_cyan("  ╚════════════════════════════════════════╝")
 end
 
@@ -150,6 +166,24 @@ function get_player_move(cur_dx, cur_dy)
     return cur_dx, cur_dy
 end
 
+function count_free_neighbors(width, height, body, x, y)
+    let count = 0
+    let test_dirs = [Point(0, -1), Point(0, 1), Point(-1, 0), Point(1, 0)]
+    let j = 0
+    while j < 4
+        let td = test_dirs[j]
+        let tx = x + td.x
+        let ty = y + td.y
+        if tx >= 1 and tx < width - 1 and ty >= 1 and ty < height - 1
+            if is_body_collision(tx, ty, body) == 0
+                count += 1
+            end
+        end
+        j += 1
+    end
+    return count
+end
+
 function choose_ai_move(width, height, body, food, cur_dx, cur_dy)
     let head = body[0]
     let dirs = [
@@ -159,7 +193,7 @@ function choose_ai_move(width, height, body, food, cur_dx, cur_dy)
         Point(1, 0)
     ]
 
-    let best_dist = 999999
+    let best_score = 999999
     let best_dx = cur_dx
     let best_dy = cur_dy
     let found = 0
@@ -175,9 +209,14 @@ function choose_ai_move(width, height, body, food, cur_dx, cur_dy)
             if nx >= 1 and nx < width - 1 and ny >= 1 and ny < height - 1
                 # Check body collision
                 if is_body_collision(nx, ny, body) == 0
-                    let dist = abs_val(nx - food.x) + abs_val(ny - food.y)
-                    if dist < best_dist
-                        best_dist = dist
+                    let neighbors = count_free_neighbors(width, height, body, nx, ny)
+                    let penalty = 0
+                    if neighbors == 0 and arr_len(body) > 3
+                        penalty = 1000
+                    end
+                    let score = (abs_val(nx - food.x) + abs_val(ny - food.y)) * 2 + penalty - (neighbors * 3)
+                    if score < best_score
+                        best_score = score
                         best_dx = d.x
                         best_dy = d.y
                         found = 1
@@ -227,7 +266,7 @@ function main()
         i += 1
     end
 
-    let width = 20
+    let width = 22
     let height = 12
 
     let body = [
@@ -273,6 +312,7 @@ function main()
     say color_bright_green("Welcome to Alya Snake!")
     say ""
 
+    let is_ai_completed = 0
     let running = 1
     while running == 1
         console_clear()
@@ -321,7 +361,7 @@ function main()
         moves += 1
 
         if is_ai == 1 and moves >= 100
-            say color_yellow("AI demonstration completed 100 moves successfully!")
+            is_ai_completed = 1
             break
         end
     end
@@ -330,7 +370,12 @@ function main()
     show_header(score, moves, is_ai)
     draw_board(width, height, body, food, dx, dy)
     say ""
-    say color_red("  💥 GAME OVER! 💥")
+    if is_ai_completed == 1
+        say color_bright_green("  ✨ AI DEMONSTRATION COMPLETED! ✨")
+        say color_yellow("  AI demonstration completed 100 moves successfully!")
+    else
+        say color_red("  💥 GAME OVER! 💥")
+    end
     say "  Final Score: " + style_bold(color_yellow(str(score)))
     say "  Total Moves: " + str(moves)
     say ""
