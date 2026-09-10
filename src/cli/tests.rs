@@ -176,3 +176,65 @@ fn test_bundle_flags() {
     assert_eq!(parsed_custom.os, OperatingSystem::MacOS);
     assert_eq!(parsed_custom.arch, Architecture::X64);
 }
+
+#[test]
+fn test_pkg_init_cli() {
+    let args = to_args(&["alyac", "init", "my_pkg", "--lib"]);
+    let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
+    match parsed.command {
+        CommandKind::Pkg(crate::tools::pkg::PkgCommand::Init { path, name, is_lib }) => {
+            assert_eq!(path, Some("my_pkg".to_string()));
+            assert_eq!(name, None);
+            assert!(is_lib);
+        }
+        _ => panic!("Expected PkgCommand::Init"),
+    }
+}
+
+#[test]
+fn test_pkg_add_cli() {
+    let args = to_args(&["alyac", "add", "raylib", "--path", "../raylib"]);
+    let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
+    match parsed.command {
+        CommandKind::Pkg(crate::tools::pkg::PkgCommand::Add {
+            name,
+            path,
+            git,
+            tag,
+            ..
+        }) => {
+            assert_eq!(name, "raylib");
+            assert_eq!(path, Some("../raylib".to_string()));
+            assert_eq!(git, None);
+            assert_eq!(tag, None);
+        }
+        _ => panic!("Expected PkgCommand::Add"),
+    }
+}
+
+#[test]
+fn test_pkg_install_cli() {
+    let args = to_args(&["alyac", "install"]);
+    let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
+    assert_eq!(
+        parsed.command,
+        CommandKind::Pkg(crate::tools::pkg::PkgCommand::Install)
+    );
+}
+
+#[test]
+fn test_pkg_subcommands() {
+    let args = to_args(&["alyac", "pkg", "list"]);
+    let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
+    assert_eq!(
+        parsed.command,
+        CommandKind::Pkg(crate::tools::pkg::PkgCommand::List)
+    );
+
+    let args2 = to_args(&["alyac", "pkg", "update"]);
+    let parsed2 = CliArgs::parse_from(&args2).unwrap().unwrap();
+    assert_eq!(
+        parsed2.command,
+        CommandKind::Pkg(crate::tools::pkg::PkgCommand::Update)
+    );
+}

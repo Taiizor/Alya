@@ -72,33 +72,26 @@ The next evolution of Alya transitions the project from a complete standalone la
 
 ---
 
-### Pillar 1: Package Manager & Dependency Ecosystem (`alyac pkg`) 📋
+### Pillar 1: Package Manager & Dependency Ecosystem (`alyac pkg`) ✅
 
 Enable community library sharing, versioned dependency resolution, and automated build workflows.
 
-#### Goals & Architecture
+#### Completed Capabilities
 - **Project Manifest (`alya.toml`)**:
-  ```toml
-  [package]
-  name = "my_app"
-  version = "0.1.0"
-  authors = ["Developer <dev@example.com>"]
-  entry = "src/main.alya"
-
-  [dependencies]
-  sqlite = { git = "https://github.com/alya-lang/sqlite", tag = "v1.0.0" }
-  raylib = { path = "../libs/raylib" }
-  ```
+  - Pure Rust zero-dependency TOML parser and serializer for `[package]` and `[dependencies]`.
+  - Supports local path dependencies (`{ path = "..." }`), remote Git repositories (`{ git = "...", tag = "...", branch = "..." }`), and version constraints.
 - **Deterministic Lockfile (`Alya.lock`)**:
-  - Cryptographic hash verification (SHA-256) for reproducible builds across machines.
-  - Semantic versioning (`semver`) resolution algorithm with conflict detection.
-- **CLI Subcommands**:
-  - `alyac init`: Initialize a new Alya package template with `alya.toml` and directory structure.
-  - `alyac add <package>`: Add and fetch a dependency from a git repository or registry.
-  - `alyac install`: Ingest and lock all dependencies specified in `alya.toml`.
-  - `alyac publish`: Package and verify an archive ready for distribution.
-- **Local Module Caching**:
-  - Global cache directory (`~/.alya/cache/`) to prevent duplicate network downloads.
+  - Embedded pure Rust SHA-256 cryptographic verification (FIPS 180-4 / RFC 6234).
+  - Reproducible builds recording resolved dependencies, entry points, sources, and content checksums.
+- **CLI Subcommands & Shortcuts**:
+  - `alyac init [path] [--name <name>] [--lib]`: Generate starter package with `alya.toml`, entry file, and `.gitignore`.
+  - `alyac add <name> [--path <path>] [--git <url>] [--tag <tag>] [--branch <branch>]`: Add dependency and automatically lock.
+  - `alyac install`: Resolve, fetch, and lock all dependencies declared in `alya.toml`.
+  - `alyac pkg [init|add|install|list|update]`: Complete package lifecycle manager.
+- **Automatic Entry Point Discovery**:
+  - Running `alyac run`, `alyac build`, or `alyac check` without an input file inside any package directory automatically locates `alya.toml` and compiles its designated entry file.
+- **Compiler Module Resolution Integration**:
+  - Native compiler import engine seamlessly resolves package imports (`import "pkg"` / `import "pkg/sub" as alias`) through the manifest, with clear diagnostic errors directing users to `alyac install` if dependencies are missing.
 
 ---
 

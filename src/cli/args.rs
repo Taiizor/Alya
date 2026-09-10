@@ -1,8 +1,9 @@
 use crate::codegen::{Architecture, OperatingSystem};
+use crate::tools::pkg::PkgCommand;
 use std::env;
 use std::process;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandKind {
     Build,
     Run,
@@ -12,6 +13,7 @@ pub enum CommandKind {
     Fmt,
     Test,
     Repl,
+    Pkg(PkgCommand),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -88,6 +90,39 @@ impl CliArgs {
         if first == "-v" || first == "--version" || first == "version" {
             Self::print_version();
             return Ok(None);
+        }
+
+        if first == "init" {
+            let pkg_cmd = parse_pkg_init_args(&args[2..])?;
+            return Ok(Some(Self::create_pkg_args(pkg_cmd)));
+        }
+        if first == "add" {
+            let pkg_cmd = parse_pkg_add_args(&args[2..])?;
+            return Ok(Some(Self::create_pkg_args(pkg_cmd)));
+        }
+        if first == "install" {
+            return Ok(Some(Self::create_pkg_args(PkgCommand::Install)));
+        }
+        if first == "pkg" {
+            if args.len() < 3 || args[2] == "-h" || args[2] == "--help" || args[2] == "help" {
+                return Ok(Some(Self::create_pkg_args(PkgCommand::Help)));
+            }
+            let sub = args[2].as_str();
+            let pkg_cmd = match sub {
+                "init" => parse_pkg_init_args(&args[3..])?,
+                "add" => parse_pkg_add_args(&args[3..])?,
+                "install" => PkgCommand::Install,
+                "list" => PkgCommand::List,
+                "update" => PkgCommand::Update,
+                "help" | "-h" | "--help" => PkgCommand::Help,
+                other => {
+                    return Err(format!(
+                        "Error: Unknown pkg subcommand '{}'. Run 'alyac pkg help' for usage.",
+                        other
+                    ))
+                }
+            };
+            return Ok(Some(Self::create_pkg_args(pkg_cmd)));
         }
 
         let mut command = CommandKind::Build;
@@ -311,8 +346,17 @@ impl CliArgs {
             None => {
                 if matches!(command, CommandKind::Fmt | CommandKind::Test) {
                     ".".to_string()
-                } else if command == CommandKind::Repl {
+                } else if command == CommandKind::Repl || matches!(command, CommandKind::Pkg(_)) {
                     String::new()
+                } else if matches!(
+                    command,
+                    CommandKind::Run | CommandKind::Build | CommandKind::Check
+                ) {
+                    if let Some(entry) = crate::tools::pkg::detect_package_entry() {
+                        entry
+                    } else {
+                        return Err("Error: No input source file specified.".to_string());
+                    }
                 } else {
                     return Err("Error: No input source file specified.".to_string());
                 }
@@ -346,6 +390,39 @@ impl CliArgs {
         }))
     }
 
+    fn create_pkg_args(pkg_cmd: PkgCommand) -> Self {
+        let arch = if cfg!(target_arch = "aarch64") {
+            Architecture::ARM64
+        } else if cfg!(target_arch = "x86") {
+            Architecture::X86
+        } else {
+            Architecture::X64
+        };
+        let os = if cfg!(target_os = "windows") {
+            OperatingSystem::Windows
+        } else if cfg!(target_os = "macos") {
+            OperatingSystem::MacOS
+        } else {
+            OperatingSystem::Linux
+        };
+        Self {
+            command: CommandKind::Pkg(pkg_cmd),
+            input_file: String::new(),
+            output_file: None,
+            output_binary: false,
+            arch,
+            os,
+            quiet: false,
+            time: false,
+            stats: false,
+            check_only: false,
+            bundle: false,
+            bundle_id: None,
+            icon_path: None,
+            run_args: Vec::new(),
+        }
+    }
+
     pub fn print_version() {
         crate::cli::help::print_version();
     }
@@ -353,4 +430,111 @@ impl CliArgs {
     pub fn print_usage() {
         crate::cli::help::print_usage();
     }
+}
+
+fn parse_pkg_init_args(args: &[String]) -> Result<PkgCommand, String> {
+    let mut path = None;
+    let mut name = None;
+    let mut is_lib = false;
+
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--lib" => is_lib = true,
+            "--name" => {
+                if i + 1 < args.len() {
+                    name = Some(args[i + 1].clone());
+                    i += 1;
+                } else {
+                    return Err("Error: Missing argument for '--name'".to_string());
+                }
+            }
+            arg if !arg.starts_with('-') => {
+                if path.is_none() {
+                    path = Some(arg.to_string());
+                } else {
+                    return Err(format!("Error: Unexpected argument '{}'", arg));
+                }
+            }
+            other => return Err(format!("Error: Unknown option '{}'", other)),
+        }
+        i += 1;
+    }
+
+    Ok(PkgCommand::Init { path, name, is_lib })
+}
+
+fn parse_pkg_add_args(args: &[String]) -> Result<PkgCommand, String> {
+    let mut name = None;
+    let mut path = None;
+    let mut git = None;
+    let mut tag = None;
+    let mut branch = None;
+    let mut version = None;
+
+    let mut i = 0;
+    while i < args.len() {
+        match args[i].as_str() {
+            "--path" => {
+                if i + 1 < args.len() {
+                    path = Some(args[i + 1].clone());
+                    i += 1;
+                } else {
+                    return Err("Error: Missing argument for '--path'".to_string());
+                }
+            }
+            "--git" => {
+                if i + 1 < args.len() {
+                    git = Some(args[i + 1].clone());
+                    i += 1;
+                } else {
+                    return Err("Error: Missing argument for '--git'".to_string());
+                }
+            }
+            "--tag" => {
+                if i + 1 < args.len() {
+                    tag = Some(args[i + 1].clone());
+                    i += 1;
+                } else {
+                    return Err("Error: Missing argument for '--tag'".to_string());
+                }
+            }
+            "--branch" => {
+                if i + 1 < args.len() {
+                    branch = Some(args[i + 1].clone());
+                    i += 1;
+                } else {
+                    return Err("Error: Missing argument for '--branch'".to_string());
+                }
+            }
+            "--version" => {
+                if i + 1 < args.len() {
+                    version = Some(args[i + 1].clone());
+                    i += 1;
+                } else {
+                    return Err("Error: Missing argument for '--version'".to_string());
+                }
+            }
+            arg if !arg.starts_with('-') => {
+                if name.is_none() {
+                    name = Some(arg.to_string());
+                } else {
+                    return Err(format!("Error: Unexpected argument '{}'", arg));
+                }
+            }
+            other => return Err(format!("Error: Unknown option '{}'", other)),
+        }
+        i += 1;
+    }
+
+    let name = name.ok_or_else(|| "Error: Missing package name for 'add'".to_string())?;
+
+    Ok(PkgCommand::Add {
+        name,
+        path,
+        git,
+        tag,
+        branch,
+        version,
+    })
 }

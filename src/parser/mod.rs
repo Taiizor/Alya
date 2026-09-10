@@ -351,7 +351,7 @@ fn resolve_stmt_imports(
                     None
                 }
             } else {
-                None
+                crate::tools::pkg::resolve_package_import(&normalized_path, current_dir)?
             };
 
             let (canonical, source) = if let Some(cand) = candidate {

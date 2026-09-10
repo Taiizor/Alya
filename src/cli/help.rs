@@ -18,13 +18,21 @@ pub fn print_usage() {
     println!("  alyac                                # Starts interactive REPL\n");
     println!("COMMANDS:");
     println!("  repl                  Start interactive REPL console (default when no args)");
-    println!("  run <file>            Compile and execute program immediately");
-    println!("  build <file>          Compile program directly to an executable binary (-b, -c)");
-    println!("  check <file>          Verify syntax and structure without generating code");
+    println!(
+        "  run [file]            Compile and execute program immediately (auto-detects entry)"
+    );
+    println!("  build [file]          Compile program directly to an executable binary (-b, -c)");
+    println!("  check [file]          Verify syntax and structure without generating code");
     println!("  ast <file>            Print the parsed Abstract Syntax Tree (AST)");
     println!("  tokens <file>         Print tokenized output from lexical analysis");
     println!("  fmt [path]            Format Alya source code in-place (--check to verify)");
     println!("  test [path]           Discover and run Alya test suites");
+    println!("  init [path]           Initialize a new Alya package (creates alya.toml)");
+    println!(
+        "  add <name>            Add a dependency to alya.toml (--path, --git, --tag, --branch)"
+    );
+    println!("  install               Resolve and lock all dependencies in Alya.lock");
+    println!("  pkg <cmd>             Package manager commands (init, add, install, list, update)");
     println!("  help                  Display help information");
     println!("  version               Display version information\n");
     println!("OPTIONS:");
@@ -48,6 +56,10 @@ pub fn print_usage() {
     println!("EXAMPLES:");
     println!("  alyac                                # Start interactive REPL");
     println!("  alyac repl                           # Start interactive REPL");
+    println!("  alyac init my_app                    # Initialize a new package");
+    println!("  alyac add raylib --path ../raylib    # Add local path dependency");
+    println!("  alyac install                        # Lock and install dependencies");
+    println!("  alyac run                            # Run package entry from alya.toml");
     println!("  alyac run hello.alya                 # Compile & run in one step");
     println!("  alyac build hello.alya               # Produce executable (hello.exe / hello)");
     println!("  alyac build app.alya --bundle        # Produce macOS Application Bundle (app.app)");
@@ -58,4 +70,5 @@ pub fn print_usage() {
     println!("  alyac test                           # Run all tests in project");
     println!("  alyac check hello.alya               # Quick syntax validation");
     println!("  alyac ast hello.alya                 # Inspect AST hierarchy");
+    println!("  alyac pkg list                       # List dependencies and lock status");
 }

@@ -8,6 +8,11 @@ use std::time::Instant;
 pub mod runner;
 
 pub fn run(args: CliArgs) -> Result<(), String> {
+    if let CommandKind::Pkg(ref pkg_cmd) = args.command {
+        crate::tools::pkg::run_pkg(pkg_cmd)?;
+        return Ok(());
+    }
+
     if args.command == CommandKind::Fmt {
         crate::tools::fmt::run_fmt(&args.input_file, args.check_only).map(|_| ())?;
         return Ok(());

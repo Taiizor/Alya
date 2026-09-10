@@ -467,3 +467,90 @@ fn test_import_embedded_color_and_log_stdlib() {
     assert!(fn_names.contains(&"logger_new".to_string()));
     assert!(fn_names.contains(&"log_info".to_string()));
 }
+
+#[test]
+fn test_resolve_package_import_via_manifest() {
+    let base_temp = std::env::temp_dir().join(format!(
+        "alya_parser_pkg_test_{}_{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let lib_dir = base_temp.join("mylib");
+    let app_dir = base_temp.join("myapp");
+
+    let _ = std::fs::create_dir_all(&lib_dir);
+    let _ = std::fs::create_dir_all(&app_dir);
+
+    // Create library file
+    std::fs::write(
+        lib_dir.join("main.alya"),
+        "function compute_cube(x)\n    return x * x * x\nend\n",
+    )
+    .unwrap();
+
+    // Create app alya.toml
+    let toml = format!(
+        "[package]\nname = \"myapp\"\nversion = \"0.1.0\"\nentry = \"src/main.alya\"\n\n[dependencies]\nmylib = {{ path = \"{}\" }}\n",
+        lib_dir.to_string_lossy().replace('\\', "/")
+    );
+    std::fs::write(app_dir.join("alya.toml"), toml).unwrap();
+
+    let source = "import \"mylib\" as math\nlet res = math::compute_cube(3)";
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Tokenize failed");
+    let mut parser = Parser::new(tokens);
+    let mut ast = parser.parse().expect("Parse failed");
+
+    let res = resolve_imports(&mut ast, &app_dir);
+    assert!(
+        res.is_ok(),
+        "Importing package defined in alya.toml should succeed: {:?}",
+        res
+    );
+
+    let fn_names: Vec<String> = ast
+        .statements
+        .iter()
+        .filter_map(|s| match s {
+            Stmt::Function { name, .. } => Some(name.clone()),
+            _ => None,
+        })
+        .collect();
+
+    assert!(fn_names.contains(&"math::compute_cube".to_string()));
+
+    let _ = std::fs::remove_dir_all(&base_temp);
+}
+
+#[test]
+fn test_resolve_uninstalled_package_error() {
+    let base_temp = std::env::temp_dir().join(format!(
+        "alya_parser_missing_pkg_test_{}_{}",
+        std::process::id(),
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+    ));
+    let app_dir = base_temp.join("myapp");
+    let _ = std::fs::create_dir_all(&app_dir);
+
+    let toml = "[package]\nname = \"myapp\"\nversion = \"0.1.0\"\nentry = \"src/main.alya\"\n\n[dependencies]\nsqlite = \"1.0.0\"\n";
+    std::fs::write(app_dir.join("alya.toml"), toml).unwrap();
+
+    let source = "import \"sqlite\"\nsay \"hello\"";
+    let mut lexer = Lexer::new(source);
+    let tokens = lexer.tokenize().expect("Tokenize failed");
+    let mut parser = Parser::new(tokens);
+    let mut ast = parser.parse().expect("Parse failed");
+
+    let res = resolve_imports(&mut ast, &app_dir);
+    assert!(res.is_err());
+    let err_msg = res.unwrap_err();
+    assert!(err_msg.contains("Run 'alyac install' to resolve dependencies."));
+
+    let _ = std::fs::remove_dir_all(&base_temp);
+}
