@@ -53,11 +53,22 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov x2, #65536\n");
     out.push_str("    cmp x1, x2\n");
     out.push_str("    b.lo .L_arm_len_end\n");
+    out.push_str("    movz x3, #0x0001\n");
+    out.push_str("    movk x3, #0x5A11, lsl #16\n");
+    out.push_str("    ldr x2, [x1, #-16]\n");
+    out.push_str("    cmp x2, x3\n");
+    out.push_str("    b.eq .L_arm_len_obj\n");
+    out.push_str("    movz x3, #0x0002\n");
+    out.push_str("    movk x3, #0x5A11, lsl #16\n");
+    out.push_str("    cmp x2, x3\n");
+    out.push_str("    b.eq .L_arm_len_obj\n");
     out.push_str(".L_arm_len_loop:\n");
     out.push_str("    ldrb w2, [x1, x0]\n");
     out.push_str("    cbz w2, .L_arm_len_end\n");
     out.push_str("    add x0, x0, #1\n");
     out.push_str("    b .L_arm_len_loop\n");
+    out.push_str(".L_arm_len_obj:\n");
+    out.push_str("    ldr x0, [x1]\n");
     out.push_str(".L_arm_len_end:\n");
     out.push_str("    ret\n\n");
 

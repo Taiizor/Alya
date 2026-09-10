@@ -3,7 +3,11 @@ use crate::ast::*;
 use crate::codegen::analysis::traversal::find_call_arg;
 use std::collections::HashSet;
 
-fn expr_is_definitely_map(expr: &Expr, known_maps: &HashSet<String>) -> bool {
+fn expr_is_definitely_map(
+    expr: &Expr,
+    fn_scope: Option<&str>,
+    known_maps: &HashSet<String>,
+) -> bool {
     match expr {
         Expr::Call { name, .. } => {
             let bare = name.rsplit("::").next().unwrap_or(name.as_str());
@@ -23,7 +27,13 @@ fn expr_is_definitely_map(expr: &Expr, known_maps: &HashSet<String>) -> bool {
                 || known_maps.contains(&format!("fn_ret_map:{}", bare))
         }
         Expr::Map(_) => true,
-        Expr::Identifier(name) => known_maps.contains(name),
+        Expr::Identifier(name) => {
+            if let Some(scope) = fn_scope {
+                known_maps.contains(&format!("{}:{}", scope, name))
+            } else {
+                known_maps.contains(name)
+            }
+        }
         Expr::Index { array, index } => {
             if let Expr::String(field) = &**index {
                 if known_maps.contains(&format!("map_field_map:{}", field)) {
@@ -31,6 +41,11 @@ fn expr_is_definitely_map(expr: &Expr, known_maps: &HashSet<String>) -> bool {
                 }
             }
             if let (Expr::Identifier(map_name), Expr::String(field)) = (&**array, &**index) {
+                if let Some(scope) = fn_scope {
+                    if known_maps.contains(&format!("{}:{}.{}", scope, map_name, field)) {
+                        return true;
+                    }
+                }
                 if known_maps.contains(&format!("map_map:{}.{}", map_name, field)) {
                     return true;
                 }
@@ -41,51 +56,77 @@ fn expr_is_definitely_map(expr: &Expr, known_maps: &HashSet<String>) -> bool {
     }
 }
 
-fn stmts_return_map(stmts: &[Stmt], known_maps: &HashSet<String>) -> bool {
-    stmts.iter().any(|s| match s {
-        Stmt::Return(Some(expr)) => expr_is_definitely_map(expr, known_maps),
-        Stmt::If {
-            then_block,
-            else_block,
-            ..
-        } => {
-            stmts_return_map(then_block, known_maps)
-                || else_block
-                    .as_ref()
-                    .is_some_and(|eb| stmts_return_map(eb, known_maps))
+fn collect_return_exprs<'a>(stmts: &'a [Stmt], returns: &mut Vec<&'a Expr>) {
+    for s in stmts {
+        match s {
+            Stmt::Return(Some(expr)) => returns.push(expr),
+            Stmt::If {
+                then_block,
+                else_block,
+                ..
+            } => {
+                collect_return_exprs(then_block, returns);
+                if let Some(eb) = else_block {
+                    collect_return_exprs(eb, returns);
+                }
+            }
+            Stmt::While { body, .. }
+            | Stmt::Repeat { body }
+            | Stmt::For { body, .. }
+            | Stmt::ForEach { body, .. } => collect_return_exprs(body, returns),
+            Stmt::TryCatch {
+                try_block,
+                catch_block,
+                finally_block,
+                ..
+            } => {
+                collect_return_exprs(try_block, returns);
+                collect_return_exprs(catch_block, returns);
+                if let Some(fb) = finally_block {
+                    collect_return_exprs(fb, returns);
+                }
+            }
+            _ => {}
         }
-        Stmt::While { body, .. }
-        | Stmt::Repeat { body }
-        | Stmt::For { body, .. }
-        | Stmt::ForEach { body, .. } => stmts_return_map(body, known_maps),
-        Stmt::TryCatch {
-            try_block,
-            catch_block,
-            finally_block,
-            ..
-        } => {
-            stmts_return_map(try_block, known_maps)
-                || stmts_return_map(catch_block, known_maps)
-                || finally_block
-                    .as_ref()
-                    .is_some_and(|fb| stmts_return_map(fb, known_maps))
-        }
-        _ => false,
-    })
+    }
 }
 
-fn collect_map_vars_from_stmts(stmts: &[Stmt], known_maps: &mut HashSet<String>) {
+fn stmts_return_map(stmts: &[Stmt], fn_scope: Option<&str>, known_maps: &HashSet<String>) -> bool {
+    let mut returns = Vec::new();
+    collect_return_exprs(stmts, &mut returns);
+    let non_null: Vec<_> = returns
+        .into_iter()
+        .filter(|e| !matches!(e, Expr::Null))
+        .collect();
+    !non_null.is_empty()
+        && non_null
+            .iter()
+            .all(|e| expr_is_definitely_map(e, fn_scope, known_maps))
+}
+
+fn collect_map_vars_from_stmts(
+    stmts: &[Stmt],
+    fn_scope: Option<&str>,
+    known_maps: &mut HashSet<String>,
+) {
     for stmt in stmts {
         match stmt {
             Stmt::Let { name, value, .. } | Stmt::Assign { name, value, .. } => {
-                if expr_is_definitely_map(value, known_maps) {
-                    known_maps.insert(name.clone());
+                if expr_is_definitely_map(value, fn_scope, known_maps) {
+                    if let Some(scope) = fn_scope {
+                        known_maps.insert(format!("{}:{}", scope, name));
+                    } else {
+                        known_maps.insert(name.clone());
+                    }
                 }
                 if let Expr::Map(entries) = value {
                     for (k, v) in entries {
-                        if expr_is_definitely_map(v, known_maps) {
+                        if expr_is_definitely_map(v, fn_scope, known_maps) {
                             if let Expr::String(field) = k {
                                 known_maps.insert(format!("map_field_map:{}", field));
+                                if let Some(scope) = fn_scope {
+                                    known_maps.insert(format!("{}:{}.{}", scope, name, field));
+                                }
                                 known_maps.insert(format!("map_map:{}.{}", name, field));
                             }
                         }
@@ -98,10 +139,10 @@ fn collect_map_vars_from_stmts(stmts: &[Stmt], known_maps: &mut HashSet<String>)
                 finally_block,
                 ..
             } => {
-                collect_map_vars_from_stmts(try_block, known_maps);
-                collect_map_vars_from_stmts(catch_block, known_maps);
+                collect_map_vars_from_stmts(try_block, fn_scope, known_maps);
+                collect_map_vars_from_stmts(catch_block, fn_scope, known_maps);
                 if let Some(finally_block) = finally_block {
-                    collect_map_vars_from_stmts(finally_block, known_maps);
+                    collect_map_vars_from_stmts(finally_block, fn_scope, known_maps);
                 }
             }
             Stmt::If {
@@ -109,19 +150,24 @@ fn collect_map_vars_from_stmts(stmts: &[Stmt], known_maps: &mut HashSet<String>)
                 else_block,
                 ..
             } => {
-                collect_map_vars_from_stmts(then_block, known_maps);
+                collect_map_vars_from_stmts(then_block, fn_scope, known_maps);
                 if let Some(else_stmts) = else_block {
-                    collect_map_vars_from_stmts(else_stmts, known_maps);
+                    collect_map_vars_from_stmts(else_stmts, fn_scope, known_maps);
                 }
             }
             Stmt::While { body, .. }
             | Stmt::Repeat { body }
             | Stmt::For { body, .. }
             | Stmt::ForEach { body, .. } => {
-                collect_map_vars_from_stmts(body, known_maps);
+                collect_map_vars_from_stmts(body, fn_scope, known_maps);
             }
-            Stmt::Function { body, .. } => {
-                collect_map_vars_from_stmts(body, known_maps);
+            Stmt::Function { name, body, .. } => {
+                let bare = name.rsplit("::").next().unwrap_or(name);
+                let bare = bare.rsplit("__").next().unwrap_or(bare);
+                collect_map_vars_from_stmts(body, Some(name), known_maps);
+                if bare != name {
+                    collect_map_vars_from_stmts(body, Some(bare), known_maps);
+                }
             }
             _ => {}
         }
@@ -134,27 +180,37 @@ pub fn collect_known_map_vars(program: &Program) -> HashSet<String> {
     collect_function_defs(&program.statements, &mut funcs);
     for _ in 0..5 {
         let prev_len = known_maps.len();
-        collect_map_vars_from_stmts(&program.statements, &mut known_maps);
+        collect_map_vars_from_stmts(&program.statements, None, &mut known_maps);
         for (name, params, body) in &funcs {
-            if stmts_return_map(body, &known_maps) {
+            let bare = name.rsplit("::").next().unwrap_or(name);
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            if stmts_return_map(body, Some(name), &known_maps)
+                || (bare != *name && stmts_return_map(body, Some(bare), &known_maps))
+            {
                 known_maps.insert(format!("fn_ret_map:{}", name));
-                let bare = name.rsplit("::").next().unwrap_or(name);
-                let bare = bare.rsplit("__").next().unwrap_or(bare);
                 known_maps.insert(format!("fn_ret_map:{}", bare));
             }
-            for (idx, param) in params.iter().enumerate() {
-                if known_maps.contains(param) {
+            for (idx, _param) in params.iter().enumerate() {
+                if known_maps.contains(&format!("fn_param_map:{}:{}", name, idx))
+                    || known_maps.contains(&format!("fn_param_map:{}:{}", bare, idx))
+                {
                     continue;
                 }
-                let is_map_arg = program.statements.iter().any(|s| {
+                let mut found_call = false;
+                let all_calls_map = program.statements.iter().all(|s| {
                     if let Some(arg) = find_call_arg(s, name, idx) {
-                        expr_is_definitely_map(arg, &known_maps)
+                        found_call = true;
+                        expr_is_definitely_map(arg, None, &known_maps)
+                    } else if let Some(arg) = find_call_arg(s, bare, idx) {
+                        found_call = true;
+                        expr_is_definitely_map(arg, None, &known_maps)
                     } else {
-                        false
+                        true
                     }
                 });
-                if is_map_arg {
-                    known_maps.insert(param.clone());
+                if found_call && all_calls_map {
+                    known_maps.insert(format!("fn_param_map:{}:{}", name, idx));
+                    known_maps.insert(format!("fn_param_map:{}:{}", bare, idx));
                 }
             }
         }
@@ -168,20 +224,13 @@ pub fn collect_known_map_vars(program: &Program) -> HashSet<String> {
 pub fn infer_param_is_map_with(
     func_name: &str,
     param_idx: usize,
-    program: &Program,
+    _program: &Program,
     known_maps: &HashSet<String>,
 ) -> bool {
     let bare = func_name.rsplit("::").next().unwrap_or(func_name);
     let bare = bare.rsplit("__").next().unwrap_or(bare);
-    program.statements.iter().any(|s| {
-        if let Some(arg) = find_call_arg(s, func_name, param_idx) {
-            expr_is_definitely_map(arg, known_maps)
-        } else if let Some(arg) = find_call_arg(s, bare, param_idx) {
-            expr_is_definitely_map(arg, known_maps)
-        } else {
-            false
-        }
-    })
+    known_maps.contains(&format!("fn_param_map:{}:{}", func_name, param_idx))
+        || known_maps.contains(&format!("fn_param_map:{}:{}", bare, param_idx))
 }
 
 pub fn infer_param_is_map(func_name: &str, param_idx: usize, program: &Program) -> bool {

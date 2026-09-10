@@ -64,20 +64,46 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     if matches!(os, OperatingSystem::Windows) {
         out.push_str("    cmp $65536, %rcx\n");
         out.push_str("    jb .L_x64_len_end\n");
+        out.push_str("    mov $0x00007fffffffffff, %rax\n");
+        out.push_str("    cmp %rax, %rcx\n");
+        out.push_str("    ja .L_x64_len_zero\n");
+        out.push_str("    movq -16(%rcx), %rax\n");
+        out.push_str("    cmp $0x5A110001, %rax\n");
+        out.push_str("    je .L_x64_len_obj_rcx\n");
+        out.push_str("    cmp $0x5A110002, %rax\n");
+        out.push_str("    je .L_x64_len_obj_rcx\n");
+        out.push_str("    xor %rax, %rax\n");
         out.push_str(".L_x64_len_loop:\n");
         out.push_str("    cmpb $0, (%rcx, %rax)\n");
         out.push_str("    je .L_x64_len_end\n");
         out.push_str("    inc %rax\n");
         out.push_str("    jmp .L_x64_len_loop\n");
+        out.push_str(".L_x64_len_obj_rcx:\n");
+        out.push_str("    movq (%rcx), %rax\n");
+        out.push_str("    jmp .L_x64_len_end\n");
     } else {
         out.push_str("    cmp $65536, %rdi\n");
         out.push_str("    jb .L_x64_len_end\n");
+        out.push_str("    mov $0x00007fffffffffff, %rax\n");
+        out.push_str("    cmp %rax, %rdi\n");
+        out.push_str("    ja .L_x64_len_zero\n");
+        out.push_str("    movq -16(%rdi), %rax\n");
+        out.push_str("    cmp $0x5A110001, %rax\n");
+        out.push_str("    je .L_x64_len_obj_rdi\n");
+        out.push_str("    cmp $0x5A110002, %rax\n");
+        out.push_str("    je .L_x64_len_obj_rdi\n");
+        out.push_str("    xor %rax, %rax\n");
         out.push_str(".L_x64_len_loop:\n");
         out.push_str("    cmpb $0, (%rdi, %rax)\n");
         out.push_str("    je .L_x64_len_end\n");
         out.push_str("    inc %rax\n");
         out.push_str("    jmp .L_x64_len_loop\n");
+        out.push_str(".L_x64_len_obj_rdi:\n");
+        out.push_str("    movq (%rdi), %rax\n");
+        out.push_str("    jmp .L_x64_len_end\n");
     }
+    out.push_str(".L_x64_len_zero:\n");
+    out.push_str("    xor %rax, %rax\n");
     out.push_str(".L_x64_len_end:\n");
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
