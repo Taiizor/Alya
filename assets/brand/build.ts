@@ -126,6 +126,22 @@ function main() {
       height: 512,
       squareViewBox: "131.5 97 249 249",
     },
+    {
+      svgPath: join(ICONS_DIR, "alyac-dark.svg"),
+      pngPath: join(ICONS_DIR, "alyac-dark.png"),
+      icoPath: join(ICONS_DIR, "alyac-dark.ico"),
+      width: 512,
+      height: 512,
+      squareViewBox: "0 0 512 512",
+    },
+    {
+      svgPath: join(ICONS_DIR, "alyac-light.svg"),
+      pngPath: join(ICONS_DIR, "alyac-light.png"),
+      icoPath: join(ICONS_DIR, "alyac-light.ico"),
+      width: 512,
+      height: 512,
+      squareViewBox: "0 0 512 512",
+    },
   ];
 
   const startTime = performance.now();

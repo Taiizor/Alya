@@ -1,0 +1,222 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Chassis Surface Gradient (Light Theme) -->
+    <linearGradient id="chassis-surface-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+
+    <!-- Chassis Outer Stroke Gradient -->
+    <linearGradient id="chassis-stroke-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#9333ea" stop-opacity="0.6" />
+      <stop offset="35%" stop-color="#6366f1" stop-opacity="0.35" />
+      <stop offset="70%" stop-color="#0284c7" stop-opacity="0.55" />
+      <stop offset="100%" stop-color="#cbd5e1" stop-opacity="0.8" />
+    </linearGradient>
+
+    <!-- Header Surface Gradient -->
+    <linearGradient id="header-surface-light" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(15, 23, 42, 0.03)" />
+      <stop offset="100%" stop-color="rgba(15, 23, 42, 0.01)" />
+    </linearGradient>
+
+    <!-- Left Wing (Deep Rich Amethyst) -->
+    <linearGradient id="left-outer-light" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#581c87" />
+      <stop offset="40%" stop-color="#7e22ce" />
+      <stop offset="80%" stop-color="#9333ea" />
+      <stop offset="100%" stop-color="#c084fc" />
+    </linearGradient>
+
+    <linearGradient id="left-inner-light" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b0764" />
+      <stop offset="50%" stop-color="#581c87" />
+      <stop offset="100%" stop-color="#6b21a8" />
+    </linearGradient>
+
+    <!-- Right Wing (Deep Rich Sky/Azure) -->
+    <linearGradient id="right-outer-light" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#0369a1" />
+      <stop offset="40%" stop-color="#0284c7" />
+      <stop offset="80%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+
+    <linearGradient id="right-inner-light" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#082f49" />
+      <stop offset="50%" stop-color="#075985" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+
+    <!-- Neon Speed Chevron Beam (Light Theme) -->
+    <linearGradient id="neon-beam-light" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#9333ea" />
+      <stop offset="25%" stop-color="#c084fc" />
+      <stop offset="50%" stop-color="#ffffff" />
+      <stop offset="75%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+
+    <!-- CLI Chip Gradients (Light Theme) -->
+    <linearGradient id="cli-chip-bg-light" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="rgba(147, 51, 234, 0.08)" />
+      <stop offset="100%" stop-color="rgba(2, 132, 199, 0.08)" />
+    </linearGradient>
+
+    <linearGradient id="cli-chip-border-light" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#9333ea" stop-opacity="0.5" />
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0.5" />
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="chassis-shadow-light" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="20" stdDeviation="24" flood-color="#0f172a" flood-opacity="0.14" />
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#0f172a" flood-opacity="0.08" />
+    </filter>
+
+    <filter id="prism-ambient-light" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="22" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="beam-glow-light" x="-40%" y="-40%" width="180%" height="180%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#0f172a" flood-opacity="0.22" />
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Clip Path for Squircle Chassis -->
+    <clipPath id="chassis-clip-light">
+      <rect x="36" y="36" width="440" height="440" rx="92" />
+    </clipPath>
+  </defs>
+
+  <!-- Squircle Chassis with Shadow -->
+  <g filter="url(#chassis-shadow-light)">
+    <rect x="36" y="36" width="440" height="440" rx="92"
+          fill="url(#chassis-surface-light)"
+          stroke="url(#chassis-stroke-light)"
+          stroke-width="2" />
+  </g>
+
+  <!-- Clipped Terminal Interior -->
+  <g clip-path="url(#chassis-clip-light)">
+    <!-- Terminal Header Bar -->
+    <rect x="36" y="36" width="440" height="60" fill="url(#header-surface-light)" />
+    <line x1="36" y1="96" x2="476" y2="96" stroke="rgba(15, 23, 42, 0.08)" stroke-width="1.2" />
+
+    <!-- Terminal Window Controls (Traffic Lights) -->
+    <circle cx="76" cy="66" r="6" fill="#f43f5e" />
+    <circle cx="98" cy="66" r="6" fill="#fbbf24" />
+    <circle cx="120" cy="66" r="6" fill="#22c55e" />
+
+    <!-- Header Center Tab: Terminal Shell Indicator -->
+    <g transform="translate(256, 66)">
+      <rect x="-48" y="-12" width="96" height="24" rx="6" fill="rgba(15, 23, 42, 0.04)" stroke="rgba(15, 23, 42, 0.08)" stroke-width="1" />
+      <!-- Prompt > -->
+      <path d="M -16 -4 L -11 0 L -16 4" fill="none" stroke="#0284c7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+      <!-- Cursor _ -->
+      <rect x="-6" y="2" width="6" height="2" rx="0.5" fill="#9333ea" />
+      <!-- Code Dots -->
+      <circle cx="9" cy="0" r="1.5" fill="#64748b" opacity="0.6" />
+      <circle cx="16" cy="0" r="1.5" fill="#64748b" opacity="0.6" />
+      <circle cx="23" cy="0" r="1.5" fill="#64748b" opacity="0.6" />
+    </g>
+
+    <!-- Header Status Node (Compiler Active) -->
+    <circle cx="436" cy="66" r="3.5" fill="#10b981" />
+    <circle cx="436" cy="66" r="7.5" fill="#10b981" opacity="0.2" />
+
+    <!-- High-Tech Compiler Matrix / Grid Lines -->
+    <g opacity="0.035" stroke="#475569" stroke-width="1">
+      <line x1="36" y1="150" x2="476" y2="150" />
+      <line x1="36" y1="210" x2="476" y2="210" />
+      <line x1="36" y1="270" x2="476" y2="270" />
+      <line x1="36" y1="330" x2="476" y2="330" />
+      <line x1="120" y1="96" x2="120" y2="476" />
+      <line x1="200" y1="96" x2="200" y2="476" />
+      <line x1="312" y1="96" x2="312" y2="476" />
+      <line x1="392" y1="96" x2="392" y2="476" />
+    </g>
+
+    <!-- Ambient Corner Glows -->
+    <circle cx="70" cy="130" r="140" fill="#a855f7" opacity="0.06" />
+    <circle cx="440" cy="440" r="150" fill="#38bdf8" opacity="0.05" />
+
+    <!-- Compiler Circuit Bus Traces -->
+    <path d="M 36 295 H 85 L 115 325 H 135" stroke="#9333ea" stroke-width="1.4" opacity="0.22" fill="none" stroke-dasharray="4 3" />
+    <circle cx="135" cy="325" r="2.5" fill="#9333ea" opacity="0.4" />
+
+    <path d="M 476 295 H 427 L 397 325 H 377" stroke="#0284c7" stroke-width="1.4" opacity="0.22" fill="none" stroke-dasharray="4 3" />
+    <circle cx="377" cy="325" r="2.5" fill="#0284c7" opacity="0.4" />
+  </g>
+
+  <!-- ALYA PRISM EMBLEM (Light Theme - Rich High-Contrast Facets) -->
+  <g transform="translate(0, 16)">
+    <!-- Radial Aura Behind Emblem -->
+    <ellipse cx="256" cy="226" rx="95" ry="90" fill="#a855f7" opacity="0.12" filter="url(#prism-ambient-light)" />
+    <ellipse cx="256" cy="226" rx="65" ry="60" fill="#38bdf8" opacity="0.14" filter="url(#prism-ambient-light)" />
+
+    <!-- The 'A' Structure -->
+    <g id="alya-prism">
+      <!-- 1. Left Outer Facet -->
+      <polygon points="256,106 142,342 173,342 256,172" fill="url(#left-outer-light)" />
+
+      <!-- 2. Left Inner Facet -->
+      <polygon points="256,172 173,342 204,342 256,236" fill="url(#left-inner-light)" />
+
+      <!-- 3. Right Outer Facet -->
+      <polygon points="256,106 370,342 339,342 256,172" fill="url(#right-outer-light)" />
+
+      <!-- 4. Right Inner Facet -->
+      <polygon points="256,172 339,342 308,342 256,236" fill="url(#right-inner-light)" />
+
+      <!-- 5. Dynamic Forward-Angle Speed Chevron (Crossbeam) -->
+      <g filter="url(#beam-glow-light)">
+        <polygon points="160,256 256,234 352,256 335,278 256,258 177,278" fill="url(#neon-beam-light)" />
+        <!-- Glowing Center Energy Spark -->
+        <polygon points="256,239 264,247 256,254 248,247" fill="#ffffff" />
+      </g>
+
+      <!-- 6. Apex Diamond Shard -->
+      <polygon points="256,101 269,130 256,144 243,130" fill="#ffffff" opacity="0.98" />
+      <polygon points="256,101 269,130 256,134" fill="#93c5fd" opacity="0.85" />
+    </g>
+  </g>
+
+  <!-- CLI COMMAND PILL (>_ ALYAC) -->
+  <g transform="translate(256, 412)">
+    <!-- Pill Container -->
+    <rect x="-100" y="-19" width="200" height="38" rx="19"
+          fill="url(#cli-chip-bg-light)"
+          stroke="url(#cli-chip-border-light)"
+          stroke-width="1.5" />
+
+    <!-- Terminal Prompt Chevron '>' -->
+    <path d="M -68 -6 L -61 0 L -68 6" fill="none" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+
+    <!-- Cursor '_' -->
+    <rect x="-56" y="5.5" width="8" height="2.8" rx="0.8" fill="#9333ea" />
+
+    <!-- Pure Vector Letterforms for ALYAC (High Contrast Dark Slate) -->
+    <g fill="#0f172a">
+      <!-- A -->
+      <path d="M -36 9 L -27.5 -9 L -19 9 L -23.5 9 L -25 5.2 L -30 5.2 L -31.5 9 Z M -27.5 -4.5 L -29 2 L -26 2 Z" />
+      <!-- L -->
+      <path d="M -12 -9 L -7.5 -9 L -7.5 5 L 1 5 L 1 9 L -12 9 Z" />
+      <!-- Y -->
+      <path d="M 7 -9 L 11.5 -9 L 14.5 -2.5 L 17.5 -9 L 22 -9 L 17 0.5 L 17 9 L 12.5 9 L 12.5 0.5 Z" />
+      <!-- A -->
+      <path d="M 28 9 L 36.5 -9 L 45 9 L 40.5 9 L 39 5.2 L 34 5.2 L 32.5 9 Z M 36.5 -4.5 L 35 2 L 38 2 Z" />
+      <!-- C -->
+      <path d="M 67 -4.5 C 65 -7.5 62 -9 59.5 -9 C 54.5 -9 52 -4.5 52 0 C 52 4.5 54.5 9 59.5 9 C 62 9 65 7.5 67 4.5 L 63.5 2 C 62.5 3.6 61.2 4.8 59.5 4.8 C 56.5 4.8 56.2 2.5 56.2 0 C 56.2 -2.5 56.5 -4.8 59.5 -4.8 C 61.2 -4.8 62.5 -3.6 63.5 -2 Z" />
+    </g>
+  </g>
+</svg>

@@ -10,13 +10,19 @@ These assets are engineered for editor icon themes (VS Code, JetBrains), operati
 
 ```text
 assets/brand/
-├── icons/                        # File system icons for .alya source files
-│   ├── alya-file-dark.svg        # Vector file icon (Dark theme)
+├── icons/                        # File system & application icons
+│   ├── alya-file-dark.svg        # Source file icon (.alya, Dark theme)
 │   ├── alya-file-dark.png        # 424×512 transparent PNG (Dark theme)
 │   ├── alya-file-dark.ico        # Multi-resolution Windows ICO (Dark theme)
-│   ├── alya-file-light.svg       # Vector file icon (Light theme)
+│   ├── alya-file-light.svg       # Source file icon (.alya, Light theme)
 │   ├── alya-file-light.png       # 424×512 transparent PNG (Light theme)
-│   └── alya-file-light.ico       # Multi-resolution Windows ICO (Light theme)
+│   ├── alya-file-light.ico       # Multi-resolution Windows ICO (Light theme)
+│   ├── alyac-dark.svg            # Compiler application icon (alyac.exe, Dark theme)
+│   ├── alyac-dark.png            # 512×512 transparent PNG (Dark theme)
+│   ├── alyac-dark.ico            # Multi-resolution Windows ICO for alyac.exe (Dark theme)
+│   ├── alyac-light.svg           # Compiler application icon (alyac.exe, Light theme)
+│   ├── alyac-light.png           # 512×512 transparent PNG (Light theme)
+│   └── alyac-light.ico           # Multi-resolution Windows ICO for alyac.exe (Light theme)
 ├── logos/                        # Standalone Alya monogram emblems
 │   ├── alya-icon-dark.svg        # Vector 3D prism emblem (Dark theme)
 │   ├── alya-icon-dark.png        # 485×512 transparent PNG (Dark theme)
@@ -33,13 +39,19 @@ assets/brand/
 
 ## Asset Specifications
 
-### 1. File System Icons (`icons/`)
+### 1. File System Icons (`icons/alya-file-*`)
 - **Silhouette**: Modern document sheet with a precision 45° dog-ear fold, delicate crease lighting, and realistic elevation drop shadow.
 - **Watermark**: Faint syntax lines and micro-hardware trace lines inside the document sheet.
 - **Badge**: Bottom `.ALYA` pill with a pulse status indicator and 100% vector-drawn letterforms (zero external font dependencies).
 - **Native Dimensions**: **`424 × 512 px`** (Height: 512px, Width: 424px, tightly bounded with no empty side gaps).
 
-### 2. Standalone Emblems (`logos/`)
+### 2. Compiler & CLI Application Icons (`icons/alyac-*`)
+- **Silhouette**: Modern squircle terminal container with macOS/Linux traffic light window controls, frosted shell tab, active compiler status LED, and high-tech circuit bus traces.
+- **Centerpiece**: Precision 3D Alya Delta Prism with luminous speed chevron.
+- **Badge**: Bottom interactive CLI command pill `>_ ALYAC` with a terminal prompt chevron, glowing cursor, and 100% vector-drawn letterforms.
+- **Native Dimensions**: **`512 × 512 px`** (Square 1:1, perfectly engineered for embedding directly into `alyac.exe` binaries via Windows Resource tools or system application launchers).
+
+### 3. Standalone Emblems (`logos/`)
 - **Motif**: 3D chiseled Delta Prism forming the letter **A**, featuring:
   - **Left Wing**: Ascending Electric Amethyst & Violet gradient (`#9333ea` → `#c084fc`).
   - **Right Wing**: Descending Vivid Sky & Azure Cyan gradient (`#0284c7` → `#38bdf8`).
@@ -47,7 +59,7 @@ assets/brand/
   - **Summit**: Precision diamond crystal crown.
 - **Native Dimensions**: **`485 × 512 px`** (Height: 512px, Width: 485px, tightly bounded to the glyph).
 
-### 3. Windows Multi-Resolution Containers (`*.ico`)
+### 4. Windows Multi-Resolution Containers (`*.ico`)
 Every `.ico` file contains 7 embedded resolutions with **32-bit RGBA transparency**:
 - `16×16 px` — Taskbar small, File Explorer Details / List view
 - `24×24 px` — Start menu, high-DPI taskbar
