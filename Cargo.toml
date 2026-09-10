@@ -16,6 +16,9 @@ exclude = [".github/", "tests/", "temp_*", "*.s"]
 
 [dependencies]
 
+[target.'cfg(windows)'.build-dependencies]
+winres = "0.1"
+
 [lib]
 name = "alya"
 path = "src/lib.rs"
