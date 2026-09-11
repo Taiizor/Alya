@@ -27,6 +27,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    mov $8, %rsi\n");
         out.push_str(&format!("    call {}calloc\n", p));
     }
+    out.push_str("    mov %r13, %r11\n");
+    out.push_str("    add $3, %r11\n");
+    out.push_str("    shl $3, %r11\n");
+    out.push_str("    add %r11, alya_allocated_bytes(%rip)\n");
     out.push_str("    movq $0x5A110003, (%rax)\n");
     out.push_str("    movq $1, 8(%rax)\n");
     out.push_str("    lea 16(%rax), %rax\n");

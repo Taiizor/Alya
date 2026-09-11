@@ -50,6 +50,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    mov $8, %rsi\n");
         out.push_str(&format!("    call {}calloc\n", p));
     }
+    out.push_str("    mov %r13, %r11\n");
+    out.push_str("    shl $3, %r11\n");
+    out.push_str("    add $40, %r11\n");
+    out.push_str("    add %r11, alya_allocated_bytes(%rip)\n");
     out.push_str("    mov %r12, (%r14)\n");
     out.push_str("    mov %r13, 8(%r14)\n");
     out.push_str("    mov %rax, 16(%r14)\n");
@@ -101,6 +105,9 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str(&format!("    call {}realloc\n", p));
     }
     out.push_str("    mov %rax, 16(%r12)\n");
+    out.push_str("    mov %r15, %r11\n");
+    out.push_str("    shl $3, %r11\n");
+    out.push_str("    add %r11, alya_allocated_bytes(%rip)\n");
     out.push_str(".L_x64_push_store:\n");
     out.push_str("    mov 16(%r12), %rdx\n");
     out.push_str("    mov (%r12), %rax\n");

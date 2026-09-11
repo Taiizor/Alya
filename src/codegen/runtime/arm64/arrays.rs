@@ -38,6 +38,12 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    str x19, [x21]\n");
     out.push_str("    str x20, [x21, #8]\n");
     out.push_str("    str x0, [x21, #16]\n");
+    out.push_str("    lsl x1, x20, #3\n");
+    out.push_str("    add x1, x1, #40\n");
+    emit_adrp_add(out, "x2", "alya_allocated_bytes", os);
+    out.push_str("    ldr x3, [x2]\n");
+    out.push_str("    add x3, x3, x1\n");
+    out.push_str("    str x3, [x2]\n");
     out.push_str("    mov x0, x21\n");
     out.push_str("    ldp x21, x22, [sp, #32]\n");
     out.push_str("    ldp x19, x20, [sp, #16]\n");
@@ -68,6 +74,11 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    lsl x1, x22, #3\n");
     out.push_str(&format!("    bl {}realloc\n", p));
     out.push_str("    str x0, [x19, #16]\n");
+    out.push_str("    lsl x1, x22, #3\n");
+    emit_adrp_add(out, "x2", "alya_allocated_bytes", os);
+    out.push_str("    ldr x3, [x2]\n");
+    out.push_str("    add x3, x3, x1\n");
+    out.push_str("    str x3, [x2]\n");
     out.push_str(".L_arm64_push_store:\n");
     out.push_str("    ldr x2, [x19, #16]\n");
     out.push_str("    str x20, [x2, x21, lsl #3]\n");

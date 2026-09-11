@@ -33,6 +33,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    push %ebx\n");
     out.push_str("    call calloc\n");
     out.push_str("    add $8, %esp\n");
+    out.push_str("    mov %ebx, %edx\n");
+    out.push_str("    shl $2, %edx\n");
+    out.push_str("    add $20, %edx\n");
+    out.push_str("    add %edx, alya_allocated_bytes\n");
     out.push_str("    mov %esi, (%edi)\n");
     out.push_str("    mov %ebx, 4(%edi)\n");
     out.push_str("    mov %eax, 8(%edi)\n");
@@ -71,6 +75,9 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    call realloc\n");
     out.push_str("    add $8, %esp\n");
     out.push_str("    mov %eax, 8(%esi)\n");
+    out.push_str("    mov %ebx, %edx\n");
+    out.push_str("    shl $2, %edx\n");
+    out.push_str("    add %edx, alya_allocated_bytes\n");
     out.push_str(".L_x86_push_store:\n");
     out.push_str("    mov 8(%esi), %edx\n");
     out.push_str("    mov (%esi), %eax\n");

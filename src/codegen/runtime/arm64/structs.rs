@@ -24,6 +24,12 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    str x1, [x0, #8]\n");
     out.push_str("    add x0, x0, #16\n");
     out.push_str("    str x19, [x0]\n");
+    out.push_str("    add x1, x20, #3\n");
+    out.push_str("    lsl x1, x1, #3\n");
+    emit_adrp_add(out, "x2", "alya_allocated_bytes", os);
+    out.push_str("    ldr x3, [x2]\n");
+    out.push_str("    add x3, x3, x1\n");
+    out.push_str("    str x3, [x2]\n");
     out.push_str("    ldp x19, x20, [sp, #16]\n");
     out.push_str("    ldp x29, x30, [sp], #32\n");
     out.push_str("    ret\n\n");
