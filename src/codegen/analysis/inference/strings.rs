@@ -209,10 +209,7 @@ fn expr_is_string_array(expr: &Expr, known_strings: &HashSet<String>) -> bool {
                     .iter()
                     .all(|e| expr_is_definitely_string(e, known_strings))
         }
-        Expr::Identifier(name) => {
-            known_strings.contains(&format!("arr_is_str:{}", name))
-                || known_strings.contains(&format!("fn_param_str_arr:{}", name))
-        }
+        Expr::Identifier(name) => known_strings.contains(&format!("arr_is_str:{}", name)),
         Expr::Call { name, .. } => {
             let bare = name.rsplit("::").next().unwrap_or(name.as_str());
             let bare = bare.rsplit("__").next().unwrap_or(bare);
@@ -440,10 +437,6 @@ fn scan_expr_for_strings(
                 if expr_is_definitely_string(arg, known_strings) {
                     known_strings.insert(format!("fn_param_str:{}:{}", name, idx));
                     known_strings.insert(format!("fn_param_str:{}:{}", bare, idx));
-                }
-                if expr_is_string_array(arg, known_strings) {
-                    known_strings.insert(format!("fn_param_str_arr:{}:{}", name, idx));
-                    known_strings.insert(format!("fn_param_str_arr:{}:{}", bare, idx));
                 }
             }
             if let Some(fields) = struct_defs.get(name) {
@@ -768,16 +761,19 @@ pub fn collect_known_string_vars(program: &Program) -> HashSet<String> {
                 if !known_strings.contains(&format!("fn_param_str_arr:{}:{}", name, idx))
                     && !known_strings.contains(&format!("fn_param_str_arr:{}:{}", bare, idx))
                 {
-                    let is_str_arr = program.statements.iter().any(|s| {
+                    let mut found_call = false;
+                    let all_calls_str_arr = program.statements.iter().all(|s| {
                         if let Some(arg) = find_call_arg(s, name, idx) {
+                            found_call = true;
                             expr_is_string_array(arg, &known_strings)
                         } else if let Some(arg) = find_call_arg(s, bare, idx) {
+                            found_call = true;
                             expr_is_string_array(arg, &known_strings)
                         } else {
-                            false
+                            true
                         }
                     });
-                    if is_str_arr {
+                    if found_call && all_calls_str_arr {
                         known_strings.insert(format!("fn_param_str_arr:{}:{}", name, idx));
                         known_strings.insert(format!("fn_param_str_arr:{}:{}", bare, idx));
                     }
@@ -832,22 +828,13 @@ pub fn infer_param_is_string_with(
 pub fn infer_param_is_string_array_with(
     func_name: &str,
     param_idx: usize,
-    program: &Program,
+    _program: &Program,
     known_strings: &HashSet<String>,
 ) -> bool {
     let bare = func_name.rsplit("::").next().unwrap_or(func_name);
     let bare = bare.rsplit("__").next().unwrap_or(bare);
     known_strings.contains(&format!("fn_param_str_arr:{}:{}", func_name, param_idx))
         || known_strings.contains(&format!("fn_param_str_arr:{}:{}", bare, param_idx))
-        || program.statements.iter().any(|s| {
-            if let Some(arg) = find_call_arg(s, func_name, param_idx) {
-                expr_is_string_array(arg, known_strings)
-            } else if let Some(arg) = find_call_arg(s, bare, param_idx) {
-                expr_is_string_array(arg, known_strings)
-            } else {
-                false
-            }
-        })
 }
 
 pub fn infer_param_is_string(func_name: &str, param_idx: usize, program: &Program) -> bool {
