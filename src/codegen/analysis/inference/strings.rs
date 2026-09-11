@@ -124,6 +124,18 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
             ) {
                 return true;
             }
+            if matches!(
+                bare,
+                "json_parse_array"
+                    | "parse_array"
+                    | "json_parse_object"
+                    | "parse_object"
+                    | "json_parse"
+                    | "parse"
+                    | "_json_parse_val"
+            ) {
+                return false;
+            }
             known_strings.contains(&format!("fn_ret_str:{}", name))
                 || known_strings.contains(&format!("fn_ret_str:{}", bare))
         }
@@ -681,7 +693,18 @@ fn collect_string_vars_from_stmts(
                     }
                 }
                 collect_string_vars_from_stmts(body, struct_defs, &mut fn_locals);
-                if stmts_return_string(body, &fn_locals) {
+                if stmts_return_string(body, &fn_locals)
+                    && !matches!(
+                        bare,
+                        "json_parse_array"
+                            | "parse_array"
+                            | "json_parse_object"
+                            | "parse_object"
+                            | "json_parse"
+                            | "parse"
+                            | "_json_parse_val"
+                    )
+                {
                     known_strings.insert(format!("fn_ret_str:{}", name));
                     known_strings.insert(format!("fn_ret_str:{}", bare));
                 }
