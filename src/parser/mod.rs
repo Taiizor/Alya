@@ -296,8 +296,6 @@ fn get_embedded_stdlib(module: &str) -> Option<&'static str> {
         "bench" => Some(include_str!("../../stdlib/bench.alya")),
         "rand" => Some(include_str!("../../stdlib/rand.alya")),
         "cli" | "argparse" => Some(include_str!("../../stdlib/cli.alya")),
-        "csv" | "tsv" => Some(include_str!("../../stdlib/csv.alya")),
-        "url" => Some(include_str!("../../stdlib/url.alya")),
         "color" | "term" | "ansi" => Some(include_str!("../../stdlib/color.alya")),
         "log" | "logger" => Some(include_str!("../../stdlib/log.alya")),
         "glob" => Some(include_str!("../../stdlib/glob.alya")),
@@ -377,6 +375,23 @@ fn resolve_stmt_imports(
                     }
                     (synthetic, src.to_string())
                 } else {
+                    let clean = normalized_path
+                        .strip_prefix("std/")
+                        .or_else(|| normalized_path.strip_prefix("std::"))
+                        .unwrap_or(&normalized_path);
+                    let clean = clean.strip_suffix(".alya").unwrap_or(clean);
+                    if clean == "csv" || clean == "tsv" {
+                        return Err(format!(
+                            "Standard library module '{}' has moved to a standalone package.\nInstall it using: alyac add csv\nThen import it with: import \"csv\"",
+                            import_path_str
+                        ));
+                    }
+                    if clean == "url" {
+                        return Err(format!(
+                            "Standard library module '{}' has moved to a standalone package.\nInstall it using: alyac add url\nThen import it with: import \"url\"",
+                            import_path_str
+                        ));
+                    }
                     return Err(format!(
                         "Cannot find standard library module '{}'",
                         import_path_str

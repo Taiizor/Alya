@@ -1136,110 +1136,31 @@ say "arg0: " + cli_arg_at(0, "none")
 }
 
 #[test]
-fn test_e2e_csv_stdlib() {
+fn test_e2e_csv_stdlib_migration_diagnostic() {
     let code = r#"
 import "std/csv"
-
-let sample = "id,name,role,quote\n1,Alice,Engineer,\"Code, Test\"\n2,Bob,Lead,\"Keep it \"\"simple\"\"\""
-let rows = csv_parse(sample)
-say "rows: " + str(len(rows))
-
-let r0 = rows[0]
-say "r0_c0: " + str_from_ptr(r0[0])
-say "r0_c3: " + str_from_ptr(r0[3])
-
-let r1 = rows[1]
-say "r1_c1: " + str_from_ptr(r1[1])
-say "r1_c3: " + str_from_ptr(r1[3])
-
-let r2 = rows[2]
-say "r2_c1: " + str_from_ptr(r2[1])
-say "r2_c3: " + str_from_ptr(r2[3])
-
-let records = csv_parse_records(sample)
-say "records: " + str(len(records))
-let rec0 = records[0]
-say "rec0_name: " + str_from_ptr(get(rec0, "name"))
-say "rec0_quote: " + str_from_ptr(get(rec0, "quote"))
-
-let tsv_data = "name\tcity\nZara\tIstanbul"
-let tsv_rows = tsv_parse(tsv_data)
-say "tsv_rows: " + str(len(tsv_rows))
-let tr1 = tsv_rows[1]
-say "tsv_city: " + str_from_ptr(tr1[1])
-
-let serialized = csv_stringify(rows)
-say "has_escaped: " + str(contains(serialized, "\"Code, Test\""))
+say "should fail"
 "#;
-    if let Some((code, output)) = run_alya_code_full(code) {
-        assert_eq!(code, 0, "Execution failed: {}", output);
-        assert!(output.contains("rows: 3"));
-        assert!(output.contains("r0_c0: id"));
-        assert!(output.contains("r0_c3: quote"));
-        assert!(output.contains("r1_c1: Alice"));
-        assert!(output.contains("r1_c3: Code, Test"));
-        assert!(output.contains("r2_c1: Bob"));
-        assert!(output.contains("r2_c3: Keep it \"simple\""));
-        assert!(output.contains("records: 2"));
-        assert!(output.contains("rec0_name: Alice"));
-        assert!(output.contains("rec0_quote: Code, Test"));
-        assert!(output.contains("tsv_rows: 2"));
-        assert!(output.contains("tsv_city: Istanbul"));
-        assert!(output.contains("has_escaped: 1"));
-    }
+    let mut lexer = alya::lexer::Lexer::new(code);
+    let tokens = lexer.tokenize().expect("Tokenize failed");
+    let mut parser = alya::parser::Parser::new(tokens);
+    let mut ast = parser.parse().expect("Parse failed");
+    let err = alya::parser::resolve_imports(&mut ast, std::path::Path::new(".")).unwrap_err();
+    assert!(err.contains("alyac add csv"));
 }
 
 #[test]
-fn test_e2e_url_stdlib() {
+fn test_e2e_url_stdlib_migration_diagnostic() {
     let code = r#"
 import "std/url"
-
-let raw = "https://user:pass@example.com:8080/path/test?q=hello+alya&lang=en#heading"
-let u = url_parse(raw)
-say "scheme: " + str_from_ptr(u.url_scheme)
-say "user: " + str_from_ptr(u.url_username)
-say "pass: " + str_from_ptr(u.url_password)
-say "host: " + str_from_ptr(u.url_host)
-say "port: " + str_from_ptr(u.url_port)
-say "path: " + str_from_ptr(u.url_path)
-say "query: " + str_from_ptr(u.url_query)
-say "frag: " + str_from_ptr(u.url_fragment)
-say "origin: " + url_origin(u)
-say "is_https: " + str(url_is_https(u))
-
-let q_val = url_get_query_param(raw, "q")
-say "param_q: " + q_val
-say "has_q: " + str(url_has_query_param(raw, "q"))
-
-let joined = url_join("https://api.com/v1/", "/items")
-say "joined: " + joined
-
-let encoded = url_encode("A & B = 100%")
-say "encoded: " + encoded
-say "decoded: " + url_decode(encoded)
-
-let formatted = url_format(u)
-say "matches: " + str(raw == formatted)
+say "should fail"
 "#;
-    if let Some((code, output)) = run_alya_code_full(code) {
-        assert_eq!(code, 0, "Execution failed: {}", output);
-        assert!(output.contains("scheme: https"));
-        assert!(output.contains("user: user"));
-        assert!(output.contains("pass: pass"));
-        assert!(output.contains("host: example.com"));
-        assert!(output.contains("port: 8080"));
-        assert!(output.contains("path: /path/test"));
-        assert!(output.contains("query: q=hello+alya&lang=en"));
-        assert!(output.contains("frag: heading"));
-        assert!(output.contains("origin: https://example.com:8080"));
-        assert!(output.contains("is_https: 1"));
-        assert!(output.contains("param_q: hello alya"));
-        assert!(output.contains("has_q: 1"));
-        assert!(output.contains("joined: https://api.com/v1/items"));
-        assert!(output.contains("encoded: A%20%26%20B%20%3D%20100%25"));
-        assert!(output.contains("decoded: A & B = 100%"));
-        assert!(output.contains("matches: 1"));
-    }
+    let mut lexer = alya::lexer::Lexer::new(code);
+    let tokens = lexer.tokenize().expect("Tokenize failed");
+    let mut parser = alya::parser::Parser::new(tokens);
+    let mut ast = parser.parse().expect("Parse failed");
+    let err = alya::parser::resolve_imports(&mut ast, std::path::Path::new(".")).unwrap_err();
+    assert!(err.contains("alyac add url"));
 }
 
 #[test]

@@ -341,11 +341,10 @@ say product    # 60
 | `std/path` | Cross-platform path handling | `path_join`, `file_name`, `file_ext`, `file_stem`, `parent_dir`, `is_absolute`, `path_separator` |
 | `std/fs` | File system operations | `fs_exists`, `fs_read`, `fs_write`, `fs_append`, `fs_size`, `fs_mkdir`, `fs_remove`, `copy_file`, `move_file` |
 | `std/math` | Trigonometry, stats & PRNG | `sin`, `cos`, `tan`, `hypot`, `round`, `floor`, `ceil`, `trunc`, `rand_range`, `rand_seed`, `sum`, `mean`, `median`, `clamp`, `sign`, `is_even`, `is_odd` |
-| `std/net` | TCP socket networking & HTTP client | `tcp_connect`, `tcp_send`, `tcp_recv`, `tcp_close`, `tcp_listen`, `tcp_accept`, `http_get`, `http_post`, `http_request` |
+| `std/net` | TCP & UDP socket networking | `tcp_connect`, `tcp_send`, `tcp_recv`, `tcp_close`, `tcp_listen`, `tcp_accept`, `udp_socket`, `udp_bind`, `udp_send`, `udp_recv` |
 | `std/console` | Terminal control & code pages | `console_utf8`, `console_clear`, `console_title`, `console_beep`, `console_cursor_to`, `console_cursor_hide`, `console_cursor_show` |
 | `std/glob` | Wildcard matching & globbing | `glob_match`, `glob_match_simple`, `glob_filter`, `glob`, `glob_dir`, `glob_escape` |
 | `std/rand` | PRNG, UUID v4/v7 & ULID | `rand_auto_seed`, `rand_int`, `rand_float`, `rand_alphanumeric`, `shuffle`, `uuid_v4`, `uuid_v7`, `ulid` |
-| `std/csv` | CSV & TSV parsing & file I/O | `csv_parse`, `csv_stringify`, `csv_read_file`, `csv_write_file`, `csv_read_records`, `csv_write_records` |
 | `std/color` | ANSI colors & TrueColor RGB | `color_red`, `color_green`, `color_rgb`, `bg_rgb`, `style_bold`, `strip_ansi` |
 | `std/log` | Leveled logging & formatting | `log_debug`, `log_info`, `log_warn`, `log_error`, `log_fatal`, `logger_new` |
 | `std/hash` | Hashing & binary encoding | `djb2`, `fnv1a`, `hex_encode`, `hex_decode`, `base64_encode`, `base64_decode` |
@@ -354,8 +353,9 @@ say product    # 60
 | `std/json` | JSON serialization | `json_number`, `json_string`, `json_bool`, `json_array`, `json_object`, `json_map` |
 | `std/time` | System clock & timers | `time`, `clock_ms`, `sleep_ms` |
 | `std/os` | Operating system interop | `os_name`, `arch_name`, `env`, `env_or`, `os_exit`, `exec` |
-| `std/url` | URL parsing & query params | `url_parse`, `url_encode`, `url_decode` |
 | `std/mem` | Low-level & arena allocator | `arena_new`, `arena_alloc_mem`, `arena_clear`, `alloc_mem`, `free_mem`, `peek_byte`, `poke_byte` |
+
+> 📦 **Looking for `csv`, `url`, `http`, or `crypto`?** These rich domain libraries are maintained as official standalone packages (`alyac add csv`, `alyac add url`, `alyac add http`, `alyac add crypto`).
 
 ---
 

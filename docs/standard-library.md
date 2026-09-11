@@ -6,7 +6,7 @@
 
 ## 1. Overview
 
-Alya comes with a comprehensive, zero-dependency standard library bundled directly into the compiler (`stdlib/`). You can import any module using `import "std/<module>"`. If standard library files are not present on disk, the `alyac` compiler automatically extracts them from its embedded binary fallback table.
+Alya comes with a comprehensive, built-in standard library bundled directly into the compiler (`stdlib/`). You can import any module using `import "std/<module>"`. If standard library files are not present on disk, the `alyac` compiler automatically extracts them from its embedded binary fallback table.
 
 ---
 
@@ -217,16 +217,14 @@ High-entropy pseudo-random number generator, range distributions, and unique IDs
 
 ---
 
-### 📊 `std/csv` — CSV & TSV Processing
-```alya
-import "std/csv"
-```
-RFC 4180 compliant CSV and TSV parsing, stringification, and file helpers:
-* `csv_parse(text)`: Parse CSV string into 2D array of strings.
-* `csv_parse_tsv(text)`: Parse tab-separated values.
-* `csv_stringify(rows)`: Convert 2D array back to RFC 4180 CSV string.
-* `csv_read_file(path)`, `csv_write_file(path, rows)`: Read/write CSV files directly.
-* `csv_read_records(path)`, `csv_write_records(path, headers, records)`: Map-based record I/O.
+### 📦 Standalone Ecosystem Packages: `csv`, `url`, `http`, `crypto`
+
+Specialized domain libraries are maintained as official standalone packages rather than bundled compiler bloat. Install them into your project with `alyac add`:
+
+* **`csv`**: RFC 4180 compliant CSV & TSV parser, serializer, and file I/O (`alyac add csv`). See [alya-lang/csv](https://github.com/alya-lang/csv).
+* **`url`**: WHATWG and RFC 3986 compliant URL and `UrlSearchParams` parser and builder (`alyac add url`). See [alya-lang/url](https://github.com/alya-lang/url).
+* **`http`**: HTTP Client & Server framework with middleware and routing (`alyac add http`). See [alya-lang/http](https://github.com/alya-lang/http).
+* **`crypto`**: SHA, HMAC, PBKDF2, Base64/Base64URL, and Constant-Time Equality (`alyac add crypto`). See [alya-lang/crypto](https://github.com/alya-lang/crypto).
 
 ---
 
@@ -281,15 +279,6 @@ import "std/time"
   * `month_name(m)`, `month_short_name(m)`: English month names.
   * `weekday_name(w)`, `weekday_short_name(w)`: English weekday names.
   * `iso_now()`, `date_now()`, `time_now()`: Current date/time formatted strings.
-
----
-
-### 🔗 `std/url` — URL Parsing & Query Parameters
-```alya
-import "std/url"
-```
-* `url_parse(url_str)`: Parse URL into `Url(scheme, host, port, path, query, fragment)`.
-* `url_encode(s)`, `url_decode(s)`: Percent-encoding utilities.
 
 ---
 

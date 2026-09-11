@@ -18,7 +18,6 @@
 # ═══════════════════════════════════════════════════════════════
 
 import "std/net"
-import "std/url"
 import "std/str"
 import "std/time"
 import "std/color"
@@ -73,18 +72,55 @@ function parse_args()
     return BenchConfig(u, n, c, t, k)
 end
 
+struct BenchUrl
+    host
+    port
+    path
+    query
+end
+
+function parse_bench_url(url_str)
+    let rem = str_from_ptr(url_str)
+    if starts_with(rem, "http://")
+        rem = substr(rem, 7, len(rem) - 7)
+    elif starts_with(rem, "https://")
+        rem = substr(rem, 8, len(rem) - 8)
+    end
+
+    let path = "/"
+    let query = ""
+    let q_idx = index_of(rem, "?")
+    if q_idx >= 0
+        query = substr(rem, q_idx + 1, len(rem) - q_idx - 1)
+        rem = substr(rem, 0, q_idx)
+    end
+
+    let slash_idx = index_of(rem, "/")
+    if slash_idx >= 0
+        path = substr(rem, slash_idx, len(rem) - slash_idx)
+        rem = substr(rem, 0, slash_idx)
+    end
+
+    let host = rem
+    let port = 80
+    let colon_idx = index_of(rem, ":")
+    if colon_idx >= 0
+        host = substr(rem, 0, colon_idx)
+        let p_str = substr(rem, colon_idx + 1, len(rem) - colon_idx - 1)
+        if len(p_str) > 0
+            port = int(p_str)
+        end
+    end
+
+    return BenchUrl(host, port, path, query)
+end
+
 function run_single_probe(url_str)
     let t0 = clock_ms()
-    let parsed = url_parse(url_str)
-    let host = parsed.url_host
-    let port = 80
-    if len(parsed.url_port) > 0
-        port = int(parsed.url_port)
-    end
-    let path = parsed.url_path
-    if len(path) == 0
-        path = "/"
-    end
+    let parsed = parse_bench_url(url_str)
+    let host = parsed.host
+    let port = parsed.port
+    let path = parsed.path
     let sock = tcp_connect(host, port)
     if sock < 0
         return 0, clock_ms() - t0, ""
@@ -100,18 +136,12 @@ end
 
 function run_worker_task(args_tuple)
     let cfg, reqs_for_worker, ch_res = args_tuple
-    let parsed = url_parse(cfg.url)
-    let host = parsed.url_host
-    let port = 80
-    if len(parsed.url_port) > 0
-        port = int(parsed.url_port)
-    end
-    let path = parsed.url_path
-    if len(path) == 0
-        path = "/"
-    end
-    if len(parsed.url_query) > 0
-        path = path + "?" + parsed.url_query
+    let parsed = parse_bench_url(cfg.url)
+    let host = parsed.host
+    let port = parsed.port
+    let path = parsed.path
+    if len(parsed.query) > 0
+        path = path + "?" + parsed.query
     end
 
     let req_str = "GET " + path + " HTTP/1.1\r\nHost: " + host + "\r\nConnection: keep-alive\r\nUser-Agent: Alya-Bench/1.0\r\n\r\n"

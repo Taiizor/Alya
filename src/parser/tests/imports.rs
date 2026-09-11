@@ -109,8 +109,6 @@ import "std/collections"
 import "std/test"
 import "std/rand"
 import "std/cli"
-import "std/csv"
-import "std/url"
 import "std/color"
 import "std/log"
 import "std/glob"
@@ -187,16 +185,6 @@ say PI
         _ => false,
     });
 
-    let has_csv_parse = ast.statements.iter().any(|s| match s {
-        Stmt::Function { name, .. } => name == "csv_parse",
-        _ => false,
-    });
-
-    let has_url_parse = ast.statements.iter().any(|s| match s {
-        Stmt::Function { name, .. } => name == "url_parse",
-        _ => false,
-    });
-
     let has_color_red = ast.statements.iter().any(|s| match s {
         Stmt::Function { name, .. } => name == "color_red",
         _ => false,
@@ -230,8 +218,6 @@ say PI
     assert!(has_uuid_v4, "Missing uuid_v4 from std/rand");
     assert!(has_uuid_v7, "Missing uuid_v7 from std/rand");
     assert!(has_cli_has_flag, "Missing cli_has_flag from std/cli");
-    assert!(has_csv_parse, "Missing csv_parse from std/csv");
-    assert!(has_url_parse, "Missing url_parse from std/url");
     assert!(has_color_red, "Missing color_red from std/color");
     assert!(has_logger_new, "Missing logger_new from std/log");
     assert!(has_glob_match, "Missing glob_match from std/glob");
@@ -428,61 +414,6 @@ fn test_aliased_import_resolves_conflict() {
 }
 
 #[test]
-fn test_import_embedded_csv_stdlib() {
-    let source = "import \"std/csv\"\nlet rows = csv_parse(\"a,b\\n1,2\")\nsay rows";
-    let mut lexer = Lexer::new(source);
-    let tokens = lexer.tokenize().expect("Tokenize failed");
-    let mut parser = Parser::new(tokens);
-    let mut ast = parser.parse().expect("Parse failed");
-
-    let current_dir = std::path::Path::new(".");
-    let res = resolve_imports(&mut ast, current_dir);
-    assert!(res.is_ok(), "Importing std/csv should succeed");
-
-    let fn_names: Vec<String> = ast
-        .statements
-        .iter()
-        .filter_map(|s| match s {
-            Stmt::Function { name, .. } => Some(name.clone()),
-            _ => None,
-        })
-        .collect();
-
-    assert!(fn_names.contains(&"csv_parse".to_string()));
-    assert!(fn_names.contains(&"csv_stringify".to_string()));
-    assert!(fn_names.contains(&"csv_parse_records".to_string()));
-}
-
-#[test]
-fn test_import_embedded_url_stdlib() {
-    let source =
-        "import \"std/url\"\nlet u = url_parse(\"https://example.com/test\")\nsay u.url_host";
-    let mut lexer = Lexer::new(source);
-    let tokens = lexer.tokenize().expect("Tokenize failed");
-    let mut parser = Parser::new(tokens);
-    let mut ast = parser.parse().expect("Parse failed");
-
-    let current_dir = std::path::Path::new(".");
-    let res = resolve_imports(&mut ast, current_dir);
-    assert!(res.is_ok(), "Importing std/url should succeed");
-
-    let fn_names: Vec<String> = ast
-        .statements
-        .iter()
-        .filter_map(|s| match s {
-            Stmt::Function { name, .. } => Some(name.clone()),
-            _ => None,
-        })
-        .collect();
-
-    assert!(fn_names.contains(&"url_parse".to_string()));
-    assert!(fn_names.contains(&"url_format".to_string()));
-    assert!(fn_names.contains(&"url_encode".to_string()));
-    assert!(fn_names.contains(&"url_decode".to_string()));
-    assert!(fn_names.contains(&"url_parse_query".to_string()));
-}
-
-#[test]
 fn test_import_embedded_color_and_log_stdlib() {
     let source = "import \"std/color\"\nimport \"std/log\"\nlog_info(\"test\")";
     let mut lexer = Lexer::new(source);
@@ -597,4 +528,22 @@ fn test_resolve_uninstalled_package_error() {
     assert!(err_msg.contains("Run 'alyac install' to resolve dependencies."));
 
     let _ = std::fs::remove_dir_all(&base_temp);
+}
+
+#[test]
+fn test_deprecated_stdlib_modules_diagnostic() {
+    let code_csv = "import \"std/csv\"\nsay 1";
+    let mut ast = Parser::new(Lexer::new(code_csv).tokenize().unwrap()).parse().unwrap();
+    let err = resolve_imports(&mut ast, std::path::Path::new(".")).unwrap_err();
+    assert!(err.contains("alyac add csv"));
+
+    let code_tsv = "import \"std/tsv\"\nsay 1";
+    let mut ast_tsv = Parser::new(Lexer::new(code_tsv).tokenize().unwrap()).parse().unwrap();
+    let err_tsv = resolve_imports(&mut ast_tsv, std::path::Path::new(".")).unwrap_err();
+    assert!(err_tsv.contains("alyac add csv"));
+
+    let code_url = "import \"std/url\"\nsay 1";
+    let mut ast2 = Parser::new(Lexer::new(code_url).tokenize().unwrap()).parse().unwrap();
+    let err2 = resolve_imports(&mut ast2, std::path::Path::new(".")).unwrap_err();
+    assert!(err2.contains("alyac add url"));
 }

@@ -43,7 +43,7 @@ Alya is designed to balance the ergonomics of an expressive, readable language w
   - Networking (`std/net` with raw TCP, HTTP 1.1, and non-blocking `tcp_poll`).
   - Concurrency (`std/thread` with native OS worker threads).
   - System I/O (`std/fs`, `std/path`, `std/os`, `std/time`, `std/console`, `std/color`).
-  - Utilities (`std/rand` with SplitMix64 and UUID v4/v7/ULID, `std/json`, `std/csv`, `std/glob`, `std/hash`, `std/collections`, `std/test`, `std/mem` Arena allocator).
+  - Utilities (`std/rand` with SplitMix64 and UUID v4/v7/ULID, `std/json`, `std/glob`, `std/hash`, `std/collections`, `std/test`, `std/mem` Arena allocator; standalone packages `csv`, `url`, `http`, `crypto`).
 - [x] **Integrated Tooling & Platform Packaging** ✅
   - In-place code formatter (`alyac fmt`).
   - Test runner (`alyac test`).
@@ -78,7 +78,7 @@ Enable community library sharing, versioned dependency resolution, and automated
 
 #### Completed Capabilities
 - **Project Manifest (`alya.toml`)**:
-  - Pure Rust zero-dependency TOML parser and serializer for `[package]` and `[dependencies]`.
+  - Pure Rust built-in TOML parser and serializer for `[package]` and `[dependencies]`.
   - Supports local path dependencies (`{ path = "..." }`), remote Git repositories (`{ git = "...", tag = "...", branch = "..." }`), and version constraints.
   - Compiler compatibility guard (`alya-version = "0.0.5"`) enforcing minimum required compiler version for packages.
   - Rich package metadata (`homepage`, `repository`, `keywords`, `authors`, `license`).
