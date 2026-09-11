@@ -59,3 +59,4 @@ deno.lock
 alya.lock.bak
 Alya.lock.bak
 *.db
+RELEASE_NOTES.md

@@ -100,6 +100,16 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
       - name: Download all release artifacts
         uses: actions/download-artifact@v8
         with:
@@ -108,92 +118,17 @@ jobs:
           path: dist
 
       - name: Generate Release Notes
-        shell: bash
+        id: notes
         run: |
-          VERSION="${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}"
-          REPO="${{ github.repository }}"
-
-          LINUX_PKG="alyac-${VERSION}-x86_64-linux.tar.gz"
-          MAC_ARM_PKG="alyac-${VERSION}-arm64-macos.tar.gz"
-          MAC_X64_PKG="alyac-${VERSION}-x86_64-macos.tar.gz"
-          WIN_PKG="alyac-${VERSION}-x86_64-windows.zip"
-
-          LINUX_SHA=$(awk '{print $1}' "dist/${LINUX_PKG}.sha256" 2>/dev/null | tr -d '\r\n' || echo "—")
-          MAC_ARM_SHA=$(awk '{print $1}' "dist/${MAC_ARM_PKG}.sha256" 2>/dev/null | tr -d '\r\n' || echo "—")
-          MAC_X64_SHA=$(awk '{print $1}' "dist/${MAC_X64_PKG}.sha256" 2>/dev/null | tr -d '\r\n' || echo "—")
-          WIN_SHA=$(awk '{print $1}' "dist/${WIN_PKG}.sha256" 2>/dev/null | tr -d '\r\n' || echo "—")
-
-          [ -z "$LINUX_SHA" ] && LINUX_SHA="—"
-          [ -z "$MAC_ARM_SHA" ] && MAC_ARM_SHA="—"
-          [ -z "$MAC_X64_SHA" ] && MAC_X64_SHA="—"
-          [ -z "$WIN_SHA" ] && WIN_SHA="—"
-
-          cat <<EOF > release_notes.md
-          Alya is an expressive, compiled, multi-paradigm systems programming language designed for clarity, performance, and simplicity.
-
-          ### 📦 Pre-built Binaries & Checksums
-
-          | Platform | Architecture | Package | SHA-256 Checksum |
-          |:---|:---|:---|:---|
-          | <img src="https://svgl.app/library/linux.svg" width="16" height="16" valign="middle" alt="Linux" /> **Linux** | \`x86_64\` | [${LINUX_PKG}](https://github.com/${REPO}/releases/download/${VERSION}/${LINUX_PKG}) ([sha256](https://github.com/${REPO}/releases/download/${VERSION}/${LINUX_PKG}.sha256)) | \`${LINUX_SHA}\` |
-          | <picture><source media="(prefers-color-scheme: dark)" srcset="https://svgl.app/library/apple_dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://svgl.app/library/apple.svg"><img src="https://svgl.app/library/apple.svg" width="16" height="16" valign="middle" alt="macOS" /></picture> **macOS** | Apple Silicon (\`arm64\`) | [${MAC_ARM_PKG}](https://github.com/${REPO}/releases/download/${VERSION}/${MAC_ARM_PKG}) ([sha256](https://github.com/${REPO}/releases/download/${VERSION}/${MAC_ARM_PKG}.sha256)) | \`${MAC_ARM_SHA}\` |
-          | <picture><source media="(prefers-color-scheme: dark)" srcset="https://svgl.app/library/apple_dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://svgl.app/library/apple.svg"><img src="https://svgl.app/library/apple.svg" width="16" height="16" valign="middle" alt="macOS" /></picture> **macOS** | Intel (\`x86_64\`) | [${MAC_X64_PKG}](https://github.com/${REPO}/releases/download/${VERSION}/${MAC_X64_PKG}) ([sha256](https://github.com/${REPO}/releases/download/${VERSION}/${MAC_X64_PKG}.sha256)) | \`${MAC_X64_SHA}\` |
-          | <img src="https://svgl.app/library/windows.svg" width="16" height="16" valign="middle" alt="Windows" /> **Windows** | \`x86_64\` | [${WIN_PKG}](https://github.com/${REPO}/releases/download/${VERSION}/${WIN_PKG}) ([sha256](https://github.com/${REPO}/releases/download/${VERSION}/${WIN_PKG}.sha256)) | \`${WIN_SHA}\` |
-
-          ---
-
-          ### 🚀 Quick Start
-
-          #### Linux / macOS
-          \`\`\`bash
-          # 1. Extract the archive
-          tar -xzf alyac-${VERSION}-<platform>.tar.gz
-          cd alyac-${VERSION}-<platform>
-
-          # 2. Check compiler version
-          ./alyac --version
-
-          # 3. Run an Alya program directly
-          ./alyac run main.alya
-
-          # 4. Or compile to a native binary
-          ./alyac build main.alya
-          \`\`\`
-
-          #### Windows (PowerShell)
-          \`\`\`powershell
-          # 1. Extract the archive
-          Expand-Archive alyac-${VERSION}-x86_64-windows.zip
-          cd alyac-${VERSION}-x86_64-windows
-
-          # 2. Check compiler version
-          .\alyac.exe --version
-
-          # 3. Run an Alya program directly
-          .\alyac.exe run main.alya
-          \`\`\`
-
-          ---
-
-          ### 🔒 Checksum Verification
-
-          \`\`\`bash
-          # Linux / macOS
-          shasum -a 256 -c alyac-${VERSION}-<platform>.tar.gz.sha256
-
-          # Windows (PowerShell)
-          (Get-FileHash alyac-${VERSION}-x86_64-windows.zip -Algorithm SHA256).Hash.ToLower()
-          \`\`\`
-
-          ---
-          EOF
+          TAG="${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}"
+          python3 .github/scripts/generate_release_notes.py "$TAG"
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          name: "Alya ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}"
-          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || inputs.tag }}
-          prerelease: ${{ inputs.prerelease == true || (inputs.prerelease != false && contains(github.ref_name, '-')) }}
-          body_path: release_notes.md
-          generate_release_notes: true
+          name: ${{ steps.notes.outputs.title }}
+          tag_name: ${{ steps.notes.outputs.tag }}
+          prerelease: ${{ inputs.prerelease == true || (inputs.prerelease != false && contains(steps.notes.outputs.tag, '-')) }}
+          body_path: RELEASE_NOTES.md
+          generate_release_notes: false
           files: dist/*

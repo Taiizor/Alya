@@ -1,0 +1,204 @@
+#!/usr/bin/env python3
+"""
+generate_release_notes.py
+Standardized release notes generator for the Alya compiler repository (alya-lang/alya).
+
+Responsibilities:
+1. Resolve release tag and previous tag in git history.
+2. Generate commit changelog between releases (What's Changed).
+3. Construct compare/commits links for full changelog tracking.
+4. Read SHA-256 checksums from dist/ artifacts.
+5. Populate .github/release_template.md placeholders and output RELEASE_NOTES.md.
+6. Export outputs (tag, title, prev_tag, etc.) to $GITHUB_OUTPUT.
+"""
+
+import os
+import sys
+import subprocess
+from pathlib import Path
+
+# Ensure UTF-8 output on all platforms (especially Windows CP1254/CP1252)
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+
+def run_git(args, check=True):
+    """Run git command and return stripped stdout."""
+    try:
+        res = subprocess.run(
+            ["git"] + args,
+            capture_output=True,
+            text=True,
+            check=check,
+            encoding="utf-8",
+            errors="replace",
+        )
+        return res.stdout.strip()
+    except Exception:
+        return ""
+
+
+def get_checksum(dist_dir, pkg_name):
+    """Extract SHA-256 hash from .sha256 file if present."""
+    sha_file = dist_dir / f"{pkg_name}.sha256"
+    if sha_file.is_file():
+        try:
+            content = sha_file.read_text(encoding="utf-8").strip()
+            if content:
+                return content.split()[0]
+        except Exception:
+            pass
+    return "—"
+
+
+def main():
+    # 1. Resolve Release Tag
+    tag = ""
+    if len(sys.argv) > 1 and sys.argv[1].strip():
+        tag = sys.argv[1].strip()
+    elif os.environ.get("GITHUB_REF_TYPE") == "tag" and os.environ.get("GITHUB_REF_NAME"):
+        tag = os.environ.get("GITHUB_REF_NAME").strip()
+    elif os.environ.get("INPUT_TAG"):
+        tag = os.environ.get("INPUT_TAG").strip()
+    else:
+        tag = run_git(["describe", "--tags", "--exact-match"], check=False)
+        if not tag:
+            tag = run_git(["describe", "--tags", "--abbrev=0"], check=False)
+
+    if not tag:
+        tag = "v0.0.5"
+
+    # 2. Resolve Repository Slug (e.g. alya-lang/alya)
+    repo = os.environ.get("GITHUB_REPOSITORY", "")
+    if not repo:
+        origin_url = run_git(["config", "--get", "remote.origin.url"], check=False)
+        if "github.com" in origin_url:
+            cleaned = origin_url.split("github.com")[-1].lstrip(":").lstrip("/")
+            repo = cleaned.rstrip(".git")
+    if not repo:
+        repo = "alya-lang/alya"
+
+    repo_url = f"https://github.com/{repo}"
+
+    # 3. Release Title: "Alya <version>" (e.g. "Alya v0.0.5")
+    title_version = tag if tag.startswith("v") else f"v{tag}"
+    title = f"Alya {title_version}"
+
+    # 4. Detect Previous Tag in Git History
+    prev_tag = ""
+    describe_prev = run_git(["describe", "--tags", "--abbrev=0", f"{tag}^"], check=False)
+    if describe_prev and describe_prev != tag:
+        prev_tag = describe_prev
+    else:
+        all_tags_raw = run_git(["tag", "-l", "v*", "--sort=-v:refname"], check=False)
+        if all_tags_raw:
+            all_tags = [t.strip() for t in all_tags_raw.splitlines() if t.strip() and t.strip() != tag]
+            for candidate in all_tags:
+                is_ancestor = subprocess.run(
+                    ["git", "merge-base", "--is-ancestor", candidate, tag],
+                    capture_output=True,
+                ).returncode == 0
+                if is_ancestor:
+                    prev_tag = candidate
+                    break
+
+    # 5. Full Changelog Link & Commit Range
+    if prev_tag:
+        full_changelog_url = f"{repo_url}/compare/{prev_tag}...{tag}"
+        full_changelog = f"**Full Changelog**: https://github.com/{repo}/compare/{prev_tag}...{tag}"
+        commit_range = f"{prev_tag}..{tag}"
+    else:
+        full_changelog_url = f"{repo_url}/commits/{tag}"
+        full_changelog = f"**Full Changelog**: https://github.com/{repo}/commits/{tag}"
+        commit_range = tag
+
+    # 6. Extract Commit Log for Changes Section
+    commits_raw = run_git(["log", "--pretty=format:* %s (%h)", commit_range], check=False)
+    if commits_raw:
+        lines = [
+            line for line in commits_raw.splitlines()
+            if not line.startswith(f"* release {tag}")
+            and not line.startswith(f"* chore: release {tag}")
+            and not line.startswith(f"* chore(release): {tag}")
+            and "update benchmark results [skip ci]" not in line
+        ]
+        commits_text = "\n".join(lines) if lines else "* Initial release"
+    else:
+        commits_text = "* Initial release"
+
+    # 7. Checksums from dist/
+    dist_dir = Path("dist")
+    linux_pkg = f"alyac-{tag}-x86_64-linux.tar.gz"
+    mac_arm_pkg = f"alyac-{tag}-arm64-macos.tar.gz"
+    mac_x64_pkg = f"alyac-{tag}-x86_64-macos.tar.gz"
+    win_pkg = f"alyac-{tag}-x86_64-windows.zip"
+
+    linux_sha = get_checksum(dist_dir, linux_pkg)
+    mac_arm_sha = get_checksum(dist_dir, mac_arm_pkg)
+    mac_x64_sha = get_checksum(dist_dir, mac_x64_pkg)
+    win_sha = get_checksum(dist_dir, win_pkg)
+
+    # 8. Load Template
+    template_path = Path(".github/release_template.md")
+    if template_path.is_file():
+        template = template_path.read_text(encoding="utf-8")
+    else:
+        template = (
+            "# Alya {{VERSION}}\n\n"
+            "Alya is an expressive, compiled, multi-paradigm systems programming language designed for clarity, performance, and simplicity.\n\n"
+            "## 🚀 What's Changed\n\n"
+            "{{CHANGELOG_COMMITS}}\n\n"
+            "## 📦 Pre-built Binaries & Checksums\n\n"
+            "| Platform | Architecture | Package | SHA-256 Checksum |\n"
+            "|:---|:---|:---|:---|\n"
+            f"| Linux | `x86_64` | [{linux_pkg}]({repo_url}/releases/download/{{VERSION}}/{linux_pkg}) | `{{LINUX_SHA}}` |\n"
+            f"| macOS | Apple Silicon (`arm64`) | [{mac_arm_pkg}]({repo_url}/releases/download/{{VERSION}}/{mac_arm_pkg}) | `{{MAC_ARM_SHA}}` |\n"
+            f"| macOS | Intel (`x86_64`) | [{mac_x64_pkg}]({repo_url}/releases/download/{{VERSION}}/{mac_x64_pkg}) | `{{MAC_X64_SHA}}` |\n"
+            f"| Windows | `x86_64` | [{win_pkg}]({repo_url}/releases/download/{{VERSION}}/{win_pkg}) | `{{WIN_SHA}}` |\n\n"
+            "---\n\n"
+            "{{FULL_CHANGELOG}}\n"
+        )
+
+    # 9. Substitute Placeholders
+    replacements = {
+        "{{VERSION}}": tag,
+        "{{RAW_VERSION}}": tag.lstrip("v"),
+        "{{REPO}}": repo,
+        "{{REPO_URL}}": repo_url,
+        "{{LINUX_SHA}}": linux_sha,
+        "{{MAC_ARM_SHA}}": mac_arm_sha,
+        "{{MAC_X64_SHA}}": mac_x64_sha,
+        "{{WIN_SHA}}": win_sha,
+        "{{PREV_TAG}}": prev_tag,
+        "{{CHANGELOG_COMMITS}}": commits_text,
+        "{{FULL_CHANGELOG}}": full_changelog,
+        "{{CHANGELOG_URL}}": full_changelog_url,
+    }
+
+    body = template
+    for placeholder, val in replacements.items():
+        body = body.replace(placeholder, val)
+
+    # 10. Output to File
+    out_file = Path("RELEASE_NOTES.md")
+    out_file.write_text(body, encoding="utf-8")
+    print(f"Generated release notes in {out_file.resolve()}")
+    print(f"  Title:     {title}")
+    print(f"  Tag:       {tag}")
+    print(f"  Prev Tag:  {prev_tag or '(None - Initial Release)'}")
+    print(f"  Changelog: {full_changelog_url}")
+
+    # 11. Export to GITHUB_OUTPUT if present
+    github_output = os.environ.get("GITHUB_OUTPUT")
+    if github_output:
+        with open(github_output, "a", encoding="utf-8") as f:
+            f.write(f"tag={tag}\n")
+            f.write(f"title={title}\n")
+            f.write(f"prev_tag={prev_tag}\n")
+            f.write(f"changelog_url={full_changelog_url}\n")
+
+
+if __name__ == "__main__":
+    main()
