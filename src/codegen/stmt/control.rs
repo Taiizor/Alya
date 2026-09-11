@@ -35,24 +35,20 @@ impl CodeGen {
                         arch::emit_float_binary_op_imm(&mut self.output, self.arch, *op, *n);
                     } else if let Expr::Number(n) = &**right {
                         arch::emit_float_binary_op_imm(&mut self.output, self.arch, *op, *n);
-                    } else if let Expr::Identifier(var_name) = &**right {
-                        if let Some(&VarType::Float(offset)) = self.ctx.variables.get(var_name) {
-                            arch::emit_load_var_to_scratch(
-                                &mut self.output,
-                                self.arch,
-                                offset,
-                                true,
-                            );
-                            arch::emit_float_cmp_reg(&mut self.output, self.arch);
-                            arch::emit_float_cond_jump(
-                                &mut self.output,
-                                self.arch,
-                                *op,
-                                true,
-                                target_label,
-                            );
-                            return;
-                        }
+                    } else if let Some(&VarType::Float(offset)) = match &**right {
+                        Expr::Identifier(var_name) => self.ctx.variables.get(var_name),
+                        _ => None,
+                    } {
+                        arch::emit_load_var_to_scratch(&mut self.output, self.arch, offset, true);
+                        arch::emit_float_cmp_reg(&mut self.output, self.arch);
+                        arch::emit_float_cond_jump(
+                            &mut self.output,
+                            self.arch,
+                            *op,
+                            true,
+                            target_label,
+                        );
+                        return;
                     } else {
                         arch::emit_push_temp(&mut self.output, self.arch);
                         self.generate_expression(right);
