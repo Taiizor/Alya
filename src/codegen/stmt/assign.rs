@@ -369,10 +369,6 @@ impl CodeGen {
                             }
                         }
                     }
-                } else if is_str {
-                    self.ctx
-                        .variables
-                        .insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
                 } else if is_arr {
                     self.ctx
                         .variables
@@ -387,6 +383,10 @@ impl CodeGen {
                             .variables
                             .insert(format!("arr_is_flt:{}", name), VarType::Number(0));
                     }
+                } else if is_str {
+                    self.ctx
+                        .variables
+                        .insert(name.clone(), VarType::StringOffset(self.ctx.stack_offset));
                 } else if is_flt {
                     self.ctx
                         .variables
@@ -556,14 +556,6 @@ impl CodeGen {
                                 }
                             }
                         }
-                    } else if is_str {
-                        self.ctx
-                            .variables
-                            .insert(name.clone(), VarType::StringOffset(offset));
-                    } else if is_flt {
-                        self.ctx
-                            .variables
-                            .insert(name.clone(), VarType::Float(offset));
                     } else if is_arr {
                         self.ctx
                             .variables
@@ -578,6 +570,14 @@ impl CodeGen {
                                 .variables
                                 .insert(format!("arr_is_flt:{}", name), VarType::Number(0));
                         }
+                    } else if is_str {
+                        self.ctx
+                            .variables
+                            .insert(name.clone(), VarType::StringOffset(offset));
+                    } else if is_flt {
+                        self.ctx
+                            .variables
+                            .insert(name.clone(), VarType::Float(offset));
                     } else {
                         let is_struct = match value {
                             Expr::Identifier(ident) => {

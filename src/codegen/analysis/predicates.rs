@@ -124,6 +124,12 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
             ) {
                 return true;
             }
+            if matches!(
+                bare,
+                "json_parse_array" | "parse_array" | "json_parse_object" | "parse_object"
+            ) {
+                return false;
+            }
             vars.contains_key(&format!("fn_ret_str:{}", name))
                 || vars.contains_key(&format!("fn_ret_str:{}", bare))
         }
@@ -260,6 +266,7 @@ pub fn is_array_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "list_dir_recursive"
                     | "fs_list_dir_recursive"
                     | "json_parse_array"
+                    | "parse_array"
             ) || vars.contains_key(&format!("fn_ret_str_arr:{}", name))
                 || vars.contains_key(&format!("fn_ret_str_arr:{}", bare))
         }
@@ -318,6 +325,7 @@ pub fn is_map_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     | "url_parse_query"
                     | "json_parse"
                     | "json_parse_object"
+                    | "parse_object"
             ) || vars.contains_key(&format!("fn_ret_map:{}", name))
                 || vars.contains_key(&format!("fn_ret_map:{}", bare))
         }
