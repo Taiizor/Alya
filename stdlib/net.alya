@@ -195,4 +195,3 @@ end
 function basic_auth(username, password)
     return "Basic " + base64_encode(username + ":" + password)
 end
-
