@@ -618,7 +618,8 @@ fn expand_defaults_in_expr(
             for arg in args.iter_mut() {
                 expand_defaults_in_expr(arg, fn_defs);
             }
-            if let Some((param_count, defaults)) = fn_defs.get(name) {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            if let Some((param_count, defaults)) = fn_defs.get(name).or_else(|| fn_defs.get(bare)) {
                 if args.len() < *param_count {
                     for i in args.len()..*param_count {
                         if let Some(Some(def_expr)) = defaults.get(i) {
