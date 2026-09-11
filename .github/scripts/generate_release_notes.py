@@ -87,8 +87,17 @@ def main():
     title = f"Alya {title_version}"
 
     # 4. Detect Previous Tag in Git History
+    # Check whether the target tag already exists as a git object (e.g. tag push).
+    # On manual workflow_dispatch triggers, the tag has not been created in git yet,
+    # so we compare against HEAD.
+    tag_rev = run_git(["rev-parse", "--verify", f"refs/tags/{tag}"], check=False)
+    tag_exists = bool(tag_rev)
+    target_ref = tag if tag_exists else "HEAD"
+
     prev_tag = ""
-    describe_prev = run_git(["describe", "--tags", "--abbrev=0", f"{tag}^"], check=False)
+    # If the tag already exists, look before it (tag^). Otherwise, look at HEAD.
+    base_ref = f"{tag}^" if tag_exists else target_ref
+    describe_prev = run_git(["describe", "--tags", "--abbrev=0", base_ref], check=False)
     if describe_prev and describe_prev != tag:
         prev_tag = describe_prev
     else:
@@ -97,7 +106,7 @@ def main():
             all_tags = [t.strip() for t in all_tags_raw.splitlines() if t.strip() and t.strip() != tag]
             for candidate in all_tags:
                 is_ancestor = subprocess.run(
-                    ["git", "merge-base", "--is-ancestor", candidate, tag],
+                    ["git", "merge-base", "--is-ancestor", candidate, target_ref],
                     capture_output=True,
                 ).returncode == 0
                 if is_ancestor:
@@ -108,11 +117,11 @@ def main():
     if prev_tag:
         full_changelog_url = f"{repo_url}/compare/{prev_tag}...{tag}"
         full_changelog = f"**Full Changelog**: https://github.com/{repo}/compare/{prev_tag}...{tag}"
-        commit_range = f"{prev_tag}..{tag}"
+        commit_range = f"{prev_tag}..{target_ref}"
     else:
         full_changelog_url = f"{repo_url}/commits/{tag}"
         full_changelog = f"**Full Changelog**: https://github.com/{repo}/commits/{tag}"
-        commit_range = tag
+        commit_range = target_ref
 
     # 6. Extract Commit Log for Changes Section
     commits_raw = run_git(["log", "--pretty=format:* %s (%h)", commit_range], check=False)
