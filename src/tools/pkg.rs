@@ -802,9 +802,9 @@ pub fn run_pkg(cmd: &PkgCommand) -> Result<(), String> {
         PkgCommand::Install => run_install(),
         PkgCommand::List => run_list(),
         PkgCommand::Update => run_update(),
-        PkgCommand::Cache { clean, all } => {
+        PkgCommand::Cache { clean, .. } => {
             if *clean {
-                run_clean(*all)
+                run_clean(true)
             } else {
                 run_cache()
             }
@@ -1301,6 +1301,52 @@ fn fetch_git_or_archive_dependency(
     }
 }
 
+pub fn compute_cache_key(name: &str, tag_or_branch: &str, url: &str) -> String {
+    let sanitized_tag = tag_or_branch.replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "-");
+    let url_hash = &sha256_hex(url.as_bytes())[..8];
+    format!("{}@{}-{}", name, sanitized_tag, url_hash)
+}
+
+pub fn copy_dir_all(src: &Path, dst: &Path, skip_git: bool) -> Result<(), String> {
+    if !dst.exists() {
+        fs::create_dir_all(dst).map_err(|e| {
+            format!(
+                "Failed to create directory '{}': {}",
+                dst.display(),
+                e
+            )
+        })?;
+    }
+    let entries = fs::read_dir(src).map_err(|e| {
+        format!(
+            "Failed to read directory '{}': {}",
+            src.display(),
+            e
+        )
+    })?;
+    for entry in entries.flatten() {
+        let entry_path = entry.path();
+        let file_name = entry.file_name();
+        if skip_git && file_name == ".git" {
+            continue;
+        }
+        let target_path = dst.join(&file_name);
+        if entry_path.is_dir() {
+            copy_dir_all(&entry_path, &target_path, skip_git)?;
+        } else if entry_path.is_file() {
+            fs::copy(&entry_path, &target_path).map_err(|e| {
+                format!(
+                    "Failed to copy file '{}' to '{}': {}",
+                    entry_path.display(),
+                    target_path.display(),
+                    e
+                )
+            })?;
+        }
+    }
+    Ok(())
+}
+
 pub fn run_install() -> Result<(), String> {
     let manifest_dir = find_manifest_dir().ok_or_else(|| {
         "Error: Could not find 'alya.toml' in current directory or any parent.".to_string()
@@ -1362,7 +1408,51 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     .map_err(|e| format!("Failed to create .alya/packages directory: {}", e))?;
                 let target_dir = packages_dir.join(name);
 
-                if !target_dir.exists() {
+                let tag_or_branch = tag
+                    .as_deref()
+                    .or(branch.as_deref())
+                    .or(rev.as_deref())
+                    .unwrap_or("head");
+                let source = format!("git:{}#{}", url, tag_or_branch);
+
+                if let Some(global_cache_dir) = get_global_cache_dir() {
+                    let cache_key = compute_cache_key(name, tag_or_branch, url);
+                    let cached_pkg_dir = global_cache_dir.join(&cache_key);
+
+                    let cache_hit =
+                        cached_pkg_dir.exists() && cached_pkg_dir.join("alya.toml").exists();
+                    if cache_hit {
+                        println!(
+                            "  Using cached package '{}' ({}) from global cache",
+                            name, tag_or_branch
+                        );
+                        if !target_dir.exists() || !target_dir.join("alya.toml").exists() {
+                            if target_dir.exists() {
+                                let _ = fs::remove_dir_all(&target_dir);
+                            }
+                            copy_dir_all(&cached_pkg_dir, &target_dir, true)?;
+                        }
+                    } else {
+                        let _ = fs::create_dir_all(&global_cache_dir);
+                        if cached_pkg_dir.exists() {
+                            let _ = fs::remove_dir_all(&cached_pkg_dir);
+                        }
+                        fetch_git_or_archive_dependency(
+                            name,
+                            url,
+                            tag.as_deref(),
+                            branch.as_deref(),
+                            rev.as_deref(),
+                            &cached_pkg_dir,
+                        )?;
+                        let _ = fs::write(cached_pkg_dir.join(".alya-source"), &source);
+
+                        if target_dir.exists() {
+                            let _ = fs::remove_dir_all(&target_dir);
+                        }
+                        copy_dir_all(&cached_pkg_dir, &target_dir, true)?;
+                    }
+                } else if !target_dir.exists() {
                     fetch_git_or_archive_dependency(
                         name,
                         url,
@@ -1382,13 +1472,6 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     .to_string_lossy()
                     .replace('\\', "/");
                 let checksum = compute_package_checksum(&target_dir)?;
-
-                let tag_or_branch = tag
-                    .as_deref()
-                    .or(branch.as_deref())
-                    .or(rev.as_deref())
-                    .unwrap_or("head");
-                let source = format!("git:{}#{}", url, tag_or_branch);
 
                 locked_packages.push(LockedPackage {
                     name: name.clone(),
@@ -1608,14 +1691,25 @@ pub fn inspect_packages_dir(dir: &Path, lock: Option<&PackageLock>) -> Vec<Cache
         for entry in entries.flatten() {
             let path = entry.path();
             if path.is_dir() {
-                let name = entry.file_name().to_string_lossy().to_string();
+                let folder_name = entry.file_name().to_string_lossy().to_string();
+                let mut name = folder_name
+                    .split('@')
+                    .next()
+                    .unwrap_or(&folder_name)
+                    .to_string();
                 let manifest_path = path.join("alya.toml");
-                let mut version = "unknown".to_string();
+                let mut version = folder_name
+                    .split('@')
+                    .nth(1)
+                    .and_then(|s| s.split('-').next())
+                    .unwrap_or("unknown")
+                    .to_string();
                 let mut source = "-".to_string();
 
                 if manifest_path.exists() {
                     if let Ok(content) = fs::read_to_string(&manifest_path) {
                         if let Ok(m) = parse_manifest(&content) {
+                            name = m.package.name.clone();
                             let ver = m.package.version.trim();
                             if !ver.is_empty() {
                                 version = if ver.starts_with('v') || ver.starts_with('V') {
@@ -1640,6 +1734,16 @@ pub fn inspect_packages_dir(dir: &Path, lock: Option<&PackageLock>) -> Vec<Cache
                         }
                         source = lp.source.clone();
                     }
+                } else {
+                    let source_file = path.join(".alya-source");
+                    if source_file.exists() {
+                        if let Ok(s) = fs::read_to_string(&source_file) {
+                            let trimmed = s.trim();
+                            if !trimmed.is_empty() {
+                                source = trimmed.to_string();
+                            }
+                        }
+                    }
                 }
 
                 let (size_bytes, file_count) = dir_size_and_count(&path);
@@ -1654,7 +1758,7 @@ pub fn inspect_packages_dir(dir: &Path, lock: Option<&PackageLock>) -> Vec<Cache
             }
         }
     }
-    result.sort_by(|a, b| a.name.cmp(&b.name));
+    result.sort_by(|a, b| a.name.cmp(&b.name).then(a.version.cmp(&b.version)));
     result
 }
 
@@ -2177,6 +2281,46 @@ checksum = "sha256:abcdef1234567890"
         assert_eq!(details[0].name, "dummy_pkg");
         assert_eq!(details[0].version, "v1.2.3");
         assert!(details[0].size_bytes > 0);
+
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_global_cache_and_copy_dir_all() {
+        let temp_dir = std::env::temp_dir().join(format!("alya_test_cache_copy_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        let cache_key = compute_cache_key("crypto", "v0.1.0", "https://github.com/alya-lang/crypto");
+        assert!(cache_key.starts_with("crypto@v0.1.0-"));
+
+        let src_dir = temp_dir.join("cache").join(&cache_key);
+        fs::create_dir_all(&src_dir).unwrap();
+        fs::create_dir_all(src_dir.join(".git")).unwrap();
+        fs::create_dir_all(src_dir.join("src")).unwrap();
+
+        fs::write(
+            src_dir.join("alya.toml"),
+            "[package]\nname = \"crypto\"\nversion = \"0.1.0\"\nentry = \"src/lib.alya\"\n",
+        )
+        .unwrap();
+        fs::write(src_dir.join(".alya-source"), "git:https://github.com/alya-lang/crypto#v0.1.0").unwrap();
+        fs::write(src_dir.join(".git").join("config"), "[core]").unwrap();
+        fs::write(src_dir.join("src").join("lib.alya"), "fn hash() {}").unwrap();
+
+        // Test inspect_packages_dir on global cache (lock is None)
+        let cache_details = inspect_packages_dir(&temp_dir.join("cache"), None);
+        assert_eq!(cache_details.len(), 1);
+        assert_eq!(cache_details[0].name, "crypto");
+        assert_eq!(cache_details[0].version, "v0.1.0");
+        assert_eq!(cache_details[0].source, "git:https://github.com/alya-lang/crypto#v0.1.0");
+
+        // Test copy_dir_all with skip_git
+        let target_dir = temp_dir.join("project").join(".alya").join("packages").join("crypto");
+        copy_dir_all(&src_dir, &target_dir, true).unwrap();
+
+        assert!(target_dir.join("alya.toml").exists());
+        assert!(target_dir.join("src").join("lib.alya").exists());
+        assert!(!target_dir.join(".git").exists());
 
         let _ = fs::remove_dir_all(&temp_dir);
     }
