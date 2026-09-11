@@ -123,8 +123,7 @@ impl StructInference {
                             let bare = fn_name.rsplit("::").next().unwrap_or(fn_name);
                             let bare = bare.rsplit("__").next().unwrap_or(bare);
                             if bare != fn_name {
-                                self.var_types
-                                    .insert(format!("{}::{}", bare, name), st);
+                                self.var_types.insert(format!("{}::{}", bare, name), st);
                             }
                         } else {
                             self.var_types.insert(name.clone(), st);
@@ -144,8 +143,7 @@ impl StructInference {
                             let bare = fn_name.rsplit("::").next().unwrap_or(fn_name);
                             let bare = bare.rsplit("__").next().unwrap_or(bare);
                             if bare != fn_name {
-                                self.var_types
-                                    .insert(format!("{}::{}", bare, var), st);
+                                self.var_types.insert(format!("{}::{}", bare, var), st);
                             }
                         } else {
                             self.var_types.insert(var.clone(), st);
