@@ -83,7 +83,7 @@ def main():
             tag = run_git(["describe", "--tags", "--abbrev=0"], check=False)
 
     if not tag:
-        tag = "v0.0.6"
+        tag = "v0.0.7"
 
     # 2. Resolve Repository Slug (e.g. alya-lang/alya)
     repo = os.environ.get("GITHUB_REPOSITORY", "")
