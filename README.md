@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/github/license/alya-lang/alya?color=blue&label=License)](LICENSE)
 [![Rust](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Falya-lang%2Falya%2Fmain%2FCargo.toml&query=%24.package.rust-version&label=Rust&color=orange&prefix=%3E%3D)](https://www.rust-lang.org/)
 [![Compiler Version](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2Falya-lang%2Falya%2Fmain%2FCargo.toml&query=%24.package.version&label=Version&color=brightgreen)](Cargo.toml)
-[![Target Architectures](https://img.shields.io/badge/arch-x86%20%7C%20x64%20%7C%20ARM64-blueviolet)](#platform-support)
+[![Target Architectures](https://img.shields.io/badge/Arch-x86%20%7C%20x64%20%7C%20ARM64-blueviolet)](#platform-support)
 
 <p align="center">
   <a href="#syntax-at-a-glance">Syntax</a> •
