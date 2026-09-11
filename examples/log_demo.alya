@@ -45,4 +45,9 @@ logger_error(app_logger, "Database query failed: deadlock detected")
 say "\n--- 6. Logger with Timestamps ---"
 logger_set_timestamps(app_logger, 1)
 logger_info(app_logger, "Cluster rebalancing started.")
+
+# 7. Advanced Production Logging
+say "\n--- 7. Advanced / Production Logging ---"
+say "Tip: For JSON structured logs, size-based file rotation, and multi-appenders,"
+say "use the standalone package: alya-lang/logger (alyac add logger)."
 say "std/log demo completed successfully."

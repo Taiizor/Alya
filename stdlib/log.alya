@@ -1,6 +1,9 @@
 # Alya Standard Library - Logging Module (std/log)
-# Provides leveled logging, ANSI colored badges, timestamps, structured Logger instances,
-# and optional file output.
+# Lightweight console logger with leveled output, ANSI colored badges, and timestamps.
+#
+# NOTE: For advanced features such as structured JSON logging, size-based
+# file rotation, and multi-appender pipelines, use the official package:
+#   alya-lang/logger (alyac add logger)
 
 import "std/color"
 
