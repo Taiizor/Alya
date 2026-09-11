@@ -1455,6 +1455,12 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     update_git_dependency(tag.as_deref(), branch.as_deref(), &target_dir);
                 }
 
+                // Ensure local project dependency directory never contains a .git folder
+                let local_git_dir = target_dir.join(".git");
+                if local_git_dir.exists() {
+                    let _ = fs::remove_dir_all(&local_git_dir);
+                }
+
                 let entry = find_package_entry(&target_dir, name)?;
                 let rel_entry = entry
                     .strip_prefix(manifest_dir)
