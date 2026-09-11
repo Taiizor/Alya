@@ -146,7 +146,6 @@ def main():
         template = template_path.read_text(encoding="utf-8")
     else:
         template = (
-            "# Alya {{VERSION}}\n\n"
             "Alya is an expressive, compiled, multi-paradigm systems programming language designed for clarity, performance, and simplicity.\n\n"
             "## 🚀 What's Changed\n\n"
             "{{CHANGELOG_COMMITS}}\n\n"

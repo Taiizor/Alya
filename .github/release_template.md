@@ -1,5 +1,3 @@
-# Alya {{VERSION}}
-
 Alya is an expressive, compiled, multi-paradigm systems programming language designed for clarity, performance, and simplicity.
 
 ## 🚀 What's Changed
