@@ -907,7 +907,10 @@ impl CodeGen {
                             }
                         }
                     }
-                } else if let Expr::FieldAccess { field: inner_field, .. } = &**object {
+                } else if let Expr::FieldAccess {
+                    field: inner_field, ..
+                } = &**object
+                {
                     if let Some(VarType::Struct { struct_name, .. }) = self
                         .ctx
                         .variables

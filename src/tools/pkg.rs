@@ -554,13 +554,13 @@ pub fn parse_lockfile(content: &str) -> Result<PackageLock, String> {
                     "source" => pkg.source = unquote(raw_val),
                     "entry" => pkg.entry = unquote(raw_val),
                     "checksum" => pkg.checksum = unquote(raw_val),
-                    "dependencies" => {
-                        if raw_val.starts_with('[') {
-                            if raw_val.ends_with(']') {
-                                pkg.dependencies = parse_string_array(raw_val);
-                            } else {
-                                in_dependencies = true;
-                                let after_bracket = raw_val[1..].trim();
+                    "dependencies" if raw_val.starts_with('[') => {
+                        if raw_val.ends_with(']') {
+                            pkg.dependencies = parse_string_array(raw_val);
+                        } else {
+                            in_dependencies = true;
+                            if let Some(after_bracket) = raw_val.strip_prefix('[') {
+                                let after_bracket = after_bracket.trim();
                                 if !after_bracket.is_empty() {
                                     let item = after_bracket.trim_end_matches(',');
                                     let dep = unquote(item.trim());
