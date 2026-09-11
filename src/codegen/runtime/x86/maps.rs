@@ -92,6 +92,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    add $8, %esp\n");
     out.push_str("    mov %eax, 8(%ebx)\n"); // entries
     out.push_str("    mov %ebx, %eax\n");
+    out.push_str("    addl $788, alya_allocated_bytes\n");
     out.push_str("    pop %ebx\n");
     out.push_str("    mov %ebp, %esp\n");
     out.push_str("    pop %ebp\n");
@@ -122,6 +123,8 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    call calloc\n");
     out.push_str("    add $8, %esp\n");
     out.push_str("    mov %eax, %edi\n"); // edi = new_entries
+    out.push_str("    imul $12, %ebx, %edx\n");
+    out.push_str("    add %edx, alya_allocated_bytes\n");
     out.push_str("    lea -1(%ebx), %edx\n"); // edx = new_mask
                                               // rehash old entries
     out.push_str("    mov 8(%esi), %ecx\n"); // ecx = old_entries

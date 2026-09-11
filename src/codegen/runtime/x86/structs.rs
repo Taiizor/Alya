@@ -19,6 +19,10 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    push %eax\n");
     out.push_str("    call calloc\n");
     out.push_str("    add $8, %esp\n");
+    out.push_str("    mov %ebx, %edx\n");
+    out.push_str("    add $3, %edx\n");
+    out.push_str("    shl $2, %edx\n");
+    out.push_str("    add %edx, alya_allocated_bytes\n");
     out.push_str("    movl $0x5A110003, (%eax)\n");
     out.push_str("    movl $1, 4(%eax)\n");
     out.push_str("    lea 8(%eax), %eax\n");

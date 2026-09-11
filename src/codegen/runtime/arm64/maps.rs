@@ -75,6 +75,11 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov x1, #24\n");
     out.push_str(&format!("    bl {}calloc\n", p));
     out.push_str("    str x0, [x19, #16]\n");
+    out.push_str("    mov x1, #1576\n");
+    emit_adrp_add(out, "x2", "alya_allocated_bytes", os);
+    out.push_str("    ldr x3, [x2]\n");
+    out.push_str("    add x3, x3, x1\n");
+    out.push_str("    str x3, [x2]\n");
     out.push_str("    mov x0, x19\n");
     out.push_str("    ldp x19, x20, [sp, #16]\n");
     out.push_str("    ldp x29, x30, [sp], #32\n");
@@ -104,6 +109,12 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    mov x1, #24\n");
     out.push_str(&format!("    bl {}calloc\n", p));
     out.push_str("    mov x26, x0\n");
+    out.push_str("    mov x1, #24\n");
+    out.push_str("    mul x1, x22, x1\n");
+    emit_adrp_add(out, "x2", "alya_allocated_bytes", os);
+    out.push_str("    ldr x3, [x2]\n");
+    out.push_str("    add x3, x3, x1\n");
+    out.push_str("    str x3, [x2]\n");
     out.push_str("    sub x23, x22, #1\n");
     out.push_str("    mov x24, #0\n");
     out.push_str("    ldr x25, [x19, #8]\n");

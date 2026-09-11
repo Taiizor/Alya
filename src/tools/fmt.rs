@@ -306,60 +306,112 @@ fn get_block_starter(code: &str) -> Option<BlockKind> {
     None
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MultilineLiteralState {
+    TripleQuote,
+    RawString,
+    DoubleQuote,
+    Comment,
+}
+
+fn scan_line_multiline_state(
+    line: &str,
+    mut state: Option<MultilineLiteralState>,
+) -> Option<MultilineLiteralState> {
+    let bytes = line.as_bytes();
+    let mut escaped = false;
+    let mut i = 0;
+
+    while i < bytes.len() {
+        let b = bytes[i];
+        match state {
+            None => {
+                if b == b'#' {
+                    break;
+                }
+                if b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+                    break;
+                }
+                if b == b'/' && i + 1 < bytes.len() && bytes[i + 1] == b'*' {
+                    state = Some(MultilineLiteralState::Comment);
+                    i += 2;
+                    continue;
+                }
+                if b == b'"' {
+                    if i + 2 < bytes.len() && bytes[i + 1] == b'"' && bytes[i + 2] == b'"' {
+                        state = Some(MultilineLiteralState::TripleQuote);
+                        i += 3;
+                        continue;
+                    } else {
+                        state = Some(MultilineLiteralState::DoubleQuote);
+                        escaped = false;
+                        i += 1;
+                        continue;
+                    }
+                }
+                if b == b'`' {
+                    state = Some(MultilineLiteralState::RawString);
+                    i += 1;
+                    continue;
+                }
+                i += 1;
+            }
+            Some(MultilineLiteralState::DoubleQuote) => {
+                if escaped {
+                    escaped = false;
+                } else if b == b'\\' {
+                    escaped = true;
+                } else if b == b'"' {
+                    state = None;
+                }
+                i += 1;
+            }
+            Some(MultilineLiteralState::TripleQuote) => {
+                if b == b'"' && i + 2 < bytes.len() && bytes[i + 1] == b'"' && bytes[i + 2] == b'"'
+                {
+                    state = None;
+                    i += 3;
+                    continue;
+                }
+                i += 1;
+            }
+            Some(MultilineLiteralState::RawString) => {
+                if b == b'`' {
+                    state = None;
+                }
+                i += 1;
+            }
+            Some(MultilineLiteralState::Comment) => {
+                if b == b'*' && i + 1 < bytes.len() && bytes[i + 1] == b'/' {
+                    state = None;
+                    i += 2;
+                    continue;
+                }
+                i += 1;
+            }
+        }
+    }
+
+    state
+}
+
 /// Formats the given Alya source code string.
 pub fn format_source(source: &str) -> Result<String, String> {
     let lines: Vec<&str> = source.lines().collect();
     let mut formatted_lines: Vec<String> = Vec::new();
     let mut block_stack: Vec<BlockKind> = Vec::new();
-    let mut in_multiline_str = false;
-    let mut in_raw_str = false;
-    let mut in_multiline_comment = false;
+    let mut multiline_state: Option<MultilineLiteralState> = None;
     let mut prev_was_empty = false;
 
     for line in lines {
         let trimmed = line.trim();
 
-        // 1. Multiline string handling
-        if in_multiline_str {
+        // 1. Multiline literal handling (string or comment): preserve lines verbatim
+        if let Some(state) = multiline_state {
             formatted_lines.push(line.to_string());
-            if trimmed.contains("\"\"\"") {
-                in_multiline_str = false;
-            }
+            multiline_state = scan_line_multiline_state(line, Some(state));
             prev_was_empty = false;
             continue;
-        }
-
-        // 2. Raw string handling
-        if in_raw_str {
-            formatted_lines.push(line.to_string());
-            if trimmed.contains('`') {
-                in_raw_str = false;
-            }
-            prev_was_empty = false;
-            continue;
-        }
-
-        // 3. Multiline comment handling: preserve lines verbatim
-        if in_multiline_comment {
-            formatted_lines.push(line.to_string());
-            if trimmed.contains("*/") {
-                in_multiline_comment = false;
-            }
-            prev_was_empty = false;
-            continue;
-        }
-
-        // Check opening of multiline tokens
-        let count_triple = trimmed.matches("\"\"\"").count();
-        if count_triple % 2 != 0 {
-            in_multiline_str = true;
-        }
-        let count_ticks = trimmed.matches('`').count();
-        if count_ticks % 2 != 0 {
-            in_raw_str = true;
-        }
-        if trimmed.starts_with("/*") && !trimmed.contains("*/") {
-            in_multiline_comment = true;
         }
 
         // Empty line handling
@@ -378,6 +430,7 @@ pub fn format_source(source: &str) -> Result<String, String> {
         if code.is_empty() {
             let indent = " ".repeat(block_stack.len() * 4);
             formatted_lines.push(format!("{}{}", indent, trimmed));
+            multiline_state = scan_line_multiline_state(trimmed, None);
             continue;
         }
 
@@ -474,6 +527,8 @@ pub fn format_source(source: &str) -> Result<String, String> {
         if popped_bytes < code.len() {
             scan_delimiters_after_leading(&code[popped_bytes..], &mut block_stack);
         }
+
+        multiline_state = scan_line_multiline_state(trimmed, None);
     }
 
     // Trim trailing empty lines so that the file ends cleanly with no trailing blank lines
@@ -811,6 +866,31 @@ end
         "beta"
     ]
     return items
+end
+"#;
+        assert_eq!(format_source(input).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_format_multiline_double_quote_preservation() {
+        let input = r#"function main()
+let sample = "
+[package]
+name = "test"
+[[routes]]
+path = "/api"
+"
+say "done"
+end
+"#;
+        let expected = r#"function main()
+    let sample = "
+[package]
+name = "test"
+[[routes]]
+path = "/api"
+"
+    say "done"
 end
 "#;
         assert_eq!(format_source(input).unwrap(), expected);

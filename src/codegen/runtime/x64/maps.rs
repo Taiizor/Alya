@@ -115,6 +115,7 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str("    mov %rbx, %rax\n");
         out.push_str("    add $8, %rsp\n");
     }
+    out.push_str("    addq $1576, alya_allocated_bytes(%rip)\n");
     out.push_str("    pop %rbx\n");
     out.push_str("    mov %rbp, %rsp\n");
     out.push_str("    pop %rbp\n");
@@ -159,6 +160,9 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
         out.push_str(&format!("    call {}calloc\n", p));
     }
     out.push_str("    mov %rax, 40(%rsp)\n");
+    out.push_str("    mov 48(%rsp), %r11\n");
+    out.push_str("    imul $24, %r11, %r11\n");
+    out.push_str("    add %r11, alya_allocated_bytes(%rip)\n");
     out.push_str("    mov 48(%rsp), %rax\n");
     out.push_str("    dec %rax\n");
     out.push_str("    mov %rax, 56(%rsp)\n");

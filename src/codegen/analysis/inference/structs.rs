@@ -58,6 +58,11 @@ impl StructInference {
                     if let Some(st) = self.var_types.get(&format!("{}::{}", fn_name, vname)) {
                         return Some(st.clone());
                     }
+                    let bare = fn_name.rsplit("::").next().unwrap_or(fn_name);
+                    let bare = bare.rsplit("__").next().unwrap_or(bare);
+                    if let Some(st) = self.var_types.get(&format!("{}::{}", bare, vname)) {
+                        return Some(st.clone());
+                    }
                 }
                 self.var_types.get(vname).cloned()
             }
@@ -115,8 +120,14 @@ impl StructInference {
                         if let Some(fn_name) = current_fn {
                             self.var_types
                                 .insert(format!("{}::{}", fn_name, name), st.clone());
+                            let bare = fn_name.rsplit("::").next().unwrap_or(fn_name);
+                            let bare = bare.rsplit("__").next().unwrap_or(bare);
+                            if bare != fn_name {
+                                self.var_types.insert(format!("{}::{}", bare, name), st);
+                            }
+                        } else {
+                            self.var_types.insert(name.clone(), st);
                         }
-                        self.var_types.insert(name.clone(), st);
                     }
                 }
                 Stmt::ForEach {
@@ -129,8 +140,14 @@ impl StructInference {
                         if let Some(fn_name) = current_fn {
                             self.var_types
                                 .insert(format!("{}::{}", fn_name, var), st.clone());
+                            let bare = fn_name.rsplit("::").next().unwrap_or(fn_name);
+                            let bare = bare.rsplit("__").next().unwrap_or(bare);
+                            if bare != fn_name {
+                                self.var_types.insert(format!("{}::{}", bare, var), st);
+                            }
+                        } else {
+                            self.var_types.insert(var.clone(), st);
                         }
-                        self.var_types.insert(var.clone(), st);
                     }
                     self.scan_stmts(body, current_fn, struct_names);
                 }

@@ -1,12 +1,9 @@
 name: "CodeQL Analysis"
 
 on:
-  push:
-    branches: [develop]
-  pull_request:
-    branches: [develop]
   schedule:
-    - cron: "30 1 * * 1"
+    - cron: "0 2 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read

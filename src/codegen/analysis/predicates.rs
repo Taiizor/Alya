@@ -147,6 +147,9 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     return true;
                 }
             }
+            if matches!(**index, Expr::String(_)) || is_string_expr(index, vars) {
+                return false;
+            }
             if let (Expr::Identifier(arr_name), Expr::Number(idx)) = (&**array, &**index) {
                 let key = format!("tuple_elem_str:{}:{}", arr_name, *idx as usize);
                 if vars.contains_key(&key) {
