@@ -1309,21 +1309,11 @@ pub fn compute_cache_key(name: &str, tag_or_branch: &str, url: &str) -> String {
 
 pub fn copy_dir_all(src: &Path, dst: &Path, skip_git: bool) -> Result<(), String> {
     if !dst.exists() {
-        fs::create_dir_all(dst).map_err(|e| {
-            format!(
-                "Failed to create directory '{}': {}",
-                dst.display(),
-                e
-            )
-        })?;
+        fs::create_dir_all(dst)
+            .map_err(|e| format!("Failed to create directory '{}': {}", dst.display(), e))?;
     }
-    let entries = fs::read_dir(src).map_err(|e| {
-        format!(
-            "Failed to read directory '{}': {}",
-            src.display(),
-            e
-        )
-    })?;
+    let entries = fs::read_dir(src)
+        .map_err(|e| format!("Failed to read directory '{}': {}", src.display(), e))?;
     for entry in entries.flatten() {
         let entry_path = entry.path();
         let file_name = entry.file_name();
@@ -2287,10 +2277,12 @@ checksum = "sha256:abcdef1234567890"
 
     #[test]
     fn test_global_cache_and_copy_dir_all() {
-        let temp_dir = std::env::temp_dir().join(format!("alya_test_cache_copy_{}", std::process::id()));
+        let temp_dir =
+            std::env::temp_dir().join(format!("alya_test_cache_copy_{}", std::process::id()));
         let _ = fs::remove_dir_all(&temp_dir);
 
-        let cache_key = compute_cache_key("crypto", "v0.1.0", "https://github.com/alya-lang/crypto");
+        let cache_key =
+            compute_cache_key("crypto", "v0.1.0", "https://github.com/alya-lang/crypto");
         assert!(cache_key.starts_with("crypto@v0.1.0-"));
 
         let src_dir = temp_dir.join("cache").join(&cache_key);
@@ -2303,7 +2295,11 @@ checksum = "sha256:abcdef1234567890"
             "[package]\nname = \"crypto\"\nversion = \"0.1.0\"\nentry = \"src/lib.alya\"\n",
         )
         .unwrap();
-        fs::write(src_dir.join(".alya-source"), "git:https://github.com/alya-lang/crypto#v0.1.0").unwrap();
+        fs::write(
+            src_dir.join(".alya-source"),
+            "git:https://github.com/alya-lang/crypto#v0.1.0",
+        )
+        .unwrap();
         fs::write(src_dir.join(".git").join("config"), "[core]").unwrap();
         fs::write(src_dir.join("src").join("lib.alya"), "fn hash() {}").unwrap();
 
@@ -2312,10 +2308,17 @@ checksum = "sha256:abcdef1234567890"
         assert_eq!(cache_details.len(), 1);
         assert_eq!(cache_details[0].name, "crypto");
         assert_eq!(cache_details[0].version, "v0.1.0");
-        assert_eq!(cache_details[0].source, "git:https://github.com/alya-lang/crypto#v0.1.0");
+        assert_eq!(
+            cache_details[0].source,
+            "git:https://github.com/alya-lang/crypto#v0.1.0"
+        );
 
         // Test copy_dir_all with skip_git
-        let target_dir = temp_dir.join("project").join(".alya").join("packages").join("crypto");
+        let target_dir = temp_dir
+            .join("project")
+            .join(".alya")
+            .join("packages")
+            .join("crypto");
         copy_dir_all(&src_dir, &target_dir, true).unwrap();
 
         assert!(target_dir.join("alya.toml").exists());
