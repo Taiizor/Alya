@@ -182,8 +182,8 @@ say PI
         _ => false,
     });
 
-    let has_cli_parser = ast.statements.iter().any(|s| match s {
-        Stmt::Function { name, .. } => name == "cli_parser",
+    let has_cli_has_flag = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "cli_has_flag",
         _ => false,
     });
 
@@ -229,7 +229,7 @@ say PI
     assert!(has_assert_eq, "Missing assert_eq from std/test");
     assert!(has_uuid_v4, "Missing uuid_v4 from std/rand");
     assert!(has_uuid_v7, "Missing uuid_v7 from std/rand");
-    assert!(has_cli_parser, "Missing cli_parser from std/cli");
+    assert!(has_cli_has_flag, "Missing cli_has_flag from std/cli");
     assert!(has_csv_parse, "Missing csv_parse from std/csv");
     assert!(has_url_parse, "Missing url_parse from std/url");
     assert!(has_color_red, "Missing color_red from std/color");

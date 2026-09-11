@@ -277,8 +277,8 @@ fn test_all_examples_execute_with_gcc() {
                 actual_stdout
             );
             assert!(
-                actual_stdout.contains("Subcommand detected: build"),
-                "cli_demo missing subcommand:\n{}",
+                actual_stdout.contains("Lightweight Flag & Option Detection"),
+                "cli_demo missing flag detection header:\n{}",
                 actual_stdout
             );
             continue;
