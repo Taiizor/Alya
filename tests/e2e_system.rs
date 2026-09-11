@@ -1057,51 +1057,31 @@ say "int ok: {r_int >= 10 and r_int <= 20}"
 let r_flt = rand_float()
 say "flt ok: {r_flt >= 0.0 and r_flt < 1.0}"
 
+let r_rng = rand_float_range(5.0, 10.0)
+say "range ok: {r_rng >= 5.0 and r_rng < 10.0}"
+
+let r_b = rand_bool()
+say "bool ok: {r_b == 0 or r_b == 1}"
+
+let r_c0 = rand_chance(0)
+say "chance0 ok: {r_c0 == 0}"
+
+let r_c100 = rand_chance(100)
+say "chance100 ok: {r_c100 == 1}"
+
 let arr = [10, 20, 30, 40, 50]
 let chosen = rand_choice(arr)
 say "choice ok: {chosen >= 10 and chosen <= 50}"
-
-let sampled = rand_sample(arr, 3)
-say "sample len: {len(sampled)}"
-
-let digits = rand_digits(6)
-say "digits len: {len(digits)}"
-
-let uuid = uuid_v4()
-say "uuid len: {len(uuid)}"
-say "uuid v4: {char_at(uuid, 14)}"
-
-let u7 = uuid_v7()
-say "u7 len: {len(u7)}"
-say "u7 ver: {char_at(u7, 14)}"
-let u7_sim = uuid_v7_simple()
-say "u7 sim len: {len(u7_sim)}"
-let u7_a = uuid_v7_at(1000000000000)
-let u7_b = uuid_v7_at(1000000001000)
-say "u7 sort: {u7_a < u7_b}"
-
-let ulid = ulid_generate()
-say "ulid len: {len(ulid)}"
-
-let rng = rand_new(42)
-let rng_val = rand_rng_int(rng, 100, 200)
-say "rng ok: {rng_val >= 100 and rng_val <= 200}"
 "#;
     if let Some((code, output)) = run_alya_code_full(code) {
         assert_eq!(code, 0, "Execution failed: {}", output);
         assert!(output.contains("int ok: 1"));
         assert!(output.contains("flt ok: 1"));
+        assert!(output.contains("range ok: 1"));
+        assert!(output.contains("bool ok: 1"));
+        assert!(output.contains("chance0 ok: 1"));
+        assert!(output.contains("chance100 ok: 1"));
         assert!(output.contains("choice ok: 1"));
-        assert!(output.contains("sample len: 3"));
-        assert!(output.contains("digits len: 6"));
-        assert!(output.contains("uuid len: 36"));
-        assert!(output.contains("uuid v4: 4"));
-        assert!(output.contains("u7 len: 36"));
-        assert!(output.contains("u7 ver: 7"));
-        assert!(output.contains("u7 sim len: 32"));
-        assert!(output.contains("u7 sort: 1"));
-        assert!(output.contains("ulid len: 26"));
-        assert!(output.contains("rng ok: 1"));
     }
 }
 

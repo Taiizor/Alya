@@ -10,45 +10,23 @@ say "rand_float()    : {rf}"
 say "rand_bool()     : " + str(rand_bool())
 say "rand_chance(75) : " + str(rand_chance(75))
 
-# 2. String & Token Utilities
-say "\n--- 2. Random Strings & Tokens ---"
-say "Verification code (6 digits) : " + rand_digits(6)
-say "API Token (16 alphanumeric)  : " + rand_alphanumeric(16)
-say "Hex string (12 chars)        : " + rand_hex(12)
-
-# 3. Array Utilities
-say "\n--- 3. Array Operations ---"
+# 2. Basic Array Operations
+say "\n--- 2. Array Choice ---"
 let fruits = ["Apple", "Banana", "Cherry", "Mango", "Orange"]
 say "Random choice : " + rand_choice(fruits)
 
-let deck = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-let shuffled_deck = rand_shuffled(deck)
-say "Deck size     : " + str(len(shuffled_deck))
-let sample = rand_sample(deck, 3)
-say "Sampled 3     : " + str(sample[0]) + ", " + str(sample[1]) + ", " + str(sample[2])
-
-# 4. UUID & ULID
-say "\n--- 4. Unique Identifiers ---"
-let uuid = uuid_v4()
-say "UUID v4       : " + uuid
-say "UUID v4 simple: " + uuid_v4_simple()
-let uuid7 = uuid_v7()
-say "UUID v7       : " + uuid7
-say "UUID v7 simple: " + uuid_v7_simple()
-let ulid = ulid_generate()
-say "ULID          : " + ulid
-
-# 5. Independent Random Stream (Auto-seeded Xorshift64)
-say "\n--- 5. Independent Generator ---"
-let rng = rand_new(0)
-say "rng.int(10, 50) : " + str(rand_rng_int(rng, 10, 50))
-let rng_f = rand_rng_float(rng)
-say "rng.float()     : {rng_f}"
-
-# 6. Reproducible Deterministic Generation (Fixed Seed)
-say "\n--- 6. Reproducible Generation (Fixed Seed=42) ---"
+# 3. Reproducible Deterministic Generation (Fixed Seed)
+say "\n--- 3. Reproducible Generation (Fixed Seed=42) ---"
 rand_seed(42)
 let det1 = rand_int(1, 100)
 rand_seed(42)
 let det2 = rand_int(1, 100)
 say "Same seed produces same value: " + str(det1 == det2) + " (" + str(det1) + " == " + str(det2) + ")"
+
+# 4. Advanced Production Requirements
+say "\n--- 4. Advanced Production Packages ---"
+say "Tip: For UUID v4, UUID v7, ULID, and NanoID, use:"
+say "  alyac add uuid --git https://github.com/alya-lang/uuid --branch main"
+say "Tip: For statistical distributions, sampling, strings, and custom engines:"
+say "  alyac add rand --git https://github.com/alya-lang/rand --branch main"
+say "std/rand demo completed successfully."

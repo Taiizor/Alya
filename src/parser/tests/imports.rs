@@ -170,13 +170,13 @@ say PI
         _ => false,
     });
 
-    let has_uuid_v4 = ast.statements.iter().any(|s| match s {
-        Stmt::Function { name, .. } => name == "uuid_v4",
+    let has_rand_int = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "rand_int",
         _ => false,
     });
 
-    let has_uuid_v7 = ast.statements.iter().any(|s| match s {
-        Stmt::Function { name, .. } => name == "uuid_v7",
+    let has_rand_float = ast.statements.iter().any(|s| match s {
+        Stmt::Function { name, .. } => name == "rand_float",
         _ => false,
     });
 
@@ -215,8 +215,8 @@ say PI
     assert!(has_fnv1a, "Missing fnv1a from std/hash");
     assert!(has_stack_new, "Missing stack_new from std/collections");
     assert!(has_assert_eq, "Missing assert_eq from std/test");
-    assert!(has_uuid_v4, "Missing uuid_v4 from std/rand");
-    assert!(has_uuid_v7, "Missing uuid_v7 from std/rand");
+    assert!(has_rand_int, "Missing rand_int from std/rand");
+    assert!(has_rand_float, "Missing rand_float from std/rand");
     assert!(has_cli_has_flag, "Missing cli_has_flag from std/cli");
     assert!(has_color_red, "Missing color_red from std/color");
     assert!(has_logger_new, "Missing logger_new from std/log");
@@ -552,4 +552,19 @@ fn test_deprecated_stdlib_modules_diagnostic() {
         .unwrap();
     let err2 = resolve_imports(&mut ast2, std::path::Path::new(".")).unwrap_err();
     assert!(err2.contains("alyac add url"));
+
+    let code_crypto = "import \"std/crypto\"\nsay 1";
+    let mut ast_crypto = Parser::new(Lexer::new(code_crypto).tokenize().unwrap())
+        .parse()
+        .unwrap();
+    let err_crypto = resolve_imports(&mut ast_crypto, std::path::Path::new(".")).unwrap_err();
+    assert!(err_crypto.contains("alyac add crypto"));
+
+    let code_uuid = "import \"std/uuid\"\nsay 1";
+    let mut ast_uuid = Parser::new(Lexer::new(code_uuid).tokenize().unwrap())
+        .parse()
+        .unwrap();
+    let err_uuid = resolve_imports(&mut ast_uuid, std::path::Path::new(".")).unwrap_err();
+    assert!(err_uuid.contains("alyac add uuid"));
 }
+

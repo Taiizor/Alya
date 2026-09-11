@@ -392,6 +392,18 @@ fn resolve_stmt_imports(
                             import_path_str
                         ));
                     }
+                    if clean == "crypto" {
+                        return Err(format!(
+                            "Standard library module '{}' has moved to a standalone package.\nInstall it using: alyac add crypto\nThen import it with: import \"crypto\"",
+                            import_path_str
+                        ));
+                    }
+                    if clean == "uuid" {
+                        return Err(format!(
+                            "Standard library module '{}' has moved to a standalone package.\nInstall it using: alyac add uuid\nThen import it with: import \"uuid\"",
+                            import_path_str
+                        ));
+                    }
                     return Err(format!(
                         "Cannot find standard library module '{}'",
                         import_path_str
