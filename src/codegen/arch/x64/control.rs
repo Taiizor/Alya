@@ -94,7 +94,7 @@ pub fn emit_function_call(
         } else {
             let extra_args = args_count - 4;
             let needed = 32 + extra_args as i32 * 8;
-            let total_alloc = if (stack_offset + needed) % 16 == 0 {
+            let total_alloc = if (stack_offset + args_count as i32 * 8 + needed) % 16 == 0 {
                 needed
             } else {
                 needed + 8
@@ -140,7 +140,7 @@ pub fn emit_function_call(
     } else {
         let extra_args = args_count - 6;
         let needed = extra_args as i32 * 8;
-        let total_alloc = if (stack_offset + needed) % 16 == 0 {
+        let total_alloc = if (stack_offset + args_count as i32 * 8 + needed) % 16 == 0 {
             needed
         } else {
             needed + 8

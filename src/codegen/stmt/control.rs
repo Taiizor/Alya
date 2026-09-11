@@ -390,7 +390,15 @@ impl CodeGen {
         };
 
         if let Some(sname) = &inferred_struct_type {
-            if let Some(sdef) = self.ctx.structs.get(sname).cloned() {
+            let bare = sname.rsplit("::").next().unwrap_or(sname);
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            if let Some(sdef) = self
+                .ctx
+                .structs
+                .get(sname)
+                .or_else(|| self.ctx.structs.get(bare))
+                .cloned()
+            {
                 for fname in &sdef.fields {
                     let field_key = format!("{}.{}", var, fname);
                     if self

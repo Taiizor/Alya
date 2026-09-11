@@ -9,6 +9,8 @@ pub struct StructInference {
     pub fn_params: HashMap<(String, usize), String>,
     /// Maps variable name -> struct type
     pub var_types: HashMap<String, String>,
+    /// Maps (struct_name, field_name) -> struct type
+    pub field_types: HashMap<(String, String), String>,
 }
 
 impl StructInference {
@@ -22,9 +24,17 @@ impl StructInference {
         }
 
         for _ in 0..6 {
-            let prev_len = inf.fn_returns.len() + inf.fn_params.len() + inf.var_types.len();
+            let prev_len = inf.fn_returns.len()
+                + inf.fn_params.len()
+                + inf.var_types.len()
+                + inf.field_types.len();
             inf.scan_stmts(&program.statements, None, &struct_names);
-            if inf.fn_returns.len() + inf.fn_params.len() + inf.var_types.len() == prev_len {
+            if inf.fn_returns.len()
+                + inf.fn_params.len()
+                + inf.var_types.len()
+                + inf.field_types.len()
+                == prev_len
+            {
                 break;
             }
         }
@@ -69,6 +79,18 @@ impl StructInference {
             Expr::Array(elems) => elems
                 .first()
                 .and_then(|e| self.expr_struct_type(e, current_fn, struct_names)),
+            Expr::FieldAccess { object, field } => {
+                if let Some(parent_st) = self.expr_struct_type(object, current_fn, struct_names) {
+                    let bare = parent_st.rsplit("::").next().unwrap_or(&parent_st);
+                    let bare = bare.rsplit("__").next().unwrap_or(bare);
+                    self.field_types
+                        .get(&(parent_st.clone(), field.clone()))
+                        .or_else(|| self.field_types.get(&(bare.to_string(), field.clone())))
+                        .cloned()
+                } else {
+                    None
+                }
+            }
             _ => None,
         }
     }
@@ -103,6 +125,7 @@ impl StructInference {
                     self.scan_stmts(body, Some(name), struct_names);
                 }
                 Stmt::Return(Some(expr)) => {
+                    self.scan_expr(expr, current_fn, struct_names);
                     if let Some(fn_name) = current_fn {
                         if let Some(st) = self.expr_struct_type(expr, current_fn, struct_names) {
                             self.fn_returns.insert(fn_name.to_string(), st.clone());
@@ -243,8 +266,18 @@ impl StructInference {
             Expr::FieldAccess { object, .. } => {
                 self.scan_expr(object, current_fn, struct_names);
             }
-            Expr::StructInit { fields, .. } => {
-                for (_, fval) in fields {
+            Expr::StructInit { name, fields } => {
+                let bare = name.rsplit("::").next().unwrap_or(name);
+                let bare = bare.rsplit("__").next().unwrap_or(bare);
+                for (fname, fval) in fields {
+                    if let Some(st) = self.expr_struct_type(fval, current_fn, struct_names) {
+                        self.field_types
+                            .insert((name.clone(), fname.clone()), st.clone());
+                        if bare != name {
+                            self.field_types
+                                .insert((bare.to_string(), fname.clone()), st);
+                        }
+                    }
                     self.scan_expr(fval, current_fn, struct_names);
                 }
             }
@@ -310,4 +343,18 @@ pub fn infer_expr_struct_type(expr: &Expr, program: &Program) -> Option<String> 
         }
     }
     inf.expr_struct_type(expr, None, &struct_names)
+}
+
+pub fn infer_struct_field_type(
+    struct_name: &str,
+    field: &str,
+    program: &Program,
+) -> Option<String> {
+    let inf = StructInference::analyze(program);
+    let bare = struct_name.rsplit("::").next().unwrap_or(struct_name);
+    let bare = bare.rsplit("__").next().unwrap_or(bare);
+    inf.field_types
+        .get(&(struct_name.to_string(), field.to_string()))
+        .or_else(|| inf.field_types.get(&(bare.to_string(), field.to_string())))
+        .cloned()
 }

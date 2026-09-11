@@ -232,11 +232,67 @@ impl CodeGen {
                             None
                         }
                     }
+                    Expr::FieldAccess { object, field } => {
+                        if let Expr::Identifier(obj_name) = &**object {
+                            if let Some(VarType::Struct { struct_name, .. }) =
+                                self.ctx.variables.get(obj_name)
+                            {
+                                let bare = struct_name.rsplit("::").next().unwrap_or(struct_name);
+                                let bare = bare.rsplit("__").next().unwrap_or(bare);
+                                self.ctx
+                                    .variables
+                                    .get(&format!("struct_field_struct:{}.{}", struct_name, field))
+                                    .or_else(|| {
+                                        self.ctx
+                                            .variables
+                                            .get(&format!("struct_field_struct:{}.{}", bare, field))
+                                    })
+                                    .or_else(|| {
+                                        self.ctx
+                                            .variables
+                                            .get(&format!("struct_field_struct:{}", field))
+                                    })
+                                    .and_then(|vt| {
+                                        if let VarType::Struct {
+                                            struct_name: sn, ..
+                                        } = vt
+                                        {
+                                            Some(sn.clone())
+                                        } else {
+                                            None
+                                        }
+                                    })
+                            } else {
+                                self.ctx
+                                    .variables
+                                    .get(&format!("struct_field_struct:{}", field))
+                                    .and_then(|vt| {
+                                        if let VarType::Struct {
+                                            struct_name: sn, ..
+                                        } = vt
+                                        {
+                                            Some(sn.clone())
+                                        } else {
+                                            None
+                                        }
+                                    })
+                            }
+                        } else {
+                            None
+                        }
+                    }
                     Expr::Call { name: cname, .. } => {
+                        let bare = cname.rsplit("::").next().unwrap_or(cname);
+                        let bare = bare.rsplit("__").next().unwrap_or(bare);
                         if self.ctx.structs.contains_key(cname) {
                             Some(cname.clone())
-                        } else if let Some(VarType::Struct { struct_name, .. }) =
-                            self.ctx.variables.get(&format!("fn_ret_struct:{}", cname))
+                        } else if self.ctx.structs.contains_key(bare) {
+                            Some(bare.to_string())
+                        } else if let Some(VarType::Struct { struct_name, .. }) = self
+                            .ctx
+                            .variables
+                            .get(&format!("fn_ret_struct:{}", cname))
+                            .or_else(|| self.ctx.variables.get(&format!("fn_ret_struct:{}", bare)))
                         {
                             Some(struct_name.clone())
                         } else {
@@ -533,11 +589,74 @@ impl CodeGen {
                                     None
                                 }
                             }
+                            Expr::FieldAccess { object, field } => {
+                                if let Expr::Identifier(obj_name) = &**object {
+                                    if let Some(VarType::Struct { struct_name, .. }) =
+                                        self.ctx.variables.get(obj_name)
+                                    {
+                                        let bare =
+                                            struct_name.rsplit("::").next().unwrap_or(struct_name);
+                                        let bare = bare.rsplit("__").next().unwrap_or(bare);
+                                        self.ctx
+                                            .variables
+                                            .get(&format!(
+                                                "struct_field_struct:{}.{}",
+                                                struct_name, field
+                                            ))
+                                            .or_else(|| {
+                                                self.ctx.variables.get(&format!(
+                                                    "struct_field_struct:{}.{}",
+                                                    bare, field
+                                                ))
+                                            })
+                                            .or_else(|| {
+                                                self.ctx
+                                                    .variables
+                                                    .get(&format!("struct_field_struct:{}", field))
+                                            })
+                                            .and_then(|vt| {
+                                                if let VarType::Struct {
+                                                    struct_name: sn, ..
+                                                } = vt
+                                                {
+                                                    Some(sn.clone())
+                                                } else {
+                                                    None
+                                                }
+                                            })
+                                    } else {
+                                        self.ctx
+                                            .variables
+                                            .get(&format!("struct_field_struct:{}", field))
+                                            .and_then(|vt| {
+                                                if let VarType::Struct {
+                                                    struct_name: sn, ..
+                                                } = vt
+                                                {
+                                                    Some(sn.clone())
+                                                } else {
+                                                    None
+                                                }
+                                            })
+                                    }
+                                } else {
+                                    None
+                                }
+                            }
                             Expr::Call { name: cname, .. } => {
+                                let bare = cname.rsplit("::").next().unwrap_or(cname);
+                                let bare = bare.rsplit("__").next().unwrap_or(bare);
                                 if self.ctx.structs.contains_key(cname) {
                                     Some(cname.clone())
-                                } else if let Some(VarType::Struct { struct_name, .. }) =
-                                    self.ctx.variables.get(&format!("fn_ret_struct:{}", cname))
+                                } else if self.ctx.structs.contains_key(bare) {
+                                    Some(bare.to_string())
+                                } else if let Some(VarType::Struct { struct_name, .. }) = self
+                                    .ctx
+                                    .variables
+                                    .get(&format!("fn_ret_struct:{}", cname))
+                                    .or_else(|| {
+                                        self.ctx.variables.get(&format!("fn_ret_struct:{}", bare))
+                                    })
                                 {
                                     Some(struct_name.clone())
                                 } else {
@@ -605,7 +724,14 @@ impl CodeGen {
 
         if let Expr::Identifier(obj_name) = object {
             if let Some(VarType::Struct { struct_name, .. }) = self.ctx.variables.get(obj_name) {
-                if let Some(sdef) = self.ctx.structs.get(struct_name) {
+                let bare = struct_name.rsplit("::").next().unwrap_or(struct_name);
+                let bare = bare.rsplit("__").next().unwrap_or(bare);
+                if let Some(sdef) = self
+                    .ctx
+                    .structs
+                    .get(struct_name)
+                    .or_else(|| self.ctx.structs.get(bare))
+                {
                     if let Some(idx) = sdef.fields.iter().position(|f| f == field) {
                         field_idx = idx;
                         struct_found = true;

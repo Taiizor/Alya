@@ -43,6 +43,17 @@ impl CodeGen {
                         fields: fields.clone(),
                     },
                 );
+                let bare = name.rsplit("::").next().unwrap_or(name);
+                let bare = bare.rsplit("__").next().unwrap_or(bare);
+                if bare != name {
+                    self.ctx.structs.insert(
+                        bare.to_string(),
+                        context::StructDefInfo {
+                            name: bare.to_string(),
+                            fields: fields.clone(),
+                        },
+                    );
+                }
             }
         }
 
@@ -83,12 +94,52 @@ impl CodeGen {
                     self.ctx.variables.insert(
                         format!("fn_ret_struct:{}", name),
                         VarType::Struct {
-                            struct_name: sname,
+                            struct_name: sname.clone(),
                             offset: 0,
                         },
                     );
+                    let bare = name.rsplit("::").next().unwrap_or(name);
+                    let bare = bare.rsplit("__").next().unwrap_or(bare);
+                    if bare != name {
+                        self.ctx.variables.insert(
+                            format!("fn_ret_struct:{}", bare),
+                            VarType::Struct {
+                                struct_name: sname,
+                                offset: 0,
+                            },
+                        );
+                    }
                 }
             }
+        }
+
+        let struct_inf = analysis::StructInference::analyze(program);
+        for ((sname, fname), inner_st) in &struct_inf.field_types {
+            self.ctx.variables.insert(
+                format!("struct_field_struct:{}.{}", sname, fname),
+                VarType::Struct {
+                    struct_name: inner_st.clone(),
+                    offset: 0,
+                },
+            );
+            let bare = sname.rsplit("::").next().unwrap_or(sname);
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            if bare != sname {
+                self.ctx.variables.insert(
+                    format!("struct_field_struct:{}.{}", bare, fname),
+                    VarType::Struct {
+                        struct_name: inner_st.clone(),
+                        offset: 0,
+                    },
+                );
+            }
+            self.ctx.variables.insert(
+                format!("struct_field_struct:{}", fname),
+                VarType::Struct {
+                    struct_name: inner_st.clone(),
+                    offset: 0,
+                },
+            );
         }
 
         let mut functions = Vec::new();

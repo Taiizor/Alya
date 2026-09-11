@@ -133,6 +133,17 @@ impl CodeGen {
                         fields: fields.clone(),
                     },
                 );
+                let bare = name.rsplit("::").next().unwrap_or(name);
+                let bare = bare.rsplit("__").next().unwrap_or(bare);
+                if bare != name {
+                    self.ctx.structs.insert(
+                        bare.to_string(),
+                        crate::codegen::context::StructDefInfo {
+                            name: bare.to_string(),
+                            fields: fields.clone(),
+                        },
+                    );
+                }
             }
         }
     }

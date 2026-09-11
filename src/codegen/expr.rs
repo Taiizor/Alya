@@ -328,8 +328,16 @@ impl CodeGen {
             }
 
             Expr::Call { name, args } => {
-                if let Some(sdef) = self.ctx.structs.get(name).cloned() {
-                    let desc_label = format!("alya_struct_desc_{}", name);
+                let bare = name.rsplit("::").next().unwrap_or(name);
+                let bare = bare.rsplit("__").next().unwrap_or(bare);
+                if let Some(sdef) = self
+                    .ctx
+                    .structs
+                    .get(name)
+                    .or_else(|| self.ctx.structs.get(bare))
+                    .cloned()
+                {
+                    let desc_label = format!("alya_struct_desc_{}", bare);
                     arch::emit_struct_new(
                         &mut self.output,
                         self.arch,
@@ -339,6 +347,12 @@ impl CodeGen {
                         self.os,
                     );
                     arch::emit_push_temp(&mut self.output, self.arch);
+                    let temp_offset: i32 = match self.arch {
+                        Architecture::ARM64 => 16,
+                        Architecture::X86 => 4,
+                        _ => 8,
+                    };
+                    self.ctx.stack_offset += temp_offset;
 
                     for (i, arg) in args.iter().enumerate() {
                         let is_flt = is_float_expr(arg, &self.ctx.variables);
@@ -388,13 +402,14 @@ impl CodeGen {
                             arch::emit_rc_retain(
                                 &mut self.output,
                                 self.arch,
-                                self.ctx.stack_offset + 8,
+                                self.ctx.stack_offset,
                                 self.os,
                             );
                         }
                         arch::emit_struct_field_set_imm(&mut self.output, self.arch, i);
                     }
 
+                    self.ctx.stack_offset -= temp_offset;
                     arch::emit_pop_temp(&mut self.output, self.arch);
                     return;
                 }
@@ -425,15 +440,22 @@ impl CodeGen {
                     }
                     self.generate_expression(&args[0]);
                     arch::emit_push_temp(&mut self.output, self.arch);
+                    let temp_offset: i32 = match self.arch {
+                        Architecture::ARM64 => 16,
+                        Architecture::X86 => 4,
+                        _ => 8,
+                    };
+                    self.ctx.stack_offset += temp_offset;
                     self.generate_expression(&args[1]);
                     if self.is_heap_expression(&args[1]) {
                         arch::emit_rc_retain(
                             &mut self.output,
                             self.arch,
-                            self.ctx.stack_offset + 8,
+                            self.ctx.stack_offset,
                             self.os,
                         );
                     }
+                    self.ctx.stack_offset -= temp_offset;
                     arch::emit_array_push(
                         &mut self.output,
                         self.arch,
@@ -811,8 +833,22 @@ impl CodeGen {
                     }
                 }
                 arch::emit_push_temp(&mut self.output, self.arch);
+                let temp_offset: i32 = match self.arch {
+                    Architecture::ARM64 => 16,
+                    Architecture::X86 => 4,
+                    _ => 8,
+                };
+                self.ctx.stack_offset += temp_offset;
 
-                if let Some(sdef) = self.ctx.structs.get(name).cloned() {
+                let bare = name.rsplit("::").next().unwrap_or(name);
+                let bare = bare.rsplit("__").next().unwrap_or(bare);
+                if let Some(sdef) = self
+                    .ctx
+                    .structs
+                    .get(name)
+                    .or_else(|| self.ctx.structs.get(bare))
+                    .cloned()
+                {
                     for (i, fname) in sdef.fields.iter().enumerate() {
                         let arg_expr =
                             if let Some((_, fval)) = fields.iter().find(|(k, _)| k == fname) {
@@ -825,7 +861,7 @@ impl CodeGen {
                             arch::emit_rc_retain(
                                 &mut self.output,
                                 self.arch,
-                                self.ctx.stack_offset + 8,
+                                self.ctx.stack_offset,
                                 self.os,
                             );
                         }
@@ -838,7 +874,7 @@ impl CodeGen {
                             arch::emit_rc_retain(
                                 &mut self.output,
                                 self.arch,
-                                self.ctx.stack_offset + 8,
+                                self.ctx.stack_offset,
                                 self.os,
                             );
                         }
@@ -846,6 +882,7 @@ impl CodeGen {
                     }
                 }
 
+                self.ctx.stack_offset -= temp_offset;
                 arch::emit_pop_temp(&mut self.output, self.arch);
             }
             Expr::FieldAccess { object, field } => {
@@ -856,7 +893,34 @@ impl CodeGen {
                     if let Some(VarType::Struct { struct_name, .. }) =
                         self.ctx.variables.get(obj_name)
                     {
-                        if let Some(sdef) = self.ctx.structs.get(struct_name) {
+                        let bare = struct_name.rsplit("::").next().unwrap_or(struct_name);
+                        let bare = bare.rsplit("__").next().unwrap_or(bare);
+                        if let Some(sdef) = self
+                            .ctx
+                            .structs
+                            .get(struct_name)
+                            .or_else(|| self.ctx.structs.get(bare))
+                        {
+                            if let Some(idx) = sdef.fields.iter().position(|f| f == field) {
+                                field_idx = idx;
+                                struct_found = true;
+                            }
+                        }
+                    }
+                } else if let Expr::FieldAccess { field: inner_field, .. } = &**object {
+                    if let Some(VarType::Struct { struct_name, .. }) = self
+                        .ctx
+                        .variables
+                        .get(&format!("struct_field_struct:{}", inner_field))
+                    {
+                        let bare = struct_name.rsplit("::").next().unwrap_or(struct_name);
+                        let bare = bare.rsplit("__").next().unwrap_or(bare);
+                        if let Some(sdef) = self
+                            .ctx
+                            .structs
+                            .get(struct_name)
+                            .or_else(|| self.ctx.structs.get(bare))
+                        {
                             if let Some(idx) = sdef.fields.iter().position(|f| f == field) {
                                 field_idx = idx;
                                 struct_found = true;
@@ -895,6 +959,12 @@ impl CodeGen {
                     self.os,
                 );
                 arch::emit_push_temp(&mut self.output, self.arch);
+                let temp_offset: i32 = match self.arch {
+                    Architecture::ARM64 => 16,
+                    Architecture::X86 => 4,
+                    _ => 8,
+                };
+                self.ctx.stack_offset += temp_offset;
 
                 for (i, elem) in elements.iter().enumerate() {
                     self.generate_expression(elem);
@@ -902,13 +972,14 @@ impl CodeGen {
                         arch::emit_rc_retain(
                             &mut self.output,
                             self.arch,
-                            self.ctx.stack_offset + 8,
+                            self.ctx.stack_offset,
                             self.os,
                         );
                     }
                     arch::emit_array_set_imm(&mut self.output, self.arch, i);
                 }
 
+                self.ctx.stack_offset -= temp_offset;
                 arch::emit_pop_temp(&mut self.output, self.arch);
             }
             Expr::Map(entries) => {
