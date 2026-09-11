@@ -4,14 +4,23 @@ Alya is an expressive, compiled, multi-paradigm systems programming language des
 
 {{CHANGELOG_COMMITS}}
 
-## 📦 Pre-built Binaries & Checksums
+## 📦 Pre-built Binaries
 
-| Platform | Architecture | Package | SHA-256 Checksum |
-|:---|:---|:---|:---|
-| <img src="https://svgl.app/library/linux.svg" width="16" height="16" valign="middle" alt="Linux" /> **Linux** | `x86_64` | [alyac-{{VERSION}}-x86_64-linux.tar.gz](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-x86_64-linux.tar.gz) ([sha256](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-x86_64-linux.tar.gz.sha256)) | `{{LINUX_SHA}}` |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="https://svgl.app/library/apple_dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://svgl.app/library/apple.svg"><img src="https://svgl.app/library/apple.svg" width="16" height="16" valign="middle" alt="macOS" /></picture> **macOS** | Apple Silicon (`arm64`) | [alyac-{{VERSION}}-arm64-macos.tar.gz](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-arm64-macos.tar.gz) ([sha256](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-arm64-macos.tar.gz.sha256)) | `{{MAC_ARM_SHA}}` |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="https://svgl.app/library/apple_dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://svgl.app/library/apple.svg"><img src="https://svgl.app/library/apple.svg" width="16" height="16" valign="middle" alt="macOS" /></picture> **macOS** | Intel (`x86_64`) | [alyac-{{VERSION}}-x86_64-macos.tar.gz](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-x86_64-macos.tar.gz) ([sha256](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-x86_64-macos.tar.gz.sha256)) | `{{MAC_X64_SHA}}` |
-| <img src="https://svgl.app/library/windows.svg" width="16" height="16" valign="middle" alt="Windows" /> **Windows** | `x86_64` | [alyac-{{VERSION}}-x86_64-windows.zip](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-x86_64-windows.zip) ([sha256](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-x86_64-windows.zip.sha256)) | `{{WIN_SHA}}` |
+| Platform | Architecture | Package | Checksum |
+|:---|:---|:---|:---:|
+| <img src="https://svgl.app/library/linux.svg" width="16" height="16" valign="middle" alt="Linux" />&nbsp;**Linux** | `x86_64` | [alyac-{{VERSION}}-x86_64-linux.tar.gz](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-x86_64-linux.tar.gz) | [`{{LINUX_SHA_SHORT}}`](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-x86_64-linux.tar.gz.sha256) |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="https://svgl.app/library/apple_dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://svgl.app/library/apple.svg"><img src="https://svgl.app/library/apple.svg" width="16" height="16" valign="middle" alt="macOS" /></picture>&nbsp;**macOS** | `arm64` (Apple Silicon) | [alyac-{{VERSION}}-arm64-macos.tar.gz](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-arm64-macos.tar.gz) | [`{{MAC_ARM_SHA_SHORT}}`](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-arm64-macos.tar.gz.sha256) |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="https://svgl.app/library/apple_dark.svg"><source media="(prefers-color-scheme: light)" srcset="https://svgl.app/library/apple.svg"><img src="https://svgl.app/library/apple.svg" width="16" height="16" valign="middle" alt="macOS" /></picture>&nbsp;**macOS** | `x86_64` (Intel) | [alyac-{{VERSION}}-x86_64-macos.tar.gz](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-x86_64-macos.tar.gz) | [`{{MAC_X64_SHA_SHORT}}`](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-x86_64-macos.tar.gz.sha256) |
+| <img src="https://svgl.app/library/windows.svg" width="16" height="16" valign="middle" alt="Windows" />&nbsp;**Windows** | `x86_64` | [alyac-{{VERSION}}-x86_64-windows.zip](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-x86_64-windows.zip) | [`{{WIN_SHA_SHORT}}`](https://github.com/{{REPO}}/releases/download/{{VERSION}}/alyac-{{VERSION}}-x86_64-windows.zip.sha256) |
+
+### 🔒 SHA-256 Checksums
+
+```text
+{{LINUX_SHA}}  alyac-{{VERSION}}-x86_64-linux.tar.gz
+{{MAC_ARM_SHA}}  alyac-{{VERSION}}-arm64-macos.tar.gz
+{{MAC_X64_SHA}}  alyac-{{VERSION}}-x86_64-macos.tar.gz
+{{WIN_SHA}}  alyac-{{VERSION}}-x86_64-windows.zip
+```
 
 ---
 
