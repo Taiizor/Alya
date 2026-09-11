@@ -83,7 +83,7 @@ def main():
             tag = run_git(["describe", "--tags", "--abbrev=0"], check=False)
 
     if not tag:
-        tag = "v0.0.5"
+        tag = "v0.0.6"
 
     # 2. Resolve Repository Slug (e.g. alya-lang/alya)
     repo = os.environ.get("GITHUB_REPOSITORY", "")
@@ -91,7 +91,9 @@ def main():
         origin_url = run_git(["config", "--get", "remote.origin.url"], check=False)
         if "github.com" in origin_url:
             cleaned = origin_url.split("github.com")[-1].lstrip(":").lstrip("/")
-            repo = cleaned.rstrip(".git")
+            if cleaned.endswith(".git"):
+                cleaned = cleaned[:-4]
+            repo = cleaned
     if not repo:
         repo = "alya-lang/alya"
 
