@@ -237,4 +237,41 @@ fn test_pkg_subcommands() {
         parsed2.command,
         CommandKind::Pkg(crate::tools::pkg::PkgCommand::Update)
     );
+
+    let args3 = to_args(&["alyac", "pkg", "cache"]);
+    let parsed3 = CliArgs::parse_from(&args3).unwrap().unwrap();
+    assert_eq!(
+        parsed3.command,
+        CommandKind::Pkg(crate::tools::pkg::PkgCommand::Cache {
+            clean: false,
+            all: false
+        })
+    );
+
+    let args4 = to_args(&["alyac", "pkg", "cache", "clean", "--all"]);
+    let parsed4 = CliArgs::parse_from(&args4).unwrap().unwrap();
+    assert_eq!(
+        parsed4.command,
+        CommandKind::Pkg(crate::tools::pkg::PkgCommand::Cache {
+            clean: true,
+            all: true
+        })
+    );
+
+    let args5 = to_args(&["alyac", "pkg", "clean"]);
+    let parsed5 = CliArgs::parse_from(&args5).unwrap().unwrap();
+    assert_eq!(
+        parsed5.command,
+        CommandKind::Pkg(crate::tools::pkg::PkgCommand::Clean { all: false })
+    );
+
+    let args6 = to_args(&["alyac", "cache"]);
+    let parsed6 = CliArgs::parse_from(&args6).unwrap().unwrap();
+    assert_eq!(
+        parsed6.command,
+        CommandKind::Pkg(crate::tools::pkg::PkgCommand::Cache {
+            clean: false,
+            all: false
+        })
+    );
 }

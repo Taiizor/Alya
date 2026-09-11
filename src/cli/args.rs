@@ -103,6 +103,14 @@ impl CliArgs {
         if first == "install" {
             return Ok(Some(Self::create_pkg_args(PkgCommand::Install)));
         }
+        if first == "cache" {
+            let pkg_cmd = parse_pkg_cache_args(&args[2..])?;
+            return Ok(Some(Self::create_pkg_args(pkg_cmd)));
+        }
+        if first == "clean" {
+            let pkg_cmd = parse_pkg_clean_args(&args[2..])?;
+            return Ok(Some(Self::create_pkg_args(pkg_cmd)));
+        }
         if first == "pkg" {
             if args.len() < 3 || args[2] == "-h" || args[2] == "--help" || args[2] == "help" {
                 return Ok(Some(Self::create_pkg_args(PkgCommand::Help)));
@@ -114,6 +122,8 @@ impl CliArgs {
                 "install" => PkgCommand::Install,
                 "list" => PkgCommand::List,
                 "update" => PkgCommand::Update,
+                "cache" => parse_pkg_cache_args(&args[3..])?,
+                "clean" => parse_pkg_clean_args(&args[3..])?,
                 "help" | "-h" | "--help" => PkgCommand::Help,
                 other => {
                     return Err(format!(
@@ -537,4 +547,40 @@ fn parse_pkg_add_args(args: &[String]) -> Result<PkgCommand, String> {
         branch,
         version,
     })
+}
+
+fn parse_pkg_cache_args(args: &[String]) -> Result<PkgCommand, String> {
+    let mut clean = false;
+    let mut all = false;
+    for arg in args {
+        match arg.as_str() {
+            "clean" | "purge" | "--clean" => clean = true,
+            "--all" | "-a" => all = true,
+            "-h" | "--help" | "help" => return Ok(PkgCommand::Help),
+            other => {
+                return Err(format!(
+                    "Error: Unknown option '{}' for 'pkg cache'. Run 'alyac pkg help' for usage.",
+                    other
+                ))
+            }
+        }
+    }
+    Ok(PkgCommand::Cache { clean, all })
+}
+
+fn parse_pkg_clean_args(args: &[String]) -> Result<PkgCommand, String> {
+    let mut all = false;
+    for arg in args {
+        match arg.as_str() {
+            "--all" | "-a" => all = true,
+            "-h" | "--help" | "help" => return Ok(PkgCommand::Help),
+            other => {
+                return Err(format!(
+                    "Error: Unknown option '{}' for 'pkg clean'. Run 'alyac pkg help' for usage.",
+                    other
+                ))
+            }
+        }
+    }
+    Ok(PkgCommand::Clean { all })
 }

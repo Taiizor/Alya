@@ -71,4 +71,8 @@ pub fn print_usage() {
     println!("  alyac check hello.alya               # Quick syntax validation");
     println!("  alyac ast hello.alya                 # Inspect AST hierarchy");
     println!("  alyac pkg list                       # List dependencies and lock status");
+    println!("  alyac pkg cache                      # Inspect package cache and storage");
+    println!(
+        "  alyac pkg clean                      # Clean cached packages and reclaim disk space"
+    );
 }
