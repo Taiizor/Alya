@@ -155,7 +155,8 @@ fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bo
                     return true;
                 }
             }
-            if matches!(**index, Expr::String(_)) || expr_is_definitely_string(index, known_strings) {
+            if matches!(**index, Expr::String(_)) || expr_is_definitely_string(index, known_strings)
+            {
                 return false;
             }
             if let (Expr::Identifier(arr_name), Expr::Number(idx)) = (&**array, &**index) {
