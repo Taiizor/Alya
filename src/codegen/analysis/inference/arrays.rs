@@ -102,19 +102,29 @@ pub fn collect_known_array_vars(program: &Program) -> HashSet<String> {
         let prev_len = known_arrays.len();
         collect_array_vars_from_stmts(&program.statements, &mut known_arrays);
         for (name, params, _) in &funcs {
-            for (idx, param) in params.iter().enumerate() {
-                if known_arrays.contains(param) {
+            let bare = name.rsplit("::").next().unwrap_or(name);
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            for (idx, _param) in params.iter().enumerate() {
+                if known_arrays.contains(&format!("fn_param_arr:{}:{}", name, idx))
+                    || known_arrays.contains(&format!("fn_param_arr:{}:{}", bare, idx))
+                {
                     continue;
                 }
-                let is_arr_arg = program.statements.iter().any(|s| {
+                let mut found_call = false;
+                let all_calls_arr = program.statements.iter().all(|s| {
                     if let Some(arg) = find_call_arg(s, name, idx) {
+                        found_call = true;
+                        expr_is_definitely_array(arg, &known_arrays)
+                    } else if let Some(arg) = find_call_arg(s, bare, idx) {
+                        found_call = true;
                         expr_is_definitely_array(arg, &known_arrays)
                     } else {
-                        false
+                        true
                     }
                 });
-                if is_arr_arg {
-                    known_arrays.insert(param.clone());
+                if found_call && all_calls_arr {
+                    known_arrays.insert(format!("fn_param_arr:{}:{}", name, idx));
+                    known_arrays.insert(format!("fn_param_arr:{}:{}", bare, idx));
                 }
             }
         }
@@ -128,20 +138,13 @@ pub fn collect_known_array_vars(program: &Program) -> HashSet<String> {
 pub fn infer_param_is_array_with(
     func_name: &str,
     param_idx: usize,
-    program: &Program,
+    _program: &Program,
     known_arrays: &HashSet<String>,
 ) -> bool {
     let bare = func_name.rsplit("::").next().unwrap_or(func_name);
     let bare = bare.rsplit("__").next().unwrap_or(bare);
-    program.statements.iter().any(|s| {
-        if let Some(arg) = find_call_arg(s, func_name, param_idx) {
-            expr_is_definitely_array(arg, known_arrays)
-        } else if let Some(arg) = find_call_arg(s, bare, param_idx) {
-            expr_is_definitely_array(arg, known_arrays)
-        } else {
-            false
-        }
-    })
+    known_arrays.contains(&format!("fn_param_arr:{}:{}", func_name, param_idx))
+        || known_arrays.contains(&format!("fn_param_arr:{}:{}", bare, param_idx))
 }
 
 pub fn infer_param_is_array(func_name: &str, param_idx: usize, program: &Program) -> bool {
