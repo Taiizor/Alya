@@ -38,6 +38,6 @@ Every topic in this wiki is structured in three progressive tiers:
 * 🚀 **GitHub Repository**: [alya-lang/alya](https://github.com/alya-lang/alya)
 * 🗺️ **Project Roadmap**: [ROADMAP.md](../ROADMAP.md)
 * 📱 **Applications Showcase**: [apps/](../apps/README.md)
-* 📊 **Performance Benchmarks**: [benchmarks/README.md](../benchmarks/README.md)
+* 📊 **Performance Benchmarks**: [alya-lang/benchmarks](https://github.com/alya-lang/benchmarks)
 * 💡 **Code Examples**: [examples/](../examples/)
 * 📦 **Releases & Downloads**: [GitHub Releases](https://github.com/alya-lang/alya/releases)

@@ -25,7 +25,7 @@ function compute_grid(width, height, max_iter)
         let x = 0
         while x < width
             let cr = -2.0 + (3.0 * x) / width
-            let iters = mandelbrot_point(cr, ci, max_iter)
+            let iters = mandelbrot_point(cr + 0.0, ci + 0.0, max_iter)
             if iters == max_iter
                 total_escaped += 1
             end

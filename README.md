@@ -68,7 +68,7 @@ end
 - ⚡ **Direct Native Codegen**: Emits clean assembly for **ARM64** (Apple Silicon & AArch64), **x64**, and **x86 (32-bit)** with branch fusion, immediate range splitting (`movz`/`movk`), and zero-cycle idioms.
 - 🚀 **Near-C Execution Speed**: Runs within 1.0x–2.0x of C (GCC `-O2`) and outperforms JavaScript JIT engines (Bun / V8) without VM warmup delays.
 - 🛠️ **Built-in Developer Tooling**: In-place code formatter (`alyac fmt`) and test runner (`alyac test`) built directly into the compiler binary—no external dependencies needed.
-- 📚 **Batteries-Included Standard Library**: Zero-dependency modules for `std/net` (TCP/HTTP), `std/console` (terminal control), `std/glob`, `std/rand` (SplitMix64, UUID v4/v7, ULID), `std/csv`, `std/color`, `std/log`, `std/str`, `std/math`, `std/fs`, `std/path`, `std/json`, `std/hash`, `std/collections`, `std/test`, and `std/mem` (Arena allocator).
+- 📚 **Batteries-Included Standard Library**: Built-in modules for `std/net` (TCP/HTTP), `std/console` (terminal control), `std/glob`, `std/rand` (SplitMix64, UUID v4/v7, ULID), `std/csv`, `std/color`, `std/log`, `std/str`, `std/math`, `std/fs`, `std/path`, `std/json`, `std/hash`, `std/collections`, `std/test`, and `std/mem` (Arena allocator).
 - 🛡️ **Safety Without Runtime Penalties**: Single-instruction unsigned bounds checks (`jae` / `b.hs`), division/modulo zero protection, null safety (`null`, `??`), and structured `try ... catch`.
 - 🗺️ **First-Class Types & Static Inference**: Dynamic arrays (`[1, 2]`), hash maps (`map()`), 64-bit IEEE 754 floats (`f64`), composite structs (`struct Point ... end`), and compile-time multi-pass struct type inference.
 - 🎯 **Lightweight Single-Pass Compiler**: Sub-millisecond parser throughput parsing ~2 million lines per second with rich diagnostics and execution profiling (`--time`).
@@ -129,7 +129,7 @@ Alya is engineered for rapid compilation and high-performance native execution a
 | `Numeric` | **Matrix Multiply (120×120)** | `1.2 ms` | **`7.3 ms`** | `11.8 ms` | `189.7 ms` | **1.6x faster** | **26.0x faster** |
 | `Strings` | **FNV-1a String Hash (50k)** | `4.7 ms` | **`8.8 ms`** | `12.6 ms` | `426.1 ms` | **1.4x faster** | **48.3x faster** |
 
-> 📊 For full cross-platform benchmark results (Linux, macOS, Windows), compiler throughput benchmarks, and reproduction instructions, see **[benchmarks/README.md](benchmarks/README.md)**.
+> 📊 For full cross-platform benchmark results (Linux, macOS, Windows), compiler throughput benchmarks, and reproduction instructions, see **[alya-lang/benchmarks](https://github.com/alya-lang/benchmarks)**.
 
 ---
 
@@ -150,7 +150,7 @@ Alya is engineered for rapid compilation and high-performance native execution a
 - 📱 **[Applications Showcase](apps/README.md)**: Real-world apps (HTTP server, benchmark tool, port scanner, Conway's Game of Life, Snake, TicTacToe) and macOS `.app` bundling guide.
 - 🗺️ **[Project Roadmap](ROADMAP.md)**: Architectural vision, completed milestones, and the 4 future pillars (Package Manager, C FFI, LSP, Cycle Collector).
 - 🧪 **[Code Examples](examples/)**: 50+ practical programs, algorithms, interactive terminal apps, and self-hosting compiler prototypes.
-- ⚡ **[Benchmark Suite](benchmarks/)**: Cross-language performance benchmark sources and runner.
+- ⚡ **[Benchmark Suite](https://github.com/alya-lang/benchmarks)**: Cross-language performance benchmark suite and automated runner.
 
 ---
 
