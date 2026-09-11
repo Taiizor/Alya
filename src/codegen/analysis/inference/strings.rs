@@ -741,7 +741,7 @@ pub fn collect_known_string_vars(program: &Program) -> HashSet<String> {
         for (name, params, _) in &funcs {
             let bare = name.rsplit("::").next().unwrap_or(name);
             let bare = bare.rsplit("__").next().unwrap_or(bare);
-            for (idx, param) in params.iter().enumerate() {
+            for (idx, _param) in params.iter().enumerate() {
                 if !known_strings.contains(&format!("fn_param_str_arr:{}:{}", name, idx))
                     && !known_strings.contains(&format!("fn_param_str_arr:{}:{}", bare, idx))
                 {
@@ -759,8 +759,7 @@ pub fn collect_known_string_vars(program: &Program) -> HashSet<String> {
                         known_strings.insert(format!("fn_param_str_arr:{}:{}", bare, idx));
                     }
                 }
-                if !known_strings.contains(param)
-                    && !known_strings.contains(&format!("fn_param_str:{}:{}", name, idx))
+                if !known_strings.contains(&format!("fn_param_str:{}:{}", name, idx))
                     && !known_strings.contains(&format!("fn_param_str:{}:{}", bare, idx))
                 {
                     let is_str_arg = program.statements.iter().any(|s| {
@@ -773,7 +772,6 @@ pub fn collect_known_string_vars(program: &Program) -> HashSet<String> {
                         }
                     });
                     if is_str_arg {
-                        known_strings.insert(param.clone());
                         known_strings.insert(format!("fn_param_str:{}:{}", name, idx));
                         known_strings.insert(format!("fn_param_str:{}:{}", bare, idx));
                     }

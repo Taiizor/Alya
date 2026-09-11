@@ -167,10 +167,11 @@ pub fn is_string_expr(expr: &Expr, vars: &HashMap<String, VarType>) -> bool {
                     }
                 }
                 if let Some(VarType::Struct { struct_name, .. }) = vars.get(obj_name) {
+                    let bare = struct_name.rsplit("::").next().unwrap_or(struct_name);
+                    let bare = bare.rsplit("__").next().unwrap_or(bare);
                     let field_key = format!("struct_field_str:{}.{}", struct_name, field);
-                    if vars.contains_key(&field_key) {
-                        return true;
-                    }
+                    let bare_key = format!("struct_field_str:{}.{}", bare, field);
+                    return vars.contains_key(&field_key) || vars.contains_key(&bare_key);
                 }
             }
             let global_field_key = format!("struct_field_str:{}", field);

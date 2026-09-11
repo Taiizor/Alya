@@ -18,6 +18,7 @@
 # ═══════════════════════════════════════════════════════════════
 
 import "std/net"
+import "std/url"
 import "std/str"
 import "std/time"
 import "std/color"
@@ -74,13 +75,27 @@ end
 
 function run_single_probe(url_str)
     let t0 = clock_ms()
-    let resp = http_get(url_str)
-    let elapsed = clock_ms() - t0
-    let ok = 0
-    if resp.status_code >= 200 and resp.status_code < 400
-        ok = 1
+    let parsed = url_parse(url_str)
+    let host = parsed.url_host
+    let port = 80
+    if len(parsed.url_port) > 0
+        port = int(parsed.url_port)
     end
-    return ok, elapsed, resp.body
+    let path = parsed.url_path
+    if len(path) == 0
+        path = "/"
+    end
+    let sock = tcp_connect(host, port)
+    if sock < 0
+        return 0, clock_ms() - t0, ""
+    end
+    tcp_set_timeout(sock, 3000)
+    let req = "GET " + path + " HTTP/1.1\r\nHost: " + host + "\r\nConnection: close\r\n\r\n"
+    tcp_send(sock, req)
+    let body = tcp_recv(sock, 4096)
+    tcp_close(sock)
+    let elapsed = clock_ms() - t0
+    return 1, elapsed, body
 end
 
 function run_worker_task(args_tuple)

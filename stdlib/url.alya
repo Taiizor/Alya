@@ -3,6 +3,14 @@
 # path manipulation, and query string parameter management.
 
 struct Url
+    scheme
+    username
+    password
+    host
+    port
+    path
+    query
+    fragment
     url_scheme
     url_username
     url_password
@@ -11,6 +19,10 @@ struct Url
     url_path
     url_query
     url_fragment
+end
+
+function url_create(scheme = "", username = "", password = "", host = "", port = "", path = "", query = "", fragment = "")
+    return Url(scheme, username, password, host, port, path, query, fragment, scheme, username, password, host, port, path, query, fragment)
 end
 
 function _url_is_unreserved(code)
@@ -187,7 +199,7 @@ function url_parse(raw_url)
         host = hostport
     end
 
-    return Url(scheme, username, password, host, port, path, query, fragment)
+    return url_create(scheme, username, password, host, port, path, query, fragment)
 end
 
 function url_format(u)

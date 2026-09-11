@@ -411,18 +411,19 @@ fn resolve_stmt_imports(
             })?;
 
             let is_embedded_stdlib = canonical.to_string_lossy().starts_with("<embedded:");
-            let mut local_fns: std::collections::HashSet<String> = if !is_embedded_stdlib {
-                sub_program
-                    .statements
-                    .iter()
-                    .filter_map(|s| match s {
-                        Stmt::Function { name, .. } => Some(name.clone()),
-                        _ => None,
-                    })
-                    .collect()
-            } else {
-                std::collections::HashSet::new()
-            };
+            let mut local_fns: std::collections::HashSet<String> =
+                if !is_embedded_stdlib || alias.is_some() {
+                    sub_program
+                        .statements
+                        .iter()
+                        .filter_map(|s| match s {
+                            Stmt::Function { name, .. } => Some(name.clone()),
+                            _ => None,
+                        })
+                        .collect()
+                } else {
+                    std::collections::HashSet::new()
+                };
 
             let sub_dir = canonical.parent().unwrap_or(current_dir);
             let mut sub_resolved = Vec::new();
@@ -430,7 +431,7 @@ fn resolve_stmt_imports(
                 let is_unaliased_import = matches!(&sub_stmt, Stmt::Import { alias: None, .. });
                 let child_fns =
                     resolve_stmt_imports(sub_stmt, sub_dir, visited, &mut sub_resolved)?;
-                if is_unaliased_import && !is_embedded_stdlib {
+                if is_unaliased_import && (!is_embedded_stdlib || alias.is_some()) {
                     local_fns.extend(child_fns);
                 }
             }
