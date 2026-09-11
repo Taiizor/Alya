@@ -1,6 +1,6 @@
 use super::common::collect_function_defs;
 use crate::ast::*;
-use crate::codegen::analysis::traversal::find_call_arg;
+use crate::codegen::analysis::traversal::collect_all_call_args;
 use std::collections::HashSet;
 
 fn expr_is_definitely_array(expr: &Expr, known_arrays: &HashSet<String>) -> bool {
@@ -105,26 +105,19 @@ pub fn collect_known_array_vars(program: &Program) -> HashSet<String> {
             let bare = name.rsplit("::").next().unwrap_or(name);
             let bare = bare.rsplit("__").next().unwrap_or(bare);
             for (idx, _param) in params.iter().enumerate() {
-                if known_arrays.contains(&format!("fn_param_arr:{}:{}", name, idx))
-                    || known_arrays.contains(&format!("fn_param_arr:{}:{}", bare, idx))
+                if !known_arrays.contains(&format!("fn_param_arr:{}:{}", name, idx))
+                    && !known_arrays.contains(&format!("fn_param_arr:{}:{}", bare, idx))
                 {
-                    continue;
-                }
-                let mut found_call = false;
-                let all_calls_arr = program.statements.iter().all(|s| {
-                    if let Some(arg) = find_call_arg(s, name, idx) {
-                        found_call = true;
-                        expr_is_definitely_array(arg, &known_arrays)
-                    } else if let Some(arg) = find_call_arg(s, bare, idx) {
-                        found_call = true;
-                        expr_is_definitely_array(arg, &known_arrays)
-                    } else {
-                        true
+                    let mut call_args = Vec::new();
+                    collect_all_call_args(&program.statements, name, bare, idx, &mut call_args);
+                    if !call_args.is_empty()
+                        && call_args
+                            .iter()
+                            .all(|arg| expr_is_definitely_array(arg, &known_arrays))
+                    {
+                        known_arrays.insert(format!("fn_param_arr:{}:{}", name, idx));
+                        known_arrays.insert(format!("fn_param_arr:{}:{}", bare, idx));
                     }
-                });
-                if found_call && all_calls_arr {
-                    known_arrays.insert(format!("fn_param_arr:{}:{}", name, idx));
-                    known_arrays.insert(format!("fn_param_arr:{}:{}", bare, idx));
                 }
             }
         }

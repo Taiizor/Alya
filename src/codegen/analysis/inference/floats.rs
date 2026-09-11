@@ -1,6 +1,6 @@
 use crate::ast::*;
 use crate::codegen::analysis::inference::common::collect_function_defs;
-use crate::codegen::analysis::traversal::find_call_arg;
+use crate::codegen::analysis::traversal::collect_all_call_args;
 use std::collections::HashSet;
 
 fn expr_is_definitely_float(expr: &Expr, known_floats: &HashSet<String>) -> bool {
@@ -272,19 +272,13 @@ pub fn collect_known_float_vars(program: &Program) -> HashSet<String> {
                 if !known_floats.contains(&format!("fn_param_flt:{}:{}", name, idx))
                     && !known_floats.contains(&format!("fn_param_flt:{}:{}", bare, idx))
                 {
-                    let mut found_call = false;
-                    let all_calls_flt = program.statements.iter().all(|s| {
-                        if let Some(arg) = find_call_arg(s, name, idx) {
-                            found_call = true;
-                            expr_is_definitely_float(arg, &known_floats)
-                        } else if let Some(arg) = find_call_arg(s, bare, idx) {
-                            found_call = true;
-                            expr_is_definitely_float(arg, &known_floats)
-                        } else {
-                            true
-                        }
-                    });
-                    if found_call && all_calls_flt {
+                    let mut call_args = Vec::new();
+                    collect_all_call_args(&program.statements, name, bare, idx, &mut call_args);
+                    if !call_args.is_empty()
+                        && call_args
+                            .iter()
+                            .all(|arg| expr_is_definitely_float(arg, &known_floats))
+                    {
                         known_floats.insert(format!("fn_param_flt:{}:{}", name, idx));
                         known_floats.insert(format!("fn_param_flt:{}:{}", bare, idx));
                     }
@@ -292,19 +286,13 @@ pub fn collect_known_float_vars(program: &Program) -> HashSet<String> {
                 if !known_floats.contains(&format!("fn_param_flt_arr:{}:{}", name, idx))
                     && !known_floats.contains(&format!("fn_param_flt_arr:{}:{}", bare, idx))
                 {
-                    let mut found_call = false;
-                    let all_calls_flt_arr = program.statements.iter().all(|s| {
-                        if let Some(arg) = find_call_arg(s, name, idx) {
-                            found_call = true;
-                            expr_is_float_array(arg, &known_floats)
-                        } else if let Some(arg) = find_call_arg(s, bare, idx) {
-                            found_call = true;
-                            expr_is_float_array(arg, &known_floats)
-                        } else {
-                            true
-                        }
-                    });
-                    if found_call && all_calls_flt_arr {
+                    let mut call_args = Vec::new();
+                    collect_all_call_args(&program.statements, name, bare, idx, &mut call_args);
+                    if !call_args.is_empty()
+                        && call_args
+                            .iter()
+                            .all(|arg| expr_is_float_array(arg, &known_floats))
+                    {
                         known_floats.insert(format!("fn_param_flt_arr:{}:{}", name, idx));
                         known_floats.insert(format!("fn_param_flt_arr:{}:{}", bare, idx));
                     }

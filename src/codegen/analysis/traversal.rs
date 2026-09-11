@@ -177,3 +177,175 @@ pub fn find_call_arg_in_expr<'a>(
         _ => None,
     }
 }
+
+pub fn collect_all_call_args<'a>(
+    stmts: &'a [Stmt],
+    func_name: &str,
+    bare_name: &str,
+    param_idx: usize,
+    args: &mut Vec<&'a Expr>,
+) {
+    for s in stmts {
+        collect_call_args_in_stmt(s, func_name, bare_name, param_idx, args);
+    }
+}
+
+pub fn collect_call_args_in_stmt<'a>(
+    stmt: &'a Stmt,
+    func_name: &str,
+    bare_name: &str,
+    param_idx: usize,
+    args: &mut Vec<&'a Expr>,
+) {
+    match stmt {
+        Stmt::Expr(expr) | Stmt::Say(expr) => {
+            collect_call_args_in_expr(expr, func_name, bare_name, param_idx, args);
+        }
+        Stmt::Let { value, .. } | Stmt::Assign { value, .. } => {
+            collect_call_args_in_expr(value, func_name, bare_name, param_idx, args);
+        }
+        Stmt::If {
+            condition,
+            then_block,
+            else_block,
+        } => {
+            collect_call_args_in_expr(condition, func_name, bare_name, param_idx, args);
+            for s in then_block {
+                collect_call_args_in_stmt(s, func_name, bare_name, param_idx, args);
+            }
+            if let Some(else_stmts) = else_block {
+                for s in else_stmts {
+                    collect_call_args_in_stmt(s, func_name, bare_name, param_idx, args);
+                }
+            }
+        }
+        Stmt::While { condition, body } => {
+            collect_call_args_in_expr(condition, func_name, bare_name, param_idx, args);
+            for s in body {
+                collect_call_args_in_stmt(s, func_name, bare_name, param_idx, args);
+            }
+        }
+        Stmt::Repeat { body } | Stmt::For { body, .. } | Stmt::ForEach { body, .. } => {
+            for s in body {
+                collect_call_args_in_stmt(s, func_name, bare_name, param_idx, args);
+            }
+        }
+        Stmt::Throw(opt_expr) | Stmt::Return(opt_expr) => {
+            if let Some(expr) = opt_expr {
+                collect_call_args_in_expr(expr, func_name, bare_name, param_idx, args);
+            }
+        }
+        Stmt::TryCatch {
+            try_block,
+            catch_block,
+            finally_block,
+            ..
+        } => {
+            for s in try_block {
+                collect_call_args_in_stmt(s, func_name, bare_name, param_idx, args);
+            }
+            for s in catch_block {
+                collect_call_args_in_stmt(s, func_name, bare_name, param_idx, args);
+            }
+            if let Some(finally_block) = finally_block {
+                for s in finally_block {
+                    collect_call_args_in_stmt(s, func_name, bare_name, param_idx, args);
+                }
+            }
+        }
+        Stmt::IndexAssign {
+            array,
+            index,
+            value,
+        } => {
+            collect_call_args_in_expr(array, func_name, bare_name, param_idx, args);
+            collect_call_args_in_expr(index, func_name, bare_name, param_idx, args);
+            collect_call_args_in_expr(value, func_name, bare_name, param_idx, args);
+        }
+        Stmt::FieldAssign { object, value, .. } => {
+            collect_call_args_in_expr(object, func_name, bare_name, param_idx, args);
+            collect_call_args_in_expr(value, func_name, bare_name, param_idx, args);
+        }
+        Stmt::Function { body, .. } => {
+            for s in body {
+                collect_call_args_in_stmt(s, func_name, bare_name, param_idx, args);
+            }
+        }
+        _ => {}
+    }
+}
+
+pub fn collect_call_args_in_expr<'a>(
+    expr: &'a Expr,
+    func_name: &str,
+    bare_name: &str,
+    param_idx: usize,
+    args: &mut Vec<&'a Expr>,
+) {
+    match expr {
+        Expr::Call {
+            name,
+            args: call_args,
+        } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            if name == func_name || bare == bare_name || name == bare_name || bare == func_name {
+                if let Some(arg) = call_args.get(param_idx) {
+                    args.push(arg);
+                }
+            }
+            for arg in call_args {
+                collect_call_args_in_expr(arg, func_name, bare_name, param_idx, args);
+            }
+        }
+        Expr::Binary { left, right, .. } => {
+            collect_call_args_in_expr(left, func_name, bare_name, param_idx, args);
+            collect_call_args_in_expr(right, func_name, bare_name, param_idx, args);
+        }
+        Expr::Unary { expr, .. } => {
+            collect_call_args_in_expr(expr, func_name, bare_name, param_idx, args);
+        }
+        Expr::Array(elements) => {
+            for elem in elements {
+                collect_call_args_in_expr(elem, func_name, bare_name, param_idx, args);
+            }
+        }
+        Expr::Index { array, index } => {
+            collect_call_args_in_expr(array, func_name, bare_name, param_idx, args);
+            collect_call_args_in_expr(index, func_name, bare_name, param_idx, args);
+        }
+        Expr::FieldAccess { object, .. } => {
+            collect_call_args_in_expr(object, func_name, bare_name, param_idx, args);
+        }
+        Expr::StructInit { fields, .. } => {
+            for (_, val) in fields {
+                collect_call_args_in_expr(val, func_name, bare_name, param_idx, args);
+            }
+        }
+        Expr::Map(entries) => {
+            for (k, v) in entries {
+                collect_call_args_in_expr(k, func_name, bare_name, param_idx, args);
+                collect_call_args_in_expr(v, func_name, bare_name, param_idx, args);
+            }
+        }
+        Expr::InterpolatedString(parts) => {
+            for part in parts {
+                collect_call_args_in_expr(part, func_name, bare_name, param_idx, args);
+            }
+        }
+        Expr::Ternary {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            collect_call_args_in_expr(condition, func_name, bare_name, param_idx, args);
+            collect_call_args_in_expr(then_branch, func_name, bare_name, param_idx, args);
+            collect_call_args_in_expr(else_branch, func_name, bare_name, param_idx, args);
+        }
+        Expr::NullCoalesce { value, default } => {
+            collect_call_args_in_expr(value, func_name, bare_name, param_idx, args);
+            collect_call_args_in_expr(default, func_name, bare_name, param_idx, args);
+        }
+        _ => {}
+    }
+}

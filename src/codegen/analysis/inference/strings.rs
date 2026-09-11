@@ -1,6 +1,6 @@
 use super::common::collect_function_defs;
 use crate::ast::*;
-use crate::codegen::analysis::traversal::find_call_arg;
+use crate::codegen::analysis::traversal::{collect_all_call_args, find_call_arg};
 use std::collections::{HashMap, HashSet};
 
 fn expr_is_definitely_string(expr: &Expr, known_strings: &HashSet<String>) -> bool {
@@ -761,19 +761,13 @@ pub fn collect_known_string_vars(program: &Program) -> HashSet<String> {
                 if !known_strings.contains(&format!("fn_param_str_arr:{}:{}", name, idx))
                     && !known_strings.contains(&format!("fn_param_str_arr:{}:{}", bare, idx))
                 {
-                    let mut found_call = false;
-                    let all_calls_str_arr = program.statements.iter().all(|s| {
-                        if let Some(arg) = find_call_arg(s, name, idx) {
-                            found_call = true;
-                            expr_is_string_array(arg, &known_strings)
-                        } else if let Some(arg) = find_call_arg(s, bare, idx) {
-                            found_call = true;
-                            expr_is_string_array(arg, &known_strings)
-                        } else {
-                            true
-                        }
-                    });
-                    if found_call && all_calls_str_arr {
+                    let mut call_args = Vec::new();
+                    collect_all_call_args(&program.statements, name, bare, idx, &mut call_args);
+                    if !call_args.is_empty()
+                        && call_args
+                            .iter()
+                            .all(|arg| expr_is_string_array(arg, &known_strings))
+                    {
                         known_strings.insert(format!("fn_param_str_arr:{}:{}", name, idx));
                         known_strings.insert(format!("fn_param_str_arr:{}:{}", bare, idx));
                     }
