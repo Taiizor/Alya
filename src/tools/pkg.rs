@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet, VecDeque};
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -734,7 +734,31 @@ pub fn resolve_package_import(
                 }
             }
             DependencySource::Git { .. } | DependencySource::Version(_) => {
-                manifest_dir.join(".alya").join("packages").join(pkg_name)
+                let local_pkg_dir = manifest_dir.join(".alya").join("packages").join(pkg_name);
+                if local_pkg_dir.exists() {
+                    local_pkg_dir
+                } else {
+                    let mut found = None;
+                    let mut curr = manifest_dir.parent();
+                    while let Some(p) = curr {
+                        let candidate = p.join(".alya").join("packages").join(pkg_name);
+                        if candidate.exists() {
+                            found = Some(candidate);
+                            break;
+                        }
+                        curr = p.parent();
+                    }
+                    if found.is_none() {
+                        if let Some(root_manifest) = find_manifest_dir() {
+                            let candidate =
+                                root_manifest.join(".alya").join("packages").join(pkg_name);
+                            if candidate.exists() {
+                                found = Some(candidate);
+                            }
+                        }
+                    }
+                    found.unwrap_or(local_pkg_dir)
+                }
             }
         };
 
@@ -1353,15 +1377,28 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
 
     let packages_dir = manifest_dir.join(".alya").join("packages");
     let mut locked_packages = Vec::new();
+    let mut visited: HashSet<String> = HashSet::new();
+    let mut to_process: VecDeque<(String, DependencySource, PathBuf)> = VecDeque::new();
 
     for (name, dep) in &manifest.dependencies {
+        to_process.push_back((name.clone(), dep.clone(), manifest_dir.to_path_buf()));
+    }
+
+    while let Some((name, dep, from_manifest_dir)) = to_process.pop_front() {
+        if visited.contains(&name) {
+            continue;
+        }
+        visited.insert(name.clone());
+
+        let mut resolved_pkg_dir: Option<PathBuf> = None;
+
         match dep {
             DependencySource::Path { path } => {
-                let dep_path = Path::new(path);
+                let dep_path = Path::new(&path);
                 let full_path = if dep_path.is_absolute() {
                     dep_path.to_path_buf()
                 } else {
-                    manifest_dir.join(dep_path)
+                    from_manifest_dir.join(dep_path)
                 };
 
                 if !full_path.exists() {
@@ -1372,7 +1409,7 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     ));
                 }
 
-                let entry = find_package_entry(&full_path, name)?;
+                let entry = find_package_entry(&full_path, &name)?;
                 let rel_entry = entry
                     .strip_prefix(manifest_dir)
                     .unwrap_or(&entry)
@@ -1387,6 +1424,8 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     entry: rel_entry,
                     checksum,
                 });
+
+                resolved_pkg_dir = Some(full_path);
             }
             DependencySource::Git {
                 url,
@@ -1396,7 +1435,7 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
             } => {
                 fs::create_dir_all(&packages_dir)
                     .map_err(|e| format!("Failed to create .alya/packages directory: {}", e))?;
-                let target_dir = packages_dir.join(name);
+                let target_dir = packages_dir.join(&name);
 
                 let tag_or_branch = tag
                     .as_deref()
@@ -1406,7 +1445,7 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                 let source = format!("git:{}#{}", url, tag_or_branch);
 
                 if let Some(global_cache_dir) = get_global_cache_dir() {
-                    let cache_key = compute_cache_key(name, tag_or_branch, url);
+                    let cache_key = compute_cache_key(&name, tag_or_branch, &url);
                     let cached_pkg_dir = global_cache_dir.join(&cache_key);
 
                     let cache_hit =
@@ -1428,8 +1467,8 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                             let _ = fs::remove_dir_all(&cached_pkg_dir);
                         }
                         fetch_git_or_archive_dependency(
-                            name,
-                            url,
+                            &name,
+                            &url,
                             tag.as_deref(),
                             branch.as_deref(),
                             rev.as_deref(),
@@ -1444,8 +1483,8 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     }
                 } else if !target_dir.exists() {
                     fetch_git_or_archive_dependency(
-                        name,
-                        url,
+                        &name,
+                        &url,
                         tag.as_deref(),
                         branch.as_deref(),
                         rev.as_deref(),
@@ -1461,7 +1500,7 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     let _ = fs::remove_dir_all(&local_git_dir);
                 }
 
-                let entry = find_package_entry(&target_dir, name)?;
+                let entry = find_package_entry(&target_dir, &name)?;
                 let rel_entry = entry
                     .strip_prefix(manifest_dir)
                     .unwrap_or(&entry)
@@ -1476,9 +1515,11 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     entry: rel_entry,
                     checksum,
                 });
+
+                resolved_pkg_dir = Some(target_dir);
             }
             DependencySource::Version(v) => {
-                let pkg_dir = packages_dir.join(name);
+                let pkg_dir = packages_dir.join(&name);
                 let checksum = if pkg_dir.exists() {
                     compute_package_checksum(&pkg_dir)?
                 } else {
@@ -1494,6 +1535,26 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     entry: rel_entry,
                     checksum,
                 });
+
+                if pkg_dir.exists() {
+                    resolved_pkg_dir = Some(pkg_dir);
+                }
+            }
+        }
+
+        // Recursively inspect the resolved package for its own dependencies in alya.toml
+        if let Some(pkg_dir) = resolved_pkg_dir {
+            let sub_manifest_path = pkg_dir.join("alya.toml");
+            if sub_manifest_path.exists() {
+                if let Ok(sub_content) = fs::read_to_string(&sub_manifest_path) {
+                    if let Ok(sub_manifest) = parse_manifest(&sub_content) {
+                        for (sub_name, sub_dep) in sub_manifest.dependencies {
+                            if !visited.contains(&sub_name) {
+                                to_process.push_back((sub_name, sub_dep, pkg_dir.clone()));
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -1601,6 +1662,34 @@ pub fn run_list() -> Result<(), String> {
             );
         }
     }
+
+    if let Some(ref l) = lock {
+        let transitive: Vec<_> = l
+            .packages
+            .iter()
+            .filter(|p| !manifest.dependencies.contains_key(&p.name))
+            .collect();
+        if !transitive.is_empty() {
+            println!("\nTransitive Dependencies ({}):", transitive.len());
+            for p in transitive {
+                let chk_short = if p.checksum.len() > 17 {
+                    &p.checksum[..17]
+                } else {
+                    &p.checksum
+                };
+                let src_short = if p.source.len() > 34 {
+                    format!("{}...", &p.source[..31])
+                } else {
+                    p.source.clone()
+                };
+                println!(
+                    "  • {:<16} {:<35} [locked: {}...]",
+                    p.name, src_short, chk_short
+                );
+            }
+        }
+    }
+
     Ok(())
 }
 
@@ -2330,6 +2419,122 @@ checksum = "sha256:abcdef1234567890"
         assert!(target_dir.join("alya.toml").exists());
         assert!(target_dir.join("src").join("lib.alya").exists());
         assert!(!target_dir.join(".git").exists());
+
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_transitive_dependency_resolution() {
+        let temp_dir =
+            std::env::temp_dir().join(format!("alya_test_transitive_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        let root_dir = temp_dir.join("app");
+        let pkg_a_dir = temp_dir.join("pkg_a");
+        let pkg_b_dir = temp_dir.join("pkg_b");
+
+        fs::create_dir_all(&root_dir).unwrap();
+        fs::create_dir_all(pkg_a_dir.join("src")).unwrap();
+        fs::create_dir_all(pkg_b_dir.join("src")).unwrap();
+
+        // pkg_b: leaf dependency
+        fs::write(
+            pkg_b_dir.join("alya.toml"),
+            "[package]\nname = \"pkg_b\"\nversion = \"0.1.0\"\nentry = \"src/lib.alya\"\n",
+        )
+        .unwrap();
+        fs::write(pkg_b_dir.join("src").join("lib.alya"), "let b_val = 42\n").unwrap();
+
+        // pkg_a: depends on pkg_b via relative path
+        fs::write(
+            pkg_a_dir.join("alya.toml"),
+            "[package]\nname = \"pkg_a\"\nversion = \"0.1.0\"\nentry = \"src/lib.alya\"\n\n[dependencies]\npkg_b = { path = \"../pkg_b\" }\n",
+        )
+        .unwrap();
+        fs::write(
+            pkg_a_dir.join("src").join("lib.alya"),
+            "import \"pkg_b\"\nlet a_val = 100\n",
+        )
+        .unwrap();
+
+        // root app: depends only on pkg_a via relative path
+        fs::write(
+            root_dir.join("alya.toml"),
+            "[package]\nname = \"app\"\nversion = \"0.1.0\"\nentry = \"src/main.alya\"\n\n[dependencies]\npkg_a = { path = \"../pkg_a\" }\n",
+        )
+        .unwrap();
+
+        // Run install in root
+        let res = run_install_in(&root_dir);
+        assert!(res.is_ok(), "run_install_in failed: {:?}", res.err());
+
+        // Verify lockfile contains BOTH pkg_a and pkg_b!
+        let lock_content = fs::read_to_string(root_dir.join("alya.lock")).unwrap();
+        let lock = parse_lockfile(&lock_content).unwrap();
+        assert_eq!(lock.packages.len(), 2);
+        assert!(lock.packages.iter().any(|p| p.name == "pkg_a"));
+        assert!(lock.packages.iter().any(|p| p.name == "pkg_b"));
+
+        // Verify module resolution from pkg_a resolving pkg_b
+        let resolved_b = resolve_package_import("pkg_b", &pkg_a_dir.join("src")).unwrap();
+        assert!(resolved_b.is_some());
+        assert_eq!(
+            resolved_b.unwrap().canonicalize().unwrap(),
+            pkg_b_dir
+                .join("src")
+                .join("lib.alya")
+                .canonicalize()
+                .unwrap()
+        );
+
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_transitive_nested_packages_import_resolution() {
+        let temp_dir =
+            std::env::temp_dir().join(format!("alya_test_trans_nest_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        let app_dir = temp_dir.join("my_app");
+        let packages_dir = app_dir.join(".alya").join("packages");
+        let pkg_crypto = packages_dir.join("crypto");
+        let pkg_abc = packages_dir.join("abc");
+
+        fs::create_dir_all(pkg_crypto.join("src")).unwrap();
+        fs::create_dir_all(pkg_abc.join("src")).unwrap();
+
+        fs::write(
+            app_dir.join("alya.toml"),
+            "[package]\nname = \"my_app\"\nversion = \"0.1.0\"\nentry = \"src/main.alya\"\n\n[dependencies]\ncrypto = { git = \"https://github.com/alya-lang/crypto\", tag = \"v0.1.0\" }\n",
+        )
+        .unwrap();
+
+        fs::write(
+            pkg_crypto.join("alya.toml"),
+            "[package]\nname = \"crypto\"\nversion = \"0.1.0\"\nentry = \"src/lib.alya\"\n\n[dependencies]\nabc = { git = \"https://github.com/alya-lang/abc\", tag = \"v1.0.0\" }\n",
+        )
+        .unwrap();
+        fs::write(
+            pkg_crypto.join("src").join("lib.alya"),
+            "import \"abc\"\nlet c = 1\n",
+        )
+        .unwrap();
+
+        fs::write(
+            pkg_abc.join("alya.toml"),
+            "[package]\nname = \"abc\"\nversion = \"1.0.0\"\nentry = \"src/lib.alya\"\n",
+        )
+        .unwrap();
+        fs::write(pkg_abc.join("src").join("lib.alya"), "let abc_num = 999\n").unwrap();
+
+        // When inside crypto/src/lib.alya, resolve_package_import("abc") searches upward and finds app/.alya/packages/abc!
+        let resolved = resolve_package_import("abc", &pkg_crypto.join("src")).unwrap();
+        assert!(resolved.is_some());
+        assert_eq!(
+            resolved.unwrap().canonicalize().unwrap(),
+            pkg_abc.join("src").join("lib.alya").canonicalize().unwrap()
+        );
 
         let _ = fs::remove_dir_all(&temp_dir);
     }
