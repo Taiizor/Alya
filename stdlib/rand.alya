@@ -71,7 +71,6 @@ end
 
 # --- Basic Collection Helpers ---
 
-
 # Returns a randomly selected element from 'arr'.
 function rand_choice(arr)
     let n = len(arr)
@@ -81,4 +80,3 @@ function rand_choice(arr)
     let idx = rand_int(0, n - 1)
     return arr[idx]
 end
-

@@ -567,4 +567,3 @@ fn test_deprecated_stdlib_modules_diagnostic() {
     let err_uuid = resolve_imports(&mut ast_uuid, std::path::Path::new(".")).unwrap_err();
     assert!(err_uuid.contains("alyac add uuid"));
 }
-
