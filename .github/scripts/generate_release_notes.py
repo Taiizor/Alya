@@ -53,6 +53,21 @@ def get_checksum(dist_dir, pkg_name):
     return "—"
 
 
+def format_author(name, email):
+    """Format author name or GitHub username handle."""
+    name = (name or "").strip()
+    email = (email or "").strip()
+    if "@users.noreply.github.com" in email:
+        handle = email.split("@")[0]
+        if "+" in handle:
+            handle = handle.split("+", 1)[1]
+        if handle:
+            return f"@{handle}"
+    if " " not in name and name:
+        return f"@{name}" if not name.startswith("@") else name
+    return name or "contributor"
+
+
 def main():
     # 1. Resolve Release Tag
     tag = ""
@@ -124,15 +139,32 @@ def main():
         commit_range = target_ref
 
     # 6. Extract Commit Log for Changes Section
-    commits_raw = run_git(["log", "--pretty=format:* %s (%h)", commit_range], check=False)
+    commits_raw = run_git(["log", "--pretty=format:%h%x09%an%x09%ae%x09%s", commit_range], check=False)
     if commits_raw:
-        lines = [
-            line for line in commits_raw.splitlines()
-            if not line.startswith(f"* release {tag}")
-            and not line.startswith(f"* chore: release {tag}")
-            and not line.startswith(f"* chore(release): {tag}")
-            and "update benchmark results [skip ci]" not in line
-        ]
+        lines = []
+        for raw_line in commits_raw.splitlines():
+            if not raw_line.strip():
+                continue
+            parts = raw_line.split("\t", 3)
+            if len(parts) == 4:
+                commit_hash, author_name, author_email, subject = parts
+            elif len(parts) == 3:
+                commit_hash, author_name, subject = parts
+                author_email = ""
+            else:
+                continue
+
+            if (
+                subject.startswith(f"release {tag}")
+                or subject.startswith(f"chore: release {tag}")
+                or subject.startswith(f"chore(release): {tag}")
+                or "update benchmark results [skip ci]" in subject
+            ):
+                continue
+
+            author_tag = format_author(author_name, author_email)
+            lines.append(f"* {subject} by {author_tag} ({commit_hash})")
+
         commits_text = "\n".join(lines) if lines else "* Initial release"
     else:
         commits_text = "* Initial release"
