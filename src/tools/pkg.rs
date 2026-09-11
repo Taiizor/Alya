@@ -74,6 +74,7 @@ pub struct LockedPackage {
     pub source: String,
     pub entry: String,
     pub checksum: String,
+    pub dependencies: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -492,6 +493,7 @@ pub fn parse_lockfile(content: &str) -> Result<PackageLock, String> {
     let mut version = 1;
     let mut packages = Vec::new();
     let mut current_pkg: Option<LockedPackage> = None;
+    let mut in_dependencies = false;
 
     for line in content.lines() {
         let trimmed = line.split('#').next().unwrap_or("").trim();
@@ -500,6 +502,7 @@ pub fn parse_lockfile(content: &str) -> Result<PackageLock, String> {
         }
 
         if trimmed == "[[package]]" {
+            in_dependencies = false;
             if let Some(pkg) = current_pkg.take() {
                 packages.push(pkg);
             }
@@ -509,25 +512,69 @@ pub fn parse_lockfile(content: &str) -> Result<PackageLock, String> {
                 source: String::new(),
                 entry: String::new(),
                 checksum: String::new(),
+                dependencies: Vec::new(),
             });
+            continue;
+        }
+
+        if in_dependencies {
+            if trimmed == "]" {
+                in_dependencies = false;
+                continue;
+            }
+            if trimmed.ends_with(']') {
+                in_dependencies = false;
+                let inside = trimmed.trim_end_matches(']').trim().trim_end_matches(',');
+                let dep = unquote(inside.trim());
+                if !dep.is_empty() {
+                    if let Some(ref mut pkg) = current_pkg {
+                        pkg.dependencies.push(dep);
+                    }
+                }
+                continue;
+            }
+            let item = trimmed.trim_end_matches(',');
+            let dep = unquote(item.trim());
+            if !dep.is_empty() {
+                if let Some(ref mut pkg) = current_pkg {
+                    pkg.dependencies.push(dep);
+                }
+            }
             continue;
         }
 
         if let Some((k, v)) = trimmed.split_once('=') {
             let key = k.trim();
-            let val = unquote(v.trim());
+            let raw_val = v.trim();
 
             if let Some(ref mut pkg) = current_pkg {
                 match key {
-                    "name" => pkg.name = val,
-                    "version" => pkg.version = val,
-                    "source" => pkg.source = val,
-                    "entry" => pkg.entry = val,
-                    "checksum" => pkg.checksum = val,
+                    "name" => pkg.name = unquote(raw_val),
+                    "version" => pkg.version = unquote(raw_val),
+                    "source" => pkg.source = unquote(raw_val),
+                    "entry" => pkg.entry = unquote(raw_val),
+                    "checksum" => pkg.checksum = unquote(raw_val),
+                    "dependencies" => {
+                        if raw_val.starts_with('[') {
+                            if raw_val.ends_with(']') {
+                                pkg.dependencies = parse_string_array(raw_val);
+                            } else {
+                                in_dependencies = true;
+                                let after_bracket = raw_val[1..].trim();
+                                if !after_bracket.is_empty() {
+                                    let item = after_bracket.trim_end_matches(',');
+                                    let dep = unquote(item.trim());
+                                    if !dep.is_empty() {
+                                        pkg.dependencies.push(dep);
+                                    }
+                                }
+                            }
+                        }
+                    }
                     _ => {}
                 }
             } else if key == "version" {
-                version = val.parse::<u32>().unwrap_or(1);
+                version = unquote(raw_val).parse::<u32>().unwrap_or(1);
             }
         }
     }
@@ -550,6 +597,13 @@ pub fn serialize_lockfile(lock: &PackageLock) -> String {
         out.push_str(&format!("source = \"{}\"\n", pkg.source));
         out.push_str(&format!("entry = \"{}\"\n", pkg.entry.replace('\\', "/")));
         out.push_str(&format!("checksum = \"{}\"\n", pkg.checksum));
+        if !pkg.dependencies.is_empty() {
+            out.push_str("dependencies = [\n");
+            for dep in &pkg.dependencies {
+                out.push_str(&format!(" \"{}\",\n", dep));
+            }
+            out.push_str("]\n");
+        }
     }
     out
 }
@@ -1423,6 +1477,7 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     source: format!("path:{}", path.replace('\\', "/")),
                     entry: rel_entry,
                     checksum,
+                    dependencies: Vec::new(),
                 });
 
                 resolved_pkg_dir = Some(full_path);
@@ -1514,6 +1569,7 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     source,
                     entry: rel_entry,
                     checksum,
+                    dependencies: Vec::new(),
                 });
 
                 resolved_pkg_dir = Some(target_dir);
@@ -1534,6 +1590,7 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     source: format!("registry:{}", v),
                     entry: rel_entry,
                     checksum,
+                    dependencies: Vec::new(),
                 });
 
                 if pkg_dir.exists() {
@@ -1543,12 +1600,14 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
         }
 
         // Recursively inspect the resolved package for its own dependencies in alya.toml
+        let mut sub_deps = Vec::new();
         if let Some(pkg_dir) = resolved_pkg_dir {
             let sub_manifest_path = pkg_dir.join("alya.toml");
             if sub_manifest_path.exists() {
                 if let Ok(sub_content) = fs::read_to_string(&sub_manifest_path) {
                     if let Ok(sub_manifest) = parse_manifest(&sub_content) {
                         for (sub_name, sub_dep) in sub_manifest.dependencies {
+                            sub_deps.push(sub_name.clone());
                             if !visited.contains(&sub_name) {
                                 to_process.push_back((sub_name, sub_dep, pkg_dir.clone()));
                             }
@@ -1556,6 +1615,11 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     }
                 }
             }
+        }
+        sub_deps.sort();
+        sub_deps.dedup();
+        if let Some(pkg) = locked_packages.last_mut() {
+            pkg.dependencies = sub_deps;
         }
     }
 
@@ -2179,6 +2243,9 @@ version = "0.1.0"
 source = "path:../libs/raylib"
 entry = "../libs/raylib/src/main.alya"
 checksum = "sha256:1234567890abcdef"
+dependencies = [
+ "c_bridge",
+]
 
 [[package]]
 name = "sqlite"
@@ -2192,11 +2259,46 @@ checksum = "sha256:abcdef1234567890"
         assert_eq!(lock.version, 1);
         assert_eq!(lock.packages.len(), 2);
         assert_eq!(lock.packages[0].name, "raylib");
+        assert_eq!(lock.packages[0].dependencies, vec!["c_bridge"]);
         assert_eq!(lock.packages[1].name, "sqlite");
+        assert!(lock.packages[1].dependencies.is_empty());
 
         let serialized = serialize_lockfile(&lock);
         let lock2 = parse_lockfile(&serialized).expect("roundtrip parse failed");
         assert_eq!(lock, lock2);
+    }
+
+    #[test]
+    fn test_lockfile_dependencies_variations() {
+        let lock_toml = r#"version = 1
+
+[[package]]
+name = "app"
+version = "0.1.0"
+source = "path:."
+entry = "src/main.alya"
+checksum = "sha256:1111"
+dependencies = ["dep_inline_1", "dep_inline_2"]
+
+[[package]]
+name = "leaf"
+version = "0.1.0"
+source = "path:../leaf"
+entry = "src/lib.alya"
+checksum = "sha256:2222"
+dependencies = []
+"#;
+
+        let lock = parse_lockfile(lock_toml).expect("parse failed");
+        assert_eq!(
+            lock.packages[0].dependencies,
+            vec!["dep_inline_1", "dep_inline_2"]
+        );
+        assert!(lock.packages[1].dependencies.is_empty());
+
+        let serialized = serialize_lockfile(&lock);
+        assert!(serialized.contains("dependencies = [\n \"dep_inline_1\",\n \"dep_inline_2\",\n]"));
+        assert!(!serialized.contains("name = \"leaf\"\nversion = \"0.1.0\"\nsource = \"path:../leaf\"\nentry = \"src/lib.alya\"\nchecksum = \"sha256:2222\"\ndependencies = ["));
     }
 
     #[test]
@@ -2472,8 +2574,11 @@ checksum = "sha256:abcdef1234567890"
         let lock_content = fs::read_to_string(root_dir.join("alya.lock")).unwrap();
         let lock = parse_lockfile(&lock_content).unwrap();
         assert_eq!(lock.packages.len(), 2);
-        assert!(lock.packages.iter().any(|p| p.name == "pkg_a"));
-        assert!(lock.packages.iter().any(|p| p.name == "pkg_b"));
+        let pkg_a = lock.packages.iter().find(|p| p.name == "pkg_a").unwrap();
+        let pkg_b = lock.packages.iter().find(|p| p.name == "pkg_b").unwrap();
+        assert_eq!(pkg_a.dependencies, vec!["pkg_b"]);
+        assert!(pkg_b.dependencies.is_empty());
+        assert!(lock_content.contains("dependencies = [\n \"pkg_b\",\n]"));
 
         // Verify module resolution from pkg_a resolving pkg_b
         let resolved_b = resolve_package_import("pkg_b", &pkg_a_dir.join("src")).unwrap();
