@@ -533,17 +533,23 @@ fn test_resolve_uninstalled_package_error() {
 #[test]
 fn test_deprecated_stdlib_modules_diagnostic() {
     let code_csv = "import \"std/csv\"\nsay 1";
-    let mut ast = Parser::new(Lexer::new(code_csv).tokenize().unwrap()).parse().unwrap();
+    let mut ast = Parser::new(Lexer::new(code_csv).tokenize().unwrap())
+        .parse()
+        .unwrap();
     let err = resolve_imports(&mut ast, std::path::Path::new(".")).unwrap_err();
     assert!(err.contains("alyac add csv"));
 
     let code_tsv = "import \"std/tsv\"\nsay 1";
-    let mut ast_tsv = Parser::new(Lexer::new(code_tsv).tokenize().unwrap()).parse().unwrap();
+    let mut ast_tsv = Parser::new(Lexer::new(code_tsv).tokenize().unwrap())
+        .parse()
+        .unwrap();
     let err_tsv = resolve_imports(&mut ast_tsv, std::path::Path::new(".")).unwrap_err();
     assert!(err_tsv.contains("alyac add csv"));
 
     let code_url = "import \"std/url\"\nsay 1";
-    let mut ast2 = Parser::new(Lexer::new(code_url).tokenize().unwrap()).parse().unwrap();
+    let mut ast2 = Parser::new(Lexer::new(code_url).tokenize().unwrap())
+        .parse()
+        .unwrap();
     let err2 = resolve_imports(&mut ast2, std::path::Path::new(".")).unwrap_err();
     assert!(err2.contains("alyac add url"));
 }
