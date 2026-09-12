@@ -40,10 +40,11 @@ Alya is designed to balance the ergonomics of an expressive, readable language w
   - Codegen optimizations: branch fusion, immediate range splitting (`movz`/`movk`), zero-cycle idioms.
   - Sub-millisecond parser throughput (~2M lines/sec) and near-C execution performance.
 - [x] **Batteries-Included Standard Library** ✅
-  - Networking (`std/net` with raw TCP, HTTP 1.1, and non-blocking `tcp_poll`).
+  - Networking (`std/net` with raw TCP/UDP socket I/O and non-blocking `tcp_poll`; HTTP unbundled to `alya-lang/http`).
   - Concurrency (`std/thread` with native OS worker threads).
   - System I/O (`std/fs`, `std/path`, `std/os`, `std/time`, `std/console`, `std/color`).
-  - Utilities (`std/rand` with SplitMix64 and UUID v4/v7/ULID, `std/json`, `std/glob`, `std/hash`, `std/collections`, `std/test`, `std/mem` Arena allocator; standalone packages `csv`, `url`, `http`, `crypto`).
+  - Utilities (`std/rand` with core PRNG/LCG, `std/json` basic parser/stringifier, `std/glob`, `std/hash`, `std/collections`, `std/test`, `std/mem` Arena allocator).
+  - Official Standalone Packages (`csv`, `url`, `http`, `crypto`, `rand`, `uuid`, `jwt`, `mime`, `cli`, `logger`, `json`).
 - [x] **Integrated Tooling & Platform Packaging** ✅
   - In-place code formatter (`alyac fmt`).
   - Test runner (`alyac test`).
@@ -94,6 +95,86 @@ Enable community library sharing, versioned dependency resolution, and automated
   - Running `alyac run`, `alyac build`, or `alyac check` without an input file inside any package directory automatically locates `alya.toml` and compiles its designated entry file.
 - **Compiler Module Resolution Integration**:
   - Native compiler import engine seamlessly resolves package imports (`import "pkg"` / `import "pkg/sub" as alias`) through the manifest, with clear diagnostic errors directing users to `alyac install` if dependencies are missing.
+- **Global Package Cache & Storage (`~/.alya/cache`)**:
+  - Global package repository cache storing clean checkouts with `.alya-source` metadata.
+  - Zero-network project cloning skipping `.git` overhead (`skip_git: true`) for instant local package provisioning.
+  - Storage management commands: `alyac pkg cache`, `alyac pkg clean`, and `alyac pkg cache clean`.
+- **Transitive Dependency Resolution (Queue / BFS)**:
+  - Recursive multi-tier dependency tree resolution locking all nested packages in a flat, deterministic `alya.lock`.
+  - Compiler import resolver walks up parent directories to seamlessly bind transitive sub-dependencies.
+- **Compiler Migration Diagnostics**:
+  - Automatic diagnostics directing legacy standard library imports (`std/csv`, `std/url`, `std/uuid`, `std/crypto`) to their official standalone packages (`alyac add <pkg>`).
+
+---
+
+### Standard Library (Stdlib) vs Package (Pkg) Architecture
+
+To preserve compiler binary lightness, rapid community evolution, and zero-middleware performance, Alya adheres to a clear three-tier architectural separation between embedded standard library modules (`std/*`) and standalone packages (`alya.toml`).
+
+#### 1. Architectural Philosophy
+
+| Criterion | Standard Library (`std/*`) | Standalone Package (`alya-lang/*`) |
+| :--- | :--- | :--- |
+| **Role** | Core runtime extension and OS syscall abstractions. | Domain-specific, feature-rich ecosystems. |
+| **Dependency** | Built directly into compiler, zero external dependencies. | Managed via `alya.toml` and locked in `alya.lock`. |
+| **Versioning** | Tied to compiler release (`alyac v0.0.x`). | Independent Semantic Versioning (`v0.1.0`, `v1.2.0`). |
+| **Binary Footprint** | Embedded in compiler binary (`include_str!`); must remain minimal. | Zero impact on compiler binary; resolved at build time per project. |
+| **Velocity** | Ultra-stable, highly conservative, avoids API breakage. | Rapid iteration, community-driven, continuous feature releases. |
+| **Testing** | Core compiler CI test suites. | Dedicated CI matrices, micro-benchmarks, and extensive documentation. |
+
+#### 2. The 3-Tier Classification Model
+
+```text
+                  ┌────────────────────────────────────────────────────────┐
+                  │                 ALL ALYA MODULES                       │
+                  └──────────────────────────┬─────────────────────────────┘
+                                             │
+             ┌───────────────────────────────┼──────────────────────────────┐
+             ▼                               ▼                              ▼
+     [TIER 1: CORE STDLIB]           [TIER 2: HYBRID CORE]          [TIER 3: STANDALONE PKG]
+  Never externalized; core        Minimal core in stdlib; rich    Fully decoupled domain
+  syscalls and language runtime.  API delegated to package.       libraries (unbundled).
+  ─────────────────────────────── ─────────────────────────────── ──────────────────────────
+  • os, fs, path, time            • cli  (only raw args/flags)    • crypto (SHA, HMAC, KDF)
+  • math, str, mem                • net  (only raw TCP/UDP)       • csv    (RFC-4180 parser)
+  • collections, thread           • log  (only console colors)    • url    (WHATWG standard)
+  • test, bench, console          • rand (only core LCG PRNG)     • http   (client/server)
+                                  • json (only basic parse/str)   • uuid   (v4, v7, ULID)
+                                                                  • jwt    (RFC-7519 tokens)
+```
+
+1. **Tier 1 (Core Stdlib - Preserved & Protected):**
+   - Essential system calls and data type intrinsics (`os`, `fs`, `path`, `time`, `math`, `str`, `collections`, `thread`, `mem`, `console`, `test`, `bench`).
+   - Must remain built-in for zero-setup execution of standalone scripts and CLI tools.
+
+2. **Tier 2 (Hybrid Modules - Pruned & Lightweight):**
+   - **`std/cli`**: Stripped from 570 lines to ~100 lines; provides fast, lightweight OS argument accessors (`cli_raw_args`, `cli_has_flag`). Advanced parsing (subcommands, automated `--help`, validation) lives in `alya-lang/cli`.
+   - **`std/net`**: Stripped from 730 lines to ~200 lines; dedicated purely to raw TCP/UDP socket I/O. All HTTP client/server/routing is in `alya-lang/http`.
+   - **`std/log`**: Retained as a fast, single-file console logger with ANSI colors. JSON formatting, file rotation, and pipelines live in `alya-lang/logger`.
+   - **`std/json`**: Minimal recursive parser and stringifier for basic scripting. Full AST DOM, streaming tokenizer, schema validation, and pretty-printer live in `alya-lang/json`.
+   - **`std/rand`**: Stripped from 425 lines to ~85 lines; contains only global LCG PRNG, range generators, and probabilities. Complex distributions, multi-engine PRNGs (SplitMix64, PCG32, Xorshift64), and sampling live in `alya-lang/rand`.
+
+3. **Tier 3 (Standalone Domain Packages - Unbundled):**
+   - Domain-heavy libraries completely removed from compiler binary.
+   - Friendly compiler migration diagnostics guide users when deprecated stdlib paths are imported (e.g. `import "std/csv"` ➔ suggests `alyac add csv`, `import "std/url"` ➔ `alyac add url`, `import "std/uuid"` ➔ `alyac add uuid`, `import "std/crypto"` ➔ `alyac add crypto`).
+
+#### 3. Official Package Ecosystem Directory
+
+All official packages are published under the `alya-lang` GitHub organization with clean, acyclic dependency graphs (DAG):
+
+| Package | Repository | Description | Dependencies |
+| :--- | :--- | :--- | :--- |
+| **`rand`** | [`alya-lang/rand`](https://github.com/alya-lang/rand) | Multi-engine PRNG (SplitMix, Xorshift, PCG), statistical distributions, sampling, and byte entropy | None |
+| **`crypto`** | [`alya-lang/crypto`](https://github.com/alya-lang/crypto) | Cryptographic hashes (SHA-256, SHA-224, SHA-1, MD5), HMAC, PBKDF2, Base64/Base64URL, timing protection | `rand` |
+| **`uuid`** | [`alya-lang/uuid`](https://github.com/alya-lang/uuid) | RFC 4122 UUID v4, RFC 9562 UUID v7 (time-ordered), Crockford Base32 ULID, NanoID, parser & validators | `rand` |
+| **`jwt`** | [`alya-lang/jwt`](https://github.com/alya-lang/jwt) | RFC 7519 JSON Web Token signing, verification, and claim validation | `crypto` |
+| **`mime`** | [`alya-lang/mime`](https://github.com/alya-lang/mime) | Complete database of 1,000+ MIME types, file extensions, and charset resolution | None |
+| **`url`** | [`alya-lang/url`](https://github.com/alya-lang/url) | WHATWG-compliant URL parser, `UrlSearchParams`, percent-encoding, and path normalization | None |
+| **`http`** | [`alya-lang/http`](https://github.com/alya-lang/http) | Production HTTP client, server, parametric router, and middleware (CORS, Static, Recovery) | `url`, `mime` |
+| **`cli`** | [`alya-lang/cli`](https://github.com/alya-lang/cli) | Advanced command-line argument parser, flag clustering, subcommands, and auto-generated help | None |
+| **`logger`** | [`alya-lang/logger`](https://github.com/alya-lang/logger) | High-throughput structured JSON logger, file rotation, and multi-appender pipelines | None |
+| **`json`** | [`alya-lang/json`](https://github.com/alya-lang/json) | JSON AST DOM, streaming tokenizer, schema validator, and indentation pretty-printer | None |
+| **`csv`** | [`alya-lang/csv`](https://github.com/alya-lang/csv) | RFC 4180 compliant CSV/TSV state machine, streaming parser, and header-to-map record mapping | None |
 
 ---
 
