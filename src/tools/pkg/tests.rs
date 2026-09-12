@@ -52,6 +52,45 @@ simple_ver = "0.5.0"
 }
 
 #[test]
+fn test_manifest_multiline_support() {
+    let toml = r#"
+[package]
+name = "vpn"
+version = "0.1.0"
+authors = [
+    "Alice",
+    "Bob"
+]
+
+[build]
+c-sources = [
+    "c/crypto.c",
+    "c/proc_resolver.c"
+]
+c-flags = [
+    "-O2"
+]
+c-include-dirs = [
+    "c"
+]
+
+[dependencies]
+local_lib = {
+    path = "../local"
+}
+"#;
+
+    let manifest = parse_manifest(toml).expect("parse multiline manifest failed");
+    assert_eq!(manifest.package.name, "vpn");
+    assert_eq!(manifest.package.authors, vec!["Alice", "Bob"]);
+    let build = manifest.build.expect("build section expected");
+    assert_eq!(build.c_sources, vec!["c/crypto.c", "c/proc_resolver.c"]);
+    assert_eq!(build.c_flags, vec!["-O2"]);
+    assert_eq!(build.c_include_dirs, vec!["c"]);
+    assert_eq!(manifest.dependencies.len(), 1);
+}
+
+#[test]
 fn test_compiler_compatibility() {
     let toml_ok = r#"
 [package]

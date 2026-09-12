@@ -15,16 +15,18 @@ pub fn parse_manifest(content: &str) -> Result<PackageManifest, String> {
     let mut c_flags = Vec::new();
     let mut c_include_dirs = Vec::new();
 
-    let mut current_section = "";
+    let mut current_section = String::new();
 
-    for (line_no, raw_line) in content.lines().enumerate() {
-        let line = strip_toml_comment(raw_line);
+    let logical_lines = merge_multiline_toml(content);
+
+    for (line_no, line_str) in logical_lines {
+        let line = line_str.trim();
         if line.is_empty() {
             continue;
         }
 
         if line.starts_with('[') && line.ends_with(']') {
-            current_section = line[1..line.len() - 1].trim();
+            current_section = line[1..line.len() - 1].trim().to_string();
             continue;
         }
 
@@ -32,7 +34,7 @@ pub fn parse_manifest(content: &str) -> Result<PackageManifest, String> {
             let key = k.trim();
             let val = v.trim();
 
-            match current_section {
+            match current_section.as_str() {
                 "package" => match key {
                     "name" => name = unquote(val),
                     "version" => version = unquote(val),
@@ -83,8 +85,7 @@ pub fn parse_manifest(content: &str) -> Result<PackageManifest, String> {
         } else {
             return Err(format!(
                 "Syntax error in alya.toml at line {}: '{}'",
-                line_no + 1,
-                raw_line
+                line_no, line
             ));
         }
     }
@@ -250,4 +251,77 @@ pub fn check_compiler_compatibility(manifest: &PackageManifest) -> Result<(), St
         }
     }
     Ok(())
+}
+
+fn merge_multiline_toml(content: &str) -> Vec<(usize, String)> {
+    let mut logical_lines = Vec::new();
+    let mut current_buf = String::new();
+    let mut start_line = 0;
+    let mut bracket_depth = 0;
+    let mut brace_depth = 0;
+
+    for (line_no, raw_line) in content.lines().enumerate() {
+        let line = strip_toml_comment(raw_line).trim();
+        if line.is_empty() {
+            continue;
+        }
+
+        // Section header e.g. [package] should not be merged with subsequent lines
+        if line.starts_with('[') && line.ends_with(']') && bracket_depth == 0 && brace_depth == 0 {
+            if !current_buf.is_empty() {
+                logical_lines.push((start_line, current_buf.trim().to_string()));
+                current_buf.clear();
+            }
+            logical_lines.push((line_no + 1, line.to_string()));
+            continue;
+        }
+
+        if current_buf.is_empty() {
+            start_line = line_no + 1;
+        } else {
+            current_buf.push(' ');
+        }
+        current_buf.push_str(line);
+
+        let mut in_str = false;
+        let mut escaped = false;
+        for ch in line.chars() {
+            if ch == '\\' && in_str {
+                escaped = !escaped;
+                continue;
+            }
+            if ch == '"' && !escaped {
+                in_str = !in_str;
+            }
+            if !in_str {
+                match ch {
+                    '[' => bracket_depth += 1,
+                    ']' => {
+                        if bracket_depth > 0 {
+                            bracket_depth -= 1;
+                        }
+                    }
+                    '{' => brace_depth += 1,
+                    '}' => {
+                        if brace_depth > 0 {
+                            brace_depth -= 1;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            escaped = false;
+        }
+
+        if bracket_depth == 0 && brace_depth == 0 {
+            logical_lines.push((start_line, current_buf.trim().to_string()));
+            current_buf.clear();
+        }
+    }
+
+    if !current_buf.is_empty() {
+        logical_lines.push((start_line, current_buf.trim().to_string()));
+    }
+
+    logical_lines
 }
