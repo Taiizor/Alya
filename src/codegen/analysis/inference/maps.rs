@@ -1,6 +1,6 @@
 use super::common::collect_function_defs;
 use crate::ast::*;
-use crate::codegen::analysis::traversal::find_call_arg;
+use crate::codegen::analysis::traversal::collect_all_call_args_scoped;
 use std::collections::HashSet;
 
 fn expr_is_definitely_map(
@@ -23,13 +23,18 @@ fn expr_is_definitely_map(
                     | "map_clone"
                     | "map_merge"
                     | "map_from_entries"
+                    | "json_parse"
+                    | "json_decode"
             ) || known_maps.contains(&format!("fn_ret_map:{}", name))
                 || known_maps.contains(&format!("fn_ret_map:{}", bare))
         }
         Expr::Map(_) => true,
         Expr::Identifier(name) => {
             if let Some(scope) = fn_scope {
+                let bare_scope = scope.rsplit("::").next().unwrap_or(scope);
+                let bare_scope = bare_scope.rsplit("__").next().unwrap_or(bare_scope);
                 known_maps.contains(&format!("{}:{}", scope, name))
+                    || known_maps.contains(&format!("{}:{}", bare_scope, name))
             } else {
                 known_maps.contains(name)
             }
@@ -161,9 +166,21 @@ fn collect_map_vars_from_stmts(
             | Stmt::ForEach { body, .. } => {
                 collect_map_vars_from_stmts(body, fn_scope, known_maps);
             }
-            Stmt::Function { name, body, .. } => {
+            Stmt::Function {
+                name, params, body, ..
+            } => {
                 let bare = name.rsplit("::").next().unwrap_or(name);
                 let bare = bare.rsplit("__").next().unwrap_or(bare);
+                for (idx, param) in params.iter().enumerate() {
+                    if known_maps.contains(&format!("fn_param_map:{}:{}", name, idx))
+                        || known_maps.contains(&format!("fn_param_map:{}:{}", bare, idx))
+                    {
+                        known_maps.insert(format!("{}:{}", name, param));
+                        if bare != name {
+                            known_maps.insert(format!("{}:{}", bare, param));
+                        }
+                    }
+                }
                 collect_map_vars_from_stmts(body, Some(name), known_maps);
                 if bare != name {
                     collect_map_vars_from_stmts(body, Some(bare), known_maps);
@@ -171,6 +188,32 @@ fn collect_map_vars_from_stmts(
             }
             _ => {}
         }
+    }
+}
+
+fn expr_is_definitely_non_map(expr: &Expr) -> bool {
+    match expr {
+        Expr::Number(_) | Expr::Float(_) | Expr::String(_) | Expr::Array(_) => true,
+        Expr::Call { name, .. } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            matches!(
+                bare,
+                "split"
+                    | "args"
+                    | "keys"
+                    | "values"
+                    | "lines"
+                    | "read_lines"
+                    | "array_slice"
+                    | "array_clone"
+                    | "array_concat"
+                    | "len"
+                    | "str"
+            )
+        }
+        Expr::Binary { .. } | Expr::Unary { .. } => true,
+        _ => false,
     }
 }
 
@@ -196,21 +239,19 @@ pub fn collect_known_map_vars(program: &Program) -> HashSet<String> {
                 {
                     continue;
                 }
-                let mut found_call = false;
-                let all_calls_map = program.statements.iter().all(|s| {
-                    if let Some(arg) = find_call_arg(s, name, idx) {
-                        found_call = true;
-                        expr_is_definitely_map(arg, None, &known_maps)
-                    } else if let Some(arg) = find_call_arg(s, bare, idx) {
-                        found_call = true;
-                        expr_is_definitely_map(arg, None, &known_maps)
-                    } else {
-                        true
+                let mut call_args = Vec::new();
+                collect_all_call_args_scoped(&program.statements, name, bare, idx, &mut call_args);
+                if !call_args.is_empty() {
+                    let has_def_map = call_args.iter().any(|(caller_scope, arg)| {
+                        expr_is_definitely_map(arg, *caller_scope, &known_maps)
+                    });
+                    let has_conflict = call_args
+                        .iter()
+                        .any(|(_, arg)| expr_is_definitely_non_map(arg));
+                    if has_def_map && !has_conflict {
+                        known_maps.insert(format!("fn_param_map:{}:{}", name, idx));
+                        known_maps.insert(format!("fn_param_map:{}:{}", bare, idx));
                     }
-                });
-                if found_call && all_calls_map {
-                    known_maps.insert(format!("fn_param_map:{}:{}", name, idx));
-                    known_maps.insert(format!("fn_param_map:{}:{}", bare, idx));
                 }
             }
         }
