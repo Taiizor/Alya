@@ -68,7 +68,7 @@ pub fn execute_test_file(
 
     // 3. Module Resolution
     let base_dir = path.parent().unwrap_or_else(|| Path::new("."));
-    crate::parser::resolve_imports(&mut ast, base_dir)
+    let imported_files = crate::parser::resolve_imports_with_sources(&mut ast, base_dir)
         .map_err(|e| format!("Import resolution error in '{}': {}", path.display(), e))?;
 
     // 4. Codegen
@@ -87,8 +87,12 @@ pub fn execute_test_file(
     fs::write(&temp_asm, &asm_code)
         .map_err(|e| format!("Failed to write temporary assembly: {}", e))?;
 
-    let extra_libs = codegen::collect_extern_libraries(&ast);
-    let gcc_res = runner::compile_with_gcc(&temp_asm, &temp_exe, arch, os, &extra_libs);
+    let c_plan = crate::driver::c_builder::discover_c_build_plan(path, &imported_files)?;
+    let c_objects = crate::driver::c_builder::build_c_objects(&c_plan, arch, os)?;
+    let mut extra_libs = codegen::collect_extern_libraries(&ast);
+    extra_libs.retain(|lib| !c_plan.provided_libs.contains(lib));
+
+    let gcc_res = runner::compile_with_gcc(&temp_asm, &temp_exe, arch, os, &extra_libs, &c_objects);
     let _ = fs::remove_file(&temp_asm);
     if let Err(err) = gcc_res {
         return Err(format!(

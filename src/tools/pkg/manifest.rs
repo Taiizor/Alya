@@ -1,5 +1,5 @@
 use super::toml::{parse_inline_table, parse_string_array, strip_toml_comment, unquote};
-use super::types::{DependencySource, PackageInfo, PackageManifest};
+use super::types::{BuildConfig, DependencySource, PackageInfo, PackageManifest};
 use std::collections::BTreeMap;
 
 pub fn parse_manifest(content: &str) -> Result<PackageManifest, String> {
@@ -11,6 +11,9 @@ pub fn parse_manifest(content: &str) -> Result<PackageManifest, String> {
     let mut entry = "src/main.alya".to_string();
     let mut license = None;
     let mut dependencies = BTreeMap::new();
+    let mut c_sources = Vec::new();
+    let mut c_flags = Vec::new();
+    let mut c_include_dirs = Vec::new();
 
     let mut current_section = "";
 
@@ -38,6 +41,12 @@ pub fn parse_manifest(content: &str) -> Result<PackageManifest, String> {
                     "description" => description = Some(unquote(val)),
                     "entry" => entry = unquote(val),
                     "license" => license = Some(unquote(val)),
+                    _ => {}
+                },
+                "build" => match key {
+                    "c-sources" | "c_sources" => c_sources = parse_string_array(val),
+                    "c-flags" | "c_flags" => c_flags = parse_string_array(val),
+                    "c-include-dirs" | "c_include_dirs" => c_include_dirs = parse_string_array(val),
                     _ => {}
                 },
                 "dependencies" => {
@@ -84,6 +93,16 @@ pub fn parse_manifest(content: &str) -> Result<PackageManifest, String> {
         return Err("Missing required field 'name' under [package] in alya.toml".to_string());
     }
 
+    let build = if !c_sources.is_empty() || !c_flags.is_empty() || !c_include_dirs.is_empty() {
+        Some(BuildConfig {
+            c_sources,
+            c_flags,
+            c_include_dirs,
+        })
+    } else {
+        None
+    };
+
     Ok(PackageManifest {
         package: PackageInfo {
             name,
@@ -95,6 +114,7 @@ pub fn parse_manifest(content: &str) -> Result<PackageManifest, String> {
             license,
         },
         dependencies,
+        build,
     })
 }
 
@@ -155,6 +175,37 @@ pub fn serialize_manifest(manifest: &PackageManifest) -> String {
                 }
                 out.push_str(&format!("{} = {{ {} }}\n", name, parts.join(", ")));
             }
+        }
+    }
+
+    if let Some(b) = &manifest.build {
+        out.push_str("\n[build]\n");
+        if !b.c_sources.is_empty() {
+            let sources_str = b
+                .c_sources
+                .iter()
+                .map(|s| format!("\"{}\"", s))
+                .collect::<Vec<_>>()
+                .join(", ");
+            out.push_str(&format!("c-sources = [{}]\n", sources_str));
+        }
+        if !b.c_flags.is_empty() {
+            let flags_str = b
+                .c_flags
+                .iter()
+                .map(|s| format!("\"{}\"", s))
+                .collect::<Vec<_>>()
+                .join(", ");
+            out.push_str(&format!("c-flags = [{}]\n", flags_str));
+        }
+        if !b.c_include_dirs.is_empty() {
+            let inc_str = b
+                .c_include_dirs
+                .iter()
+                .map(|s| format!("\"{}\"", s))
+                .collect::<Vec<_>>()
+                .join(", ");
+            out.push_str(&format!("c-include-dirs = [{}]\n", inc_str));
         }
     }
     out

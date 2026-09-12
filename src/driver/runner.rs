@@ -8,8 +8,13 @@ pub fn compile_with_gcc(
     arch: Architecture,
     os: OperatingSystem,
     extra_libs: &[String],
+    c_objects: &[std::path::PathBuf],
 ) -> Result<(), String> {
     let mut gcc_args = vec![asm_file.to_string(), "-o".to_string(), exe_file.to_string()];
+
+    for obj in c_objects {
+        gcc_args.push(obj.to_string_lossy().to_string());
+    }
 
     if matches!(arch, Architecture::X86) {
         gcc_args.insert(0, "-m32".to_string());

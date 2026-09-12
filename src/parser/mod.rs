@@ -66,7 +66,10 @@ impl Parser {
     }
 }
 
-pub fn resolve_imports(program: &mut Program, base_dir: &std::path::Path) -> Result<(), String> {
+pub fn resolve_imports_with_sources(
+    program: &mut Program,
+    base_dir: &std::path::Path,
+) -> Result<std::collections::HashSet<std::path::PathBuf>, String> {
     let mut visited = std::collections::HashSet::new();
     let mut resolved_stmts = Vec::new();
 
@@ -78,7 +81,13 @@ pub fn resolve_imports(program: &mut Program, base_dir: &std::path::Path) -> Res
 
     program.statements = resolved_stmts;
     expand_default_args(program);
-    Ok(())
+
+    let imported_files = visited.into_iter().map(|(path, _)| path).collect();
+    Ok(imported_files)
+}
+
+pub fn resolve_imports(program: &mut Program, base_dir: &std::path::Path) -> Result<(), String> {
+    resolve_imports_with_sources(program, base_dir).map(|_| ())
 }
 
 pub fn validate_unique_functions(stmts: &[Stmt]) -> Result<(), String> {

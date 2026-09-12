@@ -54,10 +54,18 @@ pub enum DependencySource {
     },
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct BuildConfig {
+    pub c_sources: Vec<String>,
+    pub c_flags: Vec<String>,
+    pub c_include_dirs: Vec<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PackageManifest {
     pub package: PackageInfo,
     pub dependencies: BTreeMap<String, DependencySource>,
+    pub build: Option<BuildConfig>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -5,6 +5,7 @@ use crate::parser::Parser;
 use std::fs;
 use std::path::Path;
 use std::time::Instant;
+pub mod c_builder;
 pub mod runner;
 
 pub fn run(args: CliArgs) -> Result<(), String> {
@@ -69,7 +70,7 @@ pub fn run(args: CliArgs) -> Result<(), String> {
     let base_dir = Path::new(&args.input_file)
         .parent()
         .unwrap_or_else(|| Path::new("."));
-    crate::parser::resolve_imports(&mut ast, base_dir)
+    let imported_files = crate::parser::resolve_imports_with_sources(&mut ast, base_dir)
         .map_err(|e| format!("Module import error in '{}': {}", args.input_file, e))?;
     let d_import = t_import.elapsed();
 
@@ -207,8 +208,20 @@ pub fn run(args: CliArgs) -> Result<(), String> {
         }
 
         let t_gcc = Instant::now();
-        let extra_libs = codegen::collect_extern_libraries(&ast);
-        runner::compile_with_gcc(&asm_file, &exe_file, args.arch, args.os, &extra_libs)?;
+        let c_plan =
+            c_builder::discover_c_build_plan(Path::new(&args.input_file), &imported_files)?;
+        let c_objects = c_builder::build_c_objects(&c_plan, args.arch, args.os)?;
+        let mut extra_libs = codegen::collect_extern_libraries(&ast);
+        extra_libs.retain(|lib| !c_plan.provided_libs.contains(lib));
+
+        runner::compile_with_gcc(
+            &asm_file,
+            &exe_file,
+            args.arch,
+            args.os,
+            &extra_libs,
+            &c_objects,
+        )?;
         d_gcc = Some(t_gcc.elapsed());
 
         if let Some(ref opts) = bundle_opts {

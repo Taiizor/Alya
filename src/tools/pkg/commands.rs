@@ -103,6 +103,7 @@ pub fn run_init(path: Option<&str>, name: Option<&str>, is_lib: bool) -> Result<
             license: Some("MIT".to_string()),
         },
         dependencies: BTreeMap::new(),
+        build: None,
     };
 
     fs::write(&manifest_path, serialize_manifest(&manifest))
