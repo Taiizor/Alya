@@ -199,6 +199,10 @@ Enable direct interoperability with existing C, C++, and system libraries withou
 - **Linker & Toolchain Integration**:
   - GCC and Clang linker driver integration automatically passing `-l<lib>` dependencies collected from AST.
   - Multi-platform E2E test suite (`tests/e2e_ffi.rs`) verifying native execution on Windows and Linux.
+- **Bundled C Source Compilation & Caching Engine (`[build] c-sources`)**:
+  - Automated discovery and compilation of embedded C amalgamation sources (e.g. SQLite3).
+  - Fast disk caching in `~/.alya/c_obj` reusing `.o` artifacts for sub-second builds.
+  - 100% standalone binary generation with zero external DLLs, `.so`, or `.dylib` requirements.
 
 #### Example Usage
 ```alya
