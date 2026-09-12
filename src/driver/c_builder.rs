@@ -1,5 +1,5 @@
 use crate::codegen::{Architecture, OperatingSystem};
-use crate::tools::pkg::cache::get_global_cache_dir;
+use crate::tools::pkg::cache::get_global_c_obj_dir;
 use crate::tools::pkg::discovery::find_manifest_dir_from;
 use crate::tools::pkg::manifest::parse_manifest;
 use std::collections::HashSet;
@@ -98,9 +98,7 @@ pub fn build_c_objects(
         return Ok(Vec::new());
     }
 
-    let cache_dir = get_global_cache_dir()
-        .map(|d| d.join("c_obj"))
-        .unwrap_or_else(|| PathBuf::from(".alya").join("c_obj"));
+    let cache_dir = get_global_c_obj_dir().unwrap_or_else(|| PathBuf::from(".alya").join("c_obj"));
 
     fs::create_dir_all(&cache_dir).map_err(|e| {
         format!(

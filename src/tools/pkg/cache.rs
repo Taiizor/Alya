@@ -23,6 +23,10 @@ pub fn get_global_cache_dir() -> Option<PathBuf> {
     get_global_alya_dir().map(|d| d.join("cache"))
 }
 
+pub fn get_global_c_obj_dir() -> Option<PathBuf> {
+    get_global_alya_dir().map(|d| d.join("c_obj"))
+}
+
 pub fn dir_size_and_count(path: &Path) -> (u64, usize) {
     let mut total_size = 0u64;
     let mut file_count = 0usize;
@@ -75,6 +79,9 @@ pub fn inspect_packages_dir(dir: &Path, lock: Option<&PackageLock>) -> Vec<Cache
             let path = entry.path();
             if path.is_dir() {
                 let folder_name = entry.file_name().to_string_lossy().to_string();
+                if folder_name.starts_with('.') || folder_name == "c_obj" {
+                    continue;
+                }
                 let mut name = folder_name
                     .split('@')
                     .next()
@@ -302,6 +309,21 @@ pub fn run_clean(all: bool) -> Result<(), String> {
                     println!(
                         "✓ Cleaned global cache: {} ({} freed)",
                         g_dir.display(),
+                        format_bytes(size)
+                    );
+                }
+            }
+        }
+
+        if let Some(c_dir) = get_global_c_obj_dir() {
+            if c_dir.exists() {
+                let (size, count) = dir_size_and_count(&c_dir);
+                if fs::remove_dir_all(&c_dir).is_ok() {
+                    cleaned_bytes += size;
+                    cleaned_items += count;
+                    println!(
+                        "✓ Cleaned C object cache: {} ({} freed)",
+                        c_dir.display(),
                         format_bytes(size)
                     );
                 }
