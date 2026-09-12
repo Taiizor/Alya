@@ -10,7 +10,7 @@ use crate::codegen::target::Architecture;
 impl CodeGen {
     pub(crate) fn generate_statement(&mut self, stmt: &Stmt) {
         match stmt {
-            Stmt::Import { .. } => {}
+            Stmt::Import { .. } | Stmt::ExternBlock { .. } => {}
             Stmt::Say(expr) => self.generate_say(expr),
             Stmt::Expr(expr) => {
                 self.generate_expression(expr);

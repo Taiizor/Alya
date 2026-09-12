@@ -45,6 +45,13 @@ pub fn emit_function_call(out: &mut String, name: &str, args_count: usize) {
     }
 }
 
+pub fn emit_c_function_call(out: &mut String, name: &str, args_count: usize) {
+    out.push_str(&format!("    call {}\n", name));
+    if args_count > 0 {
+        out.push_str(&format!("    add ${}, %esp\n", args_count * 4));
+    }
+}
+
 pub fn emit_stack_restore(out: &mut String, delta: i32) {
     out.push_str(&format!("    add ${}, %esp\n", delta));
 }

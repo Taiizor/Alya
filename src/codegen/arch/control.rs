@@ -197,6 +197,22 @@ pub fn emit_function_call(
     }
 }
 
+pub fn emit_c_function_call(
+    out: &mut String,
+    arch: Architecture,
+    name: &str,
+    args_count: usize,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    let mangled = name.replace("::", "__");
+    match arch {
+        Architecture::ARM64 => arm64::emit_c_function_call(out, &mangled, args_count, os),
+        Architecture::X64 => x64::emit_c_function_call(out, &mangled, args_count, stack_offset, os),
+        Architecture::X86 => x86::emit_c_function_call(out, &mangled, args_count),
+    }
+}
+
 pub fn emit_stack_restore(out: &mut String, arch: Architecture, delta: i32) {
     if delta <= 0 {
         return;

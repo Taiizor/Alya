@@ -747,6 +747,17 @@ fn collect_string_vars_from_stmts(
 
 pub fn collect_known_string_vars(program: &Program) -> HashSet<String> {
     let mut known_strings = HashSet::new();
+    for stmt in &program.statements {
+        if let Stmt::ExternBlock { functions, .. } = stmt {
+            for f in functions {
+                if let Some(ret) = &f.return_type {
+                    if ret == "str" || ret == "string" {
+                        known_strings.insert(format!("fn_ret_str:{}", f.name));
+                    }
+                }
+            }
+        }
+    }
     let mut funcs = Vec::new();
     collect_function_defs(&program.statements, &mut funcs);
     let mut struct_defs = HashMap::new();

@@ -15,6 +15,7 @@ impl Parser {
 
         match &self.current_token().token_type {
             TokenType::Import => self.parse_import().map(|s| vec![s]),
+            TokenType::Extern => self.parse_extern().map(|s| vec![s]),
             TokenType::Struct => self.parse_struct().map(|s| vec![s]),
             TokenType::Say => self.parse_say().map(|s| vec![s]),
             TokenType::Let => self.parse_let(),

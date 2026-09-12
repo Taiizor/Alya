@@ -178,34 +178,48 @@ All official packages are published under the `alya-lang` GitHub organization wi
 
 ---
 
-### Pillar 2: Foreign Function Interface (C FFI Engine) 📋
+### Pillar 2: Foreign Function Interface (C FFI Engine) ✅
 
 Enable direct interoperability with existing C, C++, and system libraries without writing glue code or wrappers.
 
-#### Goals & Architecture
+#### Completed Capabilities
 - **External Declaration Syntax (`extern "C"`)**:
-  ```alya
-  # Declare foreign C functions from shared libraries (.so, .dylib, .dll)
-  extern "C" from "sqlite3"
-      function sqlite3_open(filename: str, db: ptr) -> i32
-      function sqlite3_close(db: ptr) -> i32
-      function sqlite3_errmsg(db: ptr) -> str
-  end
+  - Declaration of foreign C ABI function signatures with parameter types and return type (`extern "C" ... end`).
+  - Optional library specification clause (`extern "C" from "lib" ... end`).
+  - Native compile-time automatic linker flag appending (`-l<lib>`).
+- **Standard Platform ABI Calling Conventions**:
+  - Windows x64 (Microsoft x64 Calling Convention with 32-byte shadow space and 16-byte stack alignment).
+  - Linux/POSIX x64 (System V AMD64 ABI: `rdi`, `rsi`, `rdx`, `rcx`, `r8`, `r9`).
+  - ARM64 AAPCS (`x0`–`x7` registers).
+  - x86 (cdecl calling convention).
+- **Seamless Zero-Copy Data Marshalling**:
+  - Null-terminated string passing (`str` -> `const char*`).
+  - Integer and pointer argument passing (`i32`, `i64`, `ptr`, `null`).
+  - String return value auto-inference (`fn_ret_str`) for zero-boilerplate `say` and string operations.
+- **Linker & Toolchain Integration**:
+  - GCC and Clang linker driver integration automatically passing `-l<lib>` dependencies collected from AST.
+  - Multi-platform E2E test suite (`tests/e2e_ffi.rs`) verifying native execution on Windows and Linux.
 
-  # Seamless native invocation
-  let db_ptr = null
-  let rc = sqlite3_open("test.db", db_ptr)
-  if rc != 0
-      say "Failed to open database: " + sqlite3_errmsg(db_ptr)
-  end
-  ```
-- **ABI & Data Marshalling**:
-  - Standard C ABI calling conventions: System V AMD64 ABI (Linux/macOS), Microsoft x64 Calling Convention (Windows), and ARM64 AAPCS.
-  - Native type mapping: primitives (`i8`–`i64`, `f32`, `f64`, `bool`), C-string pointers (`*const char`), raw pointers (`ptr`), and opaque structs.
-  - Function pointer callbacks: passing Alya functions as C function pointers.
-- **Dynamic & Static Linking**:
-  - Runtime dynamic library resolution via `dlopen`/`dlsym` (POSIX) and `LoadLibrary`/`GetProcAddress` (Windows).
-  - Compile-time linking flags (`-l<lib>`, `-L<path>`).
+#### Example Usage
+```alya
+# 1. Standard libc functions (no extra library flag needed)
+extern "C"
+    function puts(s: str) -> i32
+    function abs(n: i32) -> i32
+    function strlen(s: str) -> i32
+end
+
+puts("Hello from native C FFI!")
+say abs(-42)
+say strlen("Alya Language")
+
+# 2. External shared library (links -lsqlite3 automatically)
+extern "C" from "sqlite3"
+    function sqlite3_libversion() -> str
+end
+
+say sqlite3_libversion()
+```
 
 ---
 

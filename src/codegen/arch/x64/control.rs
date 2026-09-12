@@ -68,9 +68,9 @@ pub fn emit_function_param_push(
     }
 }
 
-pub fn emit_function_call(
+fn emit_call_target(
     out: &mut String,
-    name: &str,
+    target: &str,
     args_count: usize,
     stack_offset: i32,
     os: OperatingSystem,
@@ -89,7 +89,7 @@ pub fn emit_function_call(
             }
             let padding = if stack_offset % 16 == 0 { 32 } else { 40 };
             out.push_str(&format!("    sub ${}, %rsp\n", padding));
-            out.push_str(&format!("    call fn_{}\n", name));
+            out.push_str(&format!("    call {}\n", target));
             out.push_str(&format!("    add ${}, %rsp\n", padding));
         } else {
             let extra_args = args_count - 4;
@@ -110,7 +110,7 @@ pub fn emit_function_call(
                 out.push_str(&format!("    mov {}(%rsp), %rax\n", src_off));
                 out.push_str(&format!("    mov %rax, {}(%rsp)\n", dst_off));
             }
-            out.push_str(&format!("    call fn_{}\n", name));
+            out.push_str(&format!("    call {}\n", target));
             out.push_str(&format!(
                 "    add ${}, %rsp\n",
                 total_alloc + args_count as i32 * 8
@@ -133,7 +133,7 @@ pub fn emit_function_call(
         if misaligned {
             out.push_str("    sub $8, %rsp\n");
         }
-        out.push_str(&format!("    call fn_{}\n", name));
+        out.push_str(&format!("    call {}\n", target));
         if misaligned {
             out.push_str("    add $8, %rsp\n");
         }
@@ -158,12 +158,37 @@ pub fn emit_function_call(
             out.push_str(&format!("    mov {}(%rsp), %rax\n", src_off));
             out.push_str(&format!("    mov %rax, {}(%rsp)\n", dst_off));
         }
-        out.push_str(&format!("    call fn_{}\n", name));
+        out.push_str(&format!("    call {}\n", target));
         out.push_str(&format!(
             "    add ${}, %rsp\n",
             total_alloc + args_count as i32 * 8
         ));
     }
+}
+
+pub fn emit_function_call(
+    out: &mut String,
+    name: &str,
+    args_count: usize,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    emit_call_target(out, &format!("fn_{}", name), args_count, stack_offset, os);
+}
+
+pub fn emit_c_function_call(
+    out: &mut String,
+    name: &str,
+    args_count: usize,
+    stack_offset: i32,
+    os: OperatingSystem,
+) {
+    let target = if matches!(os, OperatingSystem::MacOS) {
+        format!("_{}", name)
+    } else {
+        name.to_string()
+    };
+    emit_call_target(out, &target, args_count, stack_offset, os);
 }
 
 pub fn emit_stack_restore(out: &mut String, delta: i32) {

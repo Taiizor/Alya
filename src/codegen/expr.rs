@@ -766,14 +766,33 @@ impl CodeGen {
                     }
                 }
                 self.ctx.stack_offset = initial_stack_offset;
-                arch::emit_function_call(
-                    &mut self.output,
-                    self.arch,
-                    call_name,
-                    actual_args.len(),
-                    initial_stack_offset,
-                    self.os,
-                );
+                let is_extern = self.ctx.extern_functions.contains_key(call_name)
+                    || self
+                        .ctx
+                        .extern_functions
+                        .contains_key(call_name.rsplit("::").next().unwrap_or(call_name));
+
+                if is_extern {
+                    let extern_name = call_name.rsplit("::").next().unwrap_or(call_name);
+                    let extern_name = extern_name.rsplit("__").next().unwrap_or(extern_name);
+                    arch::emit_c_function_call(
+                        &mut self.output,
+                        self.arch,
+                        extern_name,
+                        actual_args.len(),
+                        initial_stack_offset,
+                        self.os,
+                    );
+                } else {
+                    arch::emit_function_call(
+                        &mut self.output,
+                        self.arch,
+                        call_name,
+                        actual_args.len(),
+                        initial_stack_offset,
+                        self.os,
+                    );
+                }
             }
             Expr::StructInit { name, fields } => {
                 let field_count = self

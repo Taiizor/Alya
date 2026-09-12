@@ -207,7 +207,8 @@ pub fn run(args: CliArgs) -> Result<(), String> {
         }
 
         let t_gcc = Instant::now();
-        runner::compile_with_gcc(&asm_file, &exe_file, args.arch, args.os)?;
+        let extra_libs = codegen::collect_extern_libraries(&ast);
+        runner::compile_with_gcc(&asm_file, &exe_file, args.arch, args.os, &extra_libs)?;
         d_gcc = Some(t_gcc.elapsed());
 
         if let Some(ref opts) = bundle_opts {

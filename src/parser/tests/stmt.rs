@@ -525,3 +525,63 @@ fn test_parse_parenthesized_multi_assignment() {
     assert!(matches!(&program.statements[1], Stmt::Assign { name, .. } if name == "a"));
     assert!(matches!(&program.statements[2], Stmt::Assign { name, .. } if name == "b"));
 }
+
+#[test]
+fn test_parse_extern_c_block() {
+    let code = r#"
+extern "C"
+    function puts(s: str) -> i32
+    function abs(n: i32) -> i32
+end
+"#;
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 1);
+    if let Stmt::ExternBlock {
+        abi,
+        lib,
+        functions,
+    } = &program.statements[0]
+    {
+        assert_eq!(abi, "C");
+        assert_eq!(lib, &None);
+        assert_eq!(functions.len(), 2);
+        assert_eq!(functions[0].name, "puts");
+        assert_eq!(functions[0].params.len(), 1);
+        assert_eq!(functions[0].params[0].name, "s");
+        assert_eq!(functions[0].params[0].param_type, Some("str".into()));
+        assert_eq!(functions[0].return_type, Some("i32".into()));
+        assert_eq!(functions[1].name, "abs");
+        assert_eq!(functions[1].params.len(), 1);
+        assert_eq!(functions[1].params[0].name, "n");
+        assert_eq!(functions[1].params[0].param_type, Some("i32".into()));
+        assert_eq!(functions[1].return_type, Some("i32".into()));
+    } else {
+        panic!("Expected Stmt::ExternBlock");
+    }
+}
+
+#[test]
+fn test_parse_extern_c_from_lib() {
+    let code = r#"
+extern "C" from "sqlite3"
+    function sqlite3_libversion() -> str
+end
+"#;
+    let program = parse_code(code).expect("Parse failed");
+    assert_eq!(program.statements.len(), 1);
+    if let Stmt::ExternBlock {
+        abi,
+        lib,
+        functions,
+    } = &program.statements[0]
+    {
+        assert_eq!(abi, "C");
+        assert_eq!(lib, &Some("sqlite3".into()));
+        assert_eq!(functions.len(), 1);
+        assert_eq!(functions[0].name, "sqlite3_libversion");
+        assert_eq!(functions[0].params.len(), 0);
+        assert_eq!(functions[0].return_type, Some("str".into()));
+    } else {
+        panic!("Expected Stmt::ExternBlock");
+    }
+}

@@ -314,4 +314,157 @@ impl Parser {
 
         Ok(Stmt::StructDef { name, fields })
     }
+
+    pub(super) fn parse_extern(&mut self) -> Result<Stmt, String> {
+        self.advance(); // skip 'extern'
+
+        let abi = match &self.current_token().token_type {
+            TokenType::String(s) => s.clone(),
+            _ => {
+                return Err(format!(
+                    "Expected ABI string literal after 'extern' (e.g. \"C\") at line {}, column {}",
+                    self.current_token().line,
+                    self.current_token().column
+                ))
+            }
+        };
+        self.advance();
+
+        let lib = if matches!(self.current_token().token_type, TokenType::From) {
+            self.advance(); // skip 'from'
+            let lib_name = match &self.current_token().token_type {
+                TokenType::String(s) => s.clone(),
+                _ => {
+                    return Err(format!(
+                        "Expected library string literal after 'from' at line {}, column {}",
+                        self.current_token().line,
+                        self.current_token().column
+                    ))
+                }
+            };
+            self.advance();
+            Some(lib_name)
+        } else {
+            None
+        };
+
+        self.skip_newlines();
+
+        let mut functions = Vec::new();
+        while !matches!(
+            self.current_token().token_type,
+            TokenType::End | TokenType::Eof
+        ) {
+            self.skip_newlines();
+            if matches!(
+                self.current_token().token_type,
+                TokenType::End | TokenType::Eof
+            ) {
+                break;
+            }
+
+            self.expect(TokenType::Function)?;
+
+            let fn_name = match &self.current_token().token_type {
+                TokenType::Identifier(s) => s.clone(),
+                _ => {
+                    return Err(format!(
+                    "Expected function name after 'function' in extern block at line {}, column {}",
+                    self.current_token().line,
+                    self.current_token().column
+                ))
+                }
+            };
+            self.advance();
+
+            self.expect(TokenType::LeftParen)?;
+
+            let mut params = Vec::new();
+            while !matches!(
+                self.current_token().token_type,
+                TokenType::RightParen | TokenType::Eof
+            ) {
+                let param_name = match &self.current_token().token_type {
+                    TokenType::Identifier(s) => s.clone(),
+                    _ => {
+                        return Err(format!(
+                            "Expected parameter name at line {}, column {}",
+                            self.current_token().line,
+                            self.current_token().column
+                        ))
+                    }
+                };
+                self.advance();
+
+                let param_type = if matches!(self.current_token().token_type, TokenType::Colon) {
+                    self.advance();
+                    match &self.current_token().token_type {
+                        TokenType::Identifier(t) => {
+                            let t_str = t.clone();
+                            self.advance();
+                            Some(t_str)
+                        }
+                        _ => {
+                            return Err(format!(
+                                "Expected parameter type after ':' at line {}, column {}",
+                                self.current_token().line,
+                                self.current_token().column
+                            ))
+                        }
+                    }
+                } else {
+                    None
+                };
+
+                params.push(ExternParam {
+                    name: param_name,
+                    param_type,
+                });
+
+                if matches!(self.current_token().token_type, TokenType::Comma) {
+                    self.advance();
+                } else {
+                    break;
+                }
+            }
+
+            self.expect(TokenType::RightParen)?;
+
+            let return_type = if matches!(self.current_token().token_type, TokenType::Arrow) {
+                self.advance();
+                match &self.current_token().token_type {
+                    TokenType::Identifier(t) => {
+                        let t_str = t.clone();
+                        self.advance();
+                        Some(t_str)
+                    }
+                    _ => {
+                        return Err(format!(
+                            "Expected return type after '->' at line {}, column {}",
+                            self.current_token().line,
+                            self.current_token().column
+                        ))
+                    }
+                }
+            } else {
+                None
+            };
+
+            functions.push(ExternFnDecl {
+                name: fn_name,
+                params,
+                return_type,
+            });
+
+            self.skip_newlines();
+        }
+
+        self.expect(TokenType::End)?;
+
+        Ok(Stmt::ExternBlock {
+            abi,
+            lib,
+            functions,
+        })
+    }
 }

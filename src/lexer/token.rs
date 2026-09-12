@@ -26,6 +26,8 @@ pub enum TokenType {
     Import,   // import
     As,       // as
     Struct,   // struct
+    Extern,   // extern
+    From,     // from
 
     // Literals
     Number(f64),
@@ -42,6 +44,7 @@ pub enum TokenType {
     Multiply,       // *
     Divide,         // /
     Modulo,         // %
+    Arrow,          // ->
     Assign,         // =
     PlusAssign,     // +=
     MinusAssign,    // -=
@@ -116,6 +119,8 @@ impl TokenType {
             "import" => TokenType::Import,
             "as" => TokenType::As,
             "struct" => TokenType::Struct,
+            "extern" => TokenType::Extern,
+            "from" => TokenType::From,
             "true" => TokenType::True,
             "false" => TokenType::False,
             "null" => TokenType::Null,
@@ -163,6 +168,8 @@ impl std::fmt::Display for TokenType {
             TokenType::Import => write!(f, "'import'"),
             TokenType::As => write!(f, "'as'"),
             TokenType::Struct => write!(f, "'struct'"),
+            TokenType::Extern => write!(f, "'extern'"),
+            TokenType::From => write!(f, "'from'"),
             TokenType::Number(n) => write!(f, "number '{}'", n),
             TokenType::Float(n) => write!(f, "float '{}'", n),
             TokenType::String(s) => write!(f, "\"{}\"", s),
@@ -175,6 +182,7 @@ impl std::fmt::Display for TokenType {
             TokenType::Multiply => write!(f, "'*'"),
             TokenType::Divide => write!(f, "'/'"),
             TokenType::Modulo => write!(f, "'%'"),
+            TokenType::Arrow => write!(f, "'->'"),
             TokenType::Assign => write!(f, "'='"),
             TokenType::PlusAssign => write!(f, "'+='"),
             TokenType::MinusAssign => write!(f, "'-='"),

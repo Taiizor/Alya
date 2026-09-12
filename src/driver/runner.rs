@@ -7,20 +7,25 @@ pub fn compile_with_gcc(
     exe_file: &str,
     arch: Architecture,
     os: OperatingSystem,
+    extra_libs: &[String],
 ) -> Result<(), String> {
-    let mut gcc_args = vec![asm_file, "-o", exe_file];
+    let mut gcc_args = vec![asm_file.to_string(), "-o".to_string(), exe_file.to_string()];
 
     if matches!(arch, Architecture::X86) {
-        gcc_args.insert(0, "-m32");
+        gcc_args.insert(0, "-m32".to_string());
     }
 
     if matches!(os, OperatingSystem::Linux) {
-        gcc_args.push("-no-pie");
-        gcc_args.push("-lm");
+        gcc_args.push("-no-pie".to_string());
+        gcc_args.push("-lm".to_string());
     }
 
     if matches!(os, OperatingSystem::Windows) {
-        gcc_args.push("-lws2_32");
+        gcc_args.push("-lws2_32".to_string());
+    }
+
+    for lib in extra_libs {
+        gcc_args.push(format!("-l{}", lib));
     }
 
     let gcc_result = Command::new("gcc").args(&gcc_args).output();

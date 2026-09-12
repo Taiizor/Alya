@@ -1,10 +1,28 @@
 use super::expr::Expr;
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct ExternParam {
+    pub name: String,
+    pub param_type: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExternFnDecl {
+    pub name: String,
+    pub params: Vec<ExternParam>,
+    pub return_type: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Stmt {
     Import {
         path: String,
         alias: Option<String>,
+    },
+    ExternBlock {
+        abi: String,
+        lib: Option<String>,
+        functions: Vec<ExternFnDecl>,
     },
     Say(Expr),
     Let {

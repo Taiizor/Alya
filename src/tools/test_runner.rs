@@ -87,7 +87,8 @@ pub fn execute_test_file(
     fs::write(&temp_asm, &asm_code)
         .map_err(|e| format!("Failed to write temporary assembly: {}", e))?;
 
-    let gcc_res = runner::compile_with_gcc(&temp_asm, &temp_exe, arch, os);
+    let extra_libs = codegen::collect_extern_libraries(&ast);
+    let gcc_res = runner::compile_with_gcc(&temp_asm, &temp_exe, arch, os, &extra_libs);
     let _ = fs::remove_file(&temp_asm);
     if let Err(err) = gcc_res {
         return Err(format!(

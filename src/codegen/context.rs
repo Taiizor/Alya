@@ -7,6 +7,15 @@ pub struct StructDefInfo {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExternFnInfo {
+    pub abi: String,
+    pub lib: Option<String>,
+    pub name: String,
+    pub return_type: Option<String>,
+    pub params_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VarType {
     Number(i32),         // Stack offset for numeric (integer) variables
     Float(i32),          // Stack offset for floating-point (f64) variables
@@ -34,6 +43,8 @@ pub struct CodeGenContext {
     pub stack_offset: i32,
     pub loop_stack: Vec<(String, String, i32)>,
     pub functions: HashSet<String>,
+    pub extern_functions: HashMap<String, ExternFnInfo>,
+    pub extern_libs: HashSet<String>,
 }
 
 impl CodeGenContext {
@@ -46,6 +57,8 @@ impl CodeGenContext {
             stack_offset: 0,
             loop_stack: Vec::new(),
             functions: HashSet::new(),
+            extern_functions: HashMap::new(),
+            extern_libs: HashSet::new(),
         }
     }
 

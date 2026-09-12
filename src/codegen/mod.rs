@@ -142,6 +142,59 @@ impl CodeGen {
             );
         }
 
+        // Collect all extern declarations
+        for stmt in &program.statements {
+            if let Stmt::ExternBlock {
+                abi,
+                lib,
+                functions,
+            } = stmt
+            {
+                if let Some(ref l) = lib {
+                    self.ctx.extern_libs.insert(l.clone());
+                }
+                for f in functions {
+                    let info = context::ExternFnInfo {
+                        abi: abi.clone(),
+                        lib: lib.clone(),
+                        name: f.name.clone(),
+                        return_type: f.return_type.clone(),
+                        params_count: f.params.len(),
+                    };
+                    self.ctx
+                        .extern_functions
+                        .insert(f.name.clone(), info.clone());
+                    let bare = f.name.rsplit("::").next().unwrap_or(&f.name);
+                    let bare = bare.rsplit("__").next().unwrap_or(bare);
+                    if bare != f.name {
+                        self.ctx.extern_functions.insert(bare.to_string(), info);
+                    }
+                    if let Some(ref ret_type) = f.return_type {
+                        if ret_type == "str" || ret_type == "string" {
+                            self.ctx
+                                .variables
+                                .insert(format!("fn_ret_str:{}", f.name), VarType::StringOffset(0));
+                            if bare != f.name {
+                                self.ctx.variables.insert(
+                                    format!("fn_ret_str:{}", bare),
+                                    VarType::StringOffset(0),
+                                );
+                            }
+                        } else if ret_type == "float" || ret_type == "f64" || ret_type == "f32" {
+                            self.ctx
+                                .variables
+                                .insert(format!("fn_ret_flt:{}", f.name), VarType::Float(0));
+                            if bare != f.name {
+                                self.ctx
+                                    .variables
+                                    .insert(format!("fn_ret_flt:{}", bare), VarType::Float(0));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         let mut functions = Vec::new();
         let mut top_level = Vec::new();
 
@@ -153,6 +206,20 @@ impl CodeGen {
         }
 
         arch::emit_header(&mut self.output, self.arch, self.os);
+
+        // Emit external symbol declarations
+        let mut declared_externs = std::collections::HashSet::new();
+        for (name, _) in &self.ctx.extern_functions {
+            let bare = name.rsplit("::").next().unwrap_or(name);
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            if declared_externs.insert(bare.to_string()) {
+                if matches!(self.os, OperatingSystem::MacOS) {
+                    self.output.push_str(&format!(".extern _{}\n", bare));
+                } else {
+                    self.output.push_str(&format!(".extern {}\n", bare));
+                }
+            }
+        }
 
         for stmt in top_level {
             self.generate_statement(stmt);
@@ -364,4 +431,19 @@ pub fn generate(program: &Program, arch: Architecture, os: OperatingSystem) -> S
     let mut codegen = CodeGen::new(arch, os);
     codegen.generate_program(program);
     codegen.output
+}
+
+pub fn collect_extern_libraries(program: &Program) -> Vec<String> {
+    let mut libs = Vec::new();
+    for stmt in &program.statements {
+        if let Stmt::ExternBlock {
+            lib: Some(ref lib), ..
+        } = stmt
+        {
+            if !libs.contains(lib) {
+                libs.push(lib.clone());
+            }
+        }
+    }
+    libs
 }

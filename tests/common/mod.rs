@@ -83,6 +83,10 @@ pub fn run_alya_code_with_input_and_args(
         gcc.arg("-lws2_32");
     }
 
+    for lib in codegen::collect_extern_libraries(&ast) {
+        gcc.arg(format!("-l{}", lib));
+    }
+
     let gcc_out = gcc.output().expect("GCC invocation failed");
     let _ = fs::remove_file(&asm_path);
 

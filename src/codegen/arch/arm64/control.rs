@@ -1,4 +1,5 @@
 use super::loads::{emit_arm64_load_x29_offset, emit_arm64_store_x29_offset};
+use crate::codegen::target::OperatingSystem;
 
 pub fn emit_jump_if_zero(out: &mut String, label: &str) {
     out.push_str(&format!("    cbz x0, {}\n", label));
@@ -71,6 +72,29 @@ pub fn emit_function_call(out: &mut String, name: &str, args_count: usize) {
         out.push_str(&format!("    ldr {}, [sp], #16\n", reg));
     }
     out.push_str(&format!("    bl fn_{}\n", name));
+}
+
+pub fn emit_c_function_call(out: &mut String, name: &str, args_count: usize, os: OperatingSystem) {
+    for i in (0..args_count).rev() {
+        let reg = match i {
+            0 => "x0",
+            1 => "x1",
+            2 => "x2",
+            3 => "x3",
+            4 => "x4",
+            5 => "x5",
+            6 => "x6",
+            7 => "x7",
+            _ => "x0",
+        };
+        out.push_str(&format!("    ldr {}, [sp], #16\n", reg));
+    }
+    let target = if matches!(os, OperatingSystem::MacOS) {
+        format!("_{}", name)
+    } else {
+        name.to_string()
+    };
+    out.push_str(&format!("    bl {}\n", target));
 }
 
 pub fn emit_stack_restore(out: &mut String, delta: i32) {

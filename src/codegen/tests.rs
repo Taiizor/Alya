@@ -229,3 +229,58 @@ say ret
     assert!(asm_macos.contains("fn_target_os"));
     assert!(asm_macos.contains("fn_system_exec"));
 }
+
+#[test]
+fn test_codegen_extern_c() {
+    use crate::lexer::Lexer;
+    use crate::parser::Parser;
+
+    let code = r#"
+extern "C"
+    function puts(s: str) -> i32
+end
+
+puts("Hello C FFI")
+"#;
+    let mut lexer = Lexer::new(code);
+    let tokens = lexer.tokenize().unwrap();
+    let mut parser = Parser::new(tokens);
+    let ast = parser.parse().unwrap();
+
+    let asm_linux = generate(&ast, Architecture::X64, OperatingSystem::Linux);
+    assert!(asm_linux.contains(".extern puts"));
+    assert!(asm_linux.contains("call puts"));
+    assert!(!asm_linux.contains("call fn_puts"));
+
+    let asm_macos = generate(&ast, Architecture::X64, OperatingSystem::MacOS);
+    assert!(asm_macos.contains(".extern _puts"));
+    assert!(asm_macos.contains("call _puts"));
+
+    let asm_win = generate(&ast, Architecture::X64, OperatingSystem::Windows);
+    assert!(asm_win.contains(".extern puts"));
+    assert!(asm_win.contains("call puts"));
+
+    let libs = super::collect_extern_libraries(&ast);
+    assert!(libs.is_empty());
+}
+
+#[test]
+fn test_codegen_extern_c_with_lib() {
+    use crate::lexer::Lexer;
+    use crate::parser::Parser;
+
+    let code = r#"
+extern "C" from "m"
+    function cos(x: f64) -> f64
+end
+
+say cos(0)
+"#;
+    let mut lexer = Lexer::new(code);
+    let tokens = lexer.tokenize().unwrap();
+    let mut parser = Parser::new(tokens);
+    let ast = parser.parse().unwrap();
+
+    let libs = super::collect_extern_libraries(&ast);
+    assert_eq!(libs, vec!["m"]);
+}
