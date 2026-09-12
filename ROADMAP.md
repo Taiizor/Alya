@@ -44,7 +44,7 @@ Alya is designed to balance the ergonomics of an expressive, readable language w
   - Concurrency (`std/thread` with native OS worker threads).
   - System I/O (`std/fs`, `std/path`, `std/os`, `std/time`, `std/console`, `std/color`).
   - Utilities (`std/rand` with core PRNG/LCG, `std/json` basic parser/stringifier, `std/glob`, `std/hash`, `std/collections`, `std/test`, `std/mem` Arena allocator).
-  - Official Standalone Packages (`csv`, `url`, `http`, `crypto`, `rand`, `uuid`, `jwt`, `mime`, `cli`, `logger`, `json`).
+  - Official Standalone Packages (`csv`, `url`, `http`, `crypto`, `rand`, `uuid`, `jwt`, `mime`, `cli`, `logger`, `json`, `toml`, `dotenv`, `semver`, `sqlite`).
 - [x] **Integrated Tooling & Platform Packaging** ✅
   - In-place code formatter (`alyac fmt`).
   - Test runner (`alyac test`).
