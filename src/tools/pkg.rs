@@ -247,6 +247,24 @@ pub fn sha256_hex(data: &[u8]) -> String {
 // TOML Parsing & Serialization (Zero Dependencies)
 // ============================================================================
 
+fn strip_toml_comment(line: &str) -> &str {
+    let mut in_quote = false;
+    let mut quote_char = ' ';
+    for (i, c) in line.char_indices() {
+        if (c == '"' || c == '\'') && (i == 0 || line.as_bytes()[i - 1] != b'\\') {
+            if in_quote && c == quote_char {
+                in_quote = false;
+            } else if !in_quote {
+                in_quote = true;
+                quote_char = c;
+            }
+        } else if c == '#' && !in_quote {
+            return line[..i].trim();
+        }
+    }
+    line.trim()
+}
+
 fn unquote(s: &str) -> String {
     let trimmed = s.trim();
     if (trimmed.starts_with('"') && trimmed.ends_with('"'))
@@ -303,7 +321,7 @@ pub fn parse_manifest(content: &str) -> Result<PackageManifest, String> {
     let mut current_section = "";
 
     for (line_no, raw_line) in content.lines().enumerate() {
-        let line = raw_line.split('#').next().unwrap_or("").trim();
+        let line = strip_toml_comment(raw_line);
         if line.is_empty() {
             continue;
         }
@@ -496,7 +514,7 @@ pub fn parse_lockfile(content: &str) -> Result<PackageLock, String> {
     let mut in_dependencies = false;
 
     for line in content.lines() {
-        let trimmed = line.split('#').next().unwrap_or("").trim();
+        let trimmed = strip_toml_comment(line);
         if trimmed.is_empty() {
             continue;
         }
@@ -989,6 +1007,72 @@ pub fn run_init(path: Option<&str>, name: Option<&str>, is_lib: bool) -> Result<
     Ok(())
 }
 
+/// Resolves the canonical repository URL for an Alya registry package.
+///
+/// Dynamic Convention:
+/// - By default: "https://github.com/alya-lang/<name>.git"
+/// - If ALYA_REGISTRY is set:
+///     - If full URL or file URL: "<ALYA_REGISTRY>/<name>.git" or "<ALYA_REGISTRY>/<name>"
+///     - If GitHub/GitLab org: "https://github.com/<ALYA_REGISTRY>/<name>.git"
+pub fn resolve_registry_url(name: &str) -> String {
+    if let Ok(reg) = env::var("ALYA_REGISTRY") {
+        let trimmed = reg.trim().trim_end_matches('/');
+        if trimmed.starts_with("http://")
+            || trimmed.starts_with("https://")
+            || trimmed.starts_with("file://")
+            || trimmed.starts_with("git@")
+            || trimmed.starts_with("ssh://")
+        {
+            if trimmed.ends_with('/') || trimmed.ends_with('\\') {
+                format!("{}{}.git", trimmed, name)
+            } else {
+                format!("{}/{}.git", trimmed, name)
+            }
+        } else if trimmed.contains('/') || trimmed.contains('\\') {
+            format!("{}/{}", trimmed.replace('\\', "/"), name)
+        } else {
+            format!("https://github.com/{}/{}.git", trimmed, name)
+        }
+    } else {
+        format!("https://github.com/alya-lang/{}.git", name)
+    }
+}
+
+/// Resolves user-provided package specification into a package name and optional git URL.
+///
+/// Handles:
+/// - "http" -> ("http", None) (Official registry short-name)
+/// - "alya-lang/http" -> ("http", None) (Official namespace shorthand)
+/// - "someone/repo" -> ("repo", Some("https://github.com/someone/repo.git"))
+/// - "https://github.com/foo/bar.git" -> ("bar", Some("https://github.com/foo/bar.git"))
+pub fn resolve_package_spec(spec: &str) -> (String, Option<String>) {
+    let clean = spec.trim();
+    if clean.starts_with("http://")
+        || clean.starts_with("https://")
+        || clean.starts_with("git@")
+        || clean.starts_with("ssh://")
+        || clean.starts_with("file://")
+    {
+        let repo_part = clean.split('/').last().unwrap_or(clean);
+        let name = repo_part.trim_end_matches(".git");
+        return (name.to_string(), Some(clean.to_string()));
+    }
+
+    if let Some((owner, repo)) = clean.split_once('/') {
+        let clean_repo = repo.trim_end_matches(".git");
+        if owner == "alya-lang" {
+            (clean_repo.to_string(), None)
+        } else {
+            (
+                clean_repo.to_string(),
+                Some(format!("https://github.com/{}/{}.git", owner, clean_repo)),
+            )
+        }
+    } else {
+        (clean.to_string(), None)
+    }
+}
+
 pub fn run_add(
     name: &str,
     path: Option<&str>,
@@ -1007,29 +1091,84 @@ pub fn run_add(
     let mut manifest = parse_manifest(&content)?;
     check_compiler_compatibility(&manifest)?;
 
-    let source = if let Some(p) = path {
-        DependencySource::Path {
-            path: p.to_string(),
-        }
+    let (resolved_name, auto_git) = resolve_package_spec(name);
+
+    let (source, display_ver) = if let Some(p) = path {
+        (
+            DependencySource::Path {
+                path: p.to_string(),
+            },
+            None,
+        )
     } else if let Some(g) = git {
-        DependencySource::Git {
-            url: g.to_string(),
-            tag: tag.map(|s| s.to_string()),
-            branch: branch.map(|s| s.to_string()),
-            rev: None,
-        }
-    } else if let Some(v) = version {
-        DependencySource::Version(v.to_string())
+        (
+            DependencySource::Git {
+                url: g.to_string(),
+                tag: tag.map(|s| s.to_string()),
+                branch: branch.map(|s| s.to_string()),
+                rev: None,
+            },
+            tag.or(branch).map(|s| s.to_string()),
+        )
+    } else if let Some(auto_url) = auto_git {
+        (
+            DependencySource::Git {
+                url: auto_url,
+                tag: tag.map(|s| s.to_string()),
+                branch: branch.map(|s| s.to_string()),
+                rev: None,
+            },
+            tag.or(branch).map(|s| s.to_string()),
+        )
     } else {
-        DependencySource::Version("*".to_string())
+        // Short-name / Registry dependency
+        let url = resolve_registry_url(&resolved_name);
+        let ver = if let Some(v) = version {
+            v.to_string()
+        } else if let Some(t) = tag {
+            t.trim_start_matches(|c| c == 'v' || c == 'V').to_string()
+        } else {
+            // Dynamically inspect package for declared version without hardcoding
+            let mut detected_ver = None;
+            if let Some(global_cache_dir) = get_global_cache_dir() {
+                let cache_key = compute_cache_key(&resolved_name, "head", &url);
+                let cached_pkg_dir = global_cache_dir.join(&cache_key);
+                if !cached_pkg_dir.exists() || !cached_pkg_dir.join("alya.toml").exists() {
+                    let _ = fs::create_dir_all(&global_cache_dir);
+                    let _ = fetch_git_or_archive_dependency(
+                        &resolved_name,
+                        &url,
+                        None,
+                        branch,
+                        None,
+                        &cached_pkg_dir,
+                    );
+                }
+                if let Ok(manifest_src) = fs::read_to_string(cached_pkg_dir.join("alya.toml")) {
+                    if let Ok(parsed) = parse_manifest(&manifest_src) {
+                        detected_ver = Some(parsed.package.version);
+                    }
+                }
+            }
+            detected_ver.unwrap_or_else(|| "0.1.0".to_string())
+        };
+        let v_disp = ver.clone();
+        (DependencySource::Version(ver), Some(v_disp))
     };
 
-    manifest.dependencies.insert(name.to_string(), source);
+    manifest.dependencies.insert(resolved_name.clone(), source);
 
     fs::write(&manifest_path, serialize_manifest(&manifest))
         .map_err(|e| format!("Failed to update alya.toml: {}", e))?;
 
-    println!("✓ Added dependency '{}' to alya.toml", name);
+    if let Some(v) = display_ver {
+        println!(
+            "✓ Added dependency '{}' (v{}) to alya.toml",
+            resolved_name, v
+        );
+    } else {
+        println!("✓ Added dependency '{}' to alya.toml", resolved_name);
+    }
 
     run_install_in(&manifest_dir)?;
     Ok(())
@@ -1069,6 +1208,23 @@ pub fn resolve_archive_candidates(
                     "https://github.com/{}/{}/archive/refs/tags/{}.zip",
                     owner, repo, t
                 ));
+                let alt = if !t.starts_with('v') && !t.starts_with('V') {
+                    Some(format!("v{}", t))
+                } else {
+                    t.strip_prefix('v')
+                        .or_else(|| t.strip_prefix('V'))
+                        .map(|s| s.to_string())
+                };
+                if let Some(alt_tag) = alt {
+                    candidates.push(format!(
+                        "https://github.com/{}/{}/archive/refs/tags/{}.tar.gz",
+                        owner, repo, alt_tag
+                    ));
+                    candidates.push(format!(
+                        "https://github.com/{}/{}/archive/refs/tags/{}.zip",
+                        owner, repo, alt_tag
+                    ));
+                }
             } else if let Some(b) = branch {
                 candidates.push(format!(
                     "https://github.com/{}/{}/archive/refs/heads/{}.tar.gz",
@@ -1284,11 +1440,48 @@ fn try_git_clone(
     branch: Option<&str>,
     target_dir: &Path,
 ) -> Result<(), String> {
+    let mut tags_to_try = Vec::new();
+    if let Some(t) = tag {
+        tags_to_try.push(t.to_string());
+        if !t.starts_with('v') && !t.starts_with('V') {
+            tags_to_try.push(format!("v{}", t));
+        } else if let Some(stripped) = t.strip_prefix('v').or_else(|| t.strip_prefix('V')) {
+            tags_to_try.push(stripped.to_string());
+        }
+    }
+
+    if !tags_to_try.is_empty() {
+        let mut last_err = String::new();
+        for t in &tags_to_try {
+            let mut cmd = Command::new("git");
+            cmd.arg("clone")
+                .arg("--depth")
+                .arg("1")
+                .arg("--branch")
+                .arg(t)
+                .arg(url)
+                .arg(target_dir);
+            match cmd.status() {
+                Ok(status) if status.success() => return Ok(()),
+                Ok(status) => {
+                    let _ = fs::remove_dir_all(target_dir);
+                    last_err = format!(
+                        "git clone exited with status {}",
+                        status.code().unwrap_or(-1)
+                    );
+                }
+                Err(e) => {
+                    let _ = fs::remove_dir_all(target_dir);
+                    return Err(format!("could not execute 'git' ({})", e));
+                }
+            }
+        }
+        return Err(last_err);
+    }
+
     let mut cmd = Command::new("git");
     cmd.arg("clone").arg("--depth").arg("1");
-    if let Some(t) = tag {
-        cmd.arg("--branch").arg(t);
-    } else if let Some(b) = branch {
+    if let Some(b) = branch {
         cmd.arg("--branch").arg(b);
     }
     cmd.arg(url).arg(target_dir);
@@ -1444,9 +1637,7 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
         }
         visited.insert(name.clone());
 
-        let mut resolved_pkg_dir: Option<PathBuf> = None;
-
-        match dep {
+        let resolved_pkg_dir = match dep {
             DependencySource::Path { path } => {
                 let dep_path = Path::new(&path);
                 let full_path = if dep_path.is_absolute() {
@@ -1480,7 +1671,7 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     dependencies: Vec::new(),
                 });
 
-                resolved_pkg_dir = Some(full_path);
+                Some(full_path)
             }
             DependencySource::Git {
                 url,
@@ -1572,32 +1763,122 @@ pub fn run_install_in(manifest_dir: &Path) -> Result<(), String> {
                     dependencies: Vec::new(),
                 });
 
-                resolved_pkg_dir = Some(target_dir);
+                Some(target_dir)
             }
             DependencySource::Version(v) => {
-                let pkg_dir = packages_dir.join(&name);
-                let checksum = if pkg_dir.exists() {
-                    compute_package_checksum(&pkg_dir)?
+                fs::create_dir_all(&packages_dir)
+                    .map_err(|e| format!("Failed to create .alya/packages directory: {}", e))?;
+                let target_dir = packages_dir.join(&name);
+
+                let url = resolve_registry_url(&name);
+                let tag_cand = if v != "*" && !v.is_empty() {
+                    Some(if v.starts_with('v') || v.starts_with('V') {
+                        v.clone()
+                    } else {
+                        format!("v{}", v)
+                    })
                 } else {
-                    format!("sha256:ver:{}", sha256_hex(v.as_bytes()))
+                    None
                 };
 
-                let rel_entry = format!(".alya/packages/{}/src/main.alya", name);
+                let tag_or_branch = tag_cand.as_deref().unwrap_or("head");
+                let source = format!("registry+{}#{}", url, v);
+
+                if let Some(global_cache_dir) = get_global_cache_dir() {
+                    let cache_key = compute_cache_key(&name, tag_or_branch, &url);
+                    let cached_pkg_dir = global_cache_dir.join(&cache_key);
+
+                    let cache_hit =
+                        cached_pkg_dir.exists() && cached_pkg_dir.join("alya.toml").exists();
+                    if cache_hit {
+                        println!(
+                            "  Using cached package '{}' ({}) from global cache",
+                            name, v
+                        );
+                        if !target_dir.exists() || !target_dir.join("alya.toml").exists() {
+                            if target_dir.exists() {
+                                let _ = fs::remove_dir_all(&target_dir);
+                            }
+                            copy_dir_all(&cached_pkg_dir, &target_dir, true)?;
+                        }
+                    } else {
+                        let _ = fs::create_dir_all(&global_cache_dir);
+                        if cached_pkg_dir.exists() {
+                            let _ = fs::remove_dir_all(&cached_pkg_dir);
+                        }
+                        let fetch_res = fetch_git_or_archive_dependency(
+                            &name,
+                            &url,
+                            tag_cand.as_deref(),
+                            None,
+                            None,
+                            &cached_pkg_dir,
+                        );
+                        if let Err(e) = fetch_res {
+                            if !target_dir.exists() || !target_dir.join("alya.toml").exists() {
+                                return Err(e);
+                            }
+                        } else {
+                            let _ = fs::write(cached_pkg_dir.join(".alya-source"), &source);
+                            if target_dir.exists() {
+                                let _ = fs::remove_dir_all(&target_dir);
+                            }
+                            copy_dir_all(&cached_pkg_dir, &target_dir, true)?;
+                        }
+                    }
+                } else if !target_dir.exists() || !target_dir.join("alya.toml").exists() {
+                    fetch_git_or_archive_dependency(
+                        &name,
+                        &url,
+                        tag_cand.as_deref(),
+                        None,
+                        None,
+                        &target_dir,
+                    )?;
+                } else {
+                    update_git_dependency(tag_cand.as_deref(), None, &target_dir);
+                }
+
+                // Ensure local project dependency directory never contains a .git folder
+                let local_git_dir = target_dir.join(".git");
+                if local_git_dir.exists() {
+                    let _ = fs::remove_dir_all(&local_git_dir);
+                }
+
+                let entry = find_package_entry(&target_dir, &name)?;
+                let rel_entry = entry
+                    .strip_prefix(manifest_dir)
+                    .unwrap_or(&entry)
+                    .to_string_lossy()
+                    .replace('\\', "/");
+                let checksum = compute_package_checksum(&target_dir)?;
+
+                let actual_version = if v == "*" || v.is_empty() {
+                    if let Ok(content) = fs::read_to_string(target_dir.join("alya.toml")) {
+                        if let Ok(pkg_m) = parse_manifest(&content) {
+                            pkg_m.package.version
+                        } else {
+                            v.clone()
+                        }
+                    } else {
+                        v.clone()
+                    }
+                } else {
+                    v.clone()
+                };
 
                 locked_packages.push(LockedPackage {
                     name: name.clone(),
-                    version: v.clone(),
-                    source: format!("registry:{}", v),
+                    version: actual_version.clone(),
+                    source: format!("registry+{}#v{}", url, actual_version),
                     entry: rel_entry,
                     checksum,
                     dependencies: Vec::new(),
                 });
 
-                if pkg_dir.exists() {
-                    resolved_pkg_dir = Some(pkg_dir);
-                }
+                Some(target_dir)
             }
-        }
+        };
 
         // Recursively inspect the resolved package for its own dependencies in alya.toml
         let mut sub_deps = Vec::new();
@@ -2134,7 +2415,11 @@ pub fn print_pkg_help() {
     println!("  --git <url>        Add dependency from remote Git repository");
     println!("  --tag <tag>        Specify Git tag for dependency");
     println!("  --branch <branch>  Specify Git branch for dependency");
-    println!("  --version <ver>    Specify semantic version constraint\n");
+    println!("  --version <ver>    Specify semantic version constraint");
+    println!("  Package name supports:");
+    println!("    • Short-name:     http                 (resolves to alya-lang/http)");
+    println!("    • Versioned:      http@0.1.0           (resolves to alya-lang/http tag v0.1.0)");
+    println!("    • GitHub repo:    owner/repo           (resolves to https://github.com/owner/repo.git)\n");
     println!("OPTIONS FOR 'cache':");
     println!("  clean, --clean     Clean cached packages and reclaim disk space");
     println!("  --all, -a          Inspect or clean both local and global cache\n");
@@ -2143,6 +2428,8 @@ pub fn print_pkg_help() {
     println!("EXAMPLES:");
     println!("  alyac init my_app");
     println!("  alyac init my_lib --lib");
+    println!("  alyac add http                       # Add official package via short-name");
+    println!("  alyac add crypto@0.1.0               # Add official package with version");
     println!("  alyac add raylib --path ../libs/raylib");
     println!("  alyac add sqlite --git https://github.com/alya-lang/sqlite --tag v1.0.0");
     println!("  alyac install");
@@ -2402,9 +2689,11 @@ dependencies = []
             None,
             None,
         );
-        assert_eq!(gh_tag.len(), 2);
+        assert_eq!(gh_tag.len(), 4);
         assert!(gh_tag[0].contains("archive/refs/tags/v0.1.0.tar.gz"));
         assert!(gh_tag[1].contains("archive/refs/tags/v0.1.0.zip"));
+        assert!(gh_tag[2].contains("archive/refs/tags/0.1.0.tar.gz"));
+        assert!(gh_tag[3].contains("archive/refs/tags/0.1.0.zip"));
 
         let gh_default =
             resolve_archive_candidates("git@github.com:alya-lang/dotenv.git", None, None, None);
@@ -2640,6 +2929,84 @@ dependencies = []
             resolved.unwrap().canonicalize().unwrap(),
             pkg_abc.join("src").join("lib.alya").canonicalize().unwrap()
         );
+
+        let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_resolve_package_spec() {
+        assert_eq!(resolve_package_spec("http"), ("http".to_string(), None));
+        assert_eq!(
+            resolve_package_spec("alya-lang/http"),
+            ("http".to_string(), None)
+        );
+        assert_eq!(
+            resolve_package_spec("myorg/cool-lib"),
+            (
+                "cool-lib".to_string(),
+                Some("https://github.com/myorg/cool-lib.git".to_string())
+            )
+        );
+        assert_eq!(
+            resolve_package_spec("https://github.com/foo/bar.git"),
+            (
+                "bar".to_string(),
+                Some("https://github.com/foo/bar.git".to_string())
+            )
+        );
+    }
+
+    #[test]
+    fn test_resolve_registry_url() {
+        // Without ALYA_REGISTRY set
+        let default_url = resolve_registry_url("crypto");
+        assert_eq!(default_url, "https://github.com/alya-lang/crypto.git");
+    }
+
+    #[test]
+    fn test_version_dependency_resolution_and_locking() {
+        let temp_dir =
+            std::env::temp_dir().join(format!("alya_test_ver_dep_{}", std::process::id()));
+        let _ = fs::remove_dir_all(&temp_dir);
+
+        let app_dir = temp_dir.join("test_app");
+        let packages_dir = app_dir.join(".alya").join("packages");
+        let pkg_http = packages_dir.join("http");
+
+        fs::create_dir_all(pkg_http.join("src")).unwrap();
+
+        fs::write(
+            pkg_http.join("alya.toml"),
+            "[package]\nname = \"http\"\nversion = \"0.1.0\"\nentry = \"src/lib.alya\"\n",
+        )
+        .unwrap();
+        fs::write(
+            pkg_http.join("src").join("lib.alya"),
+            "function get() { return 200 }\n",
+        )
+        .unwrap();
+
+        // Project manifest specifies version dependency (SemVer)
+        fs::write(
+            app_dir.join("alya.toml"),
+            "[package]\nname = \"test_app\"\nversion = \"0.1.0\"\nentry = \"src/main.alya\"\n\n[dependencies]\nhttp = \"0.1.0\"\n",
+        )
+        .unwrap();
+
+        let res = run_install_in(&app_dir);
+        assert!(res.is_ok(), "run_install_in failed: {:?}", res.err());
+
+        // Verify lockfile
+        let lock_content = fs::read_to_string(app_dir.join("alya.lock")).unwrap();
+        let lock = parse_lockfile(&lock_content).unwrap();
+        let locked_http = lock.packages.iter().find(|p| p.name == "http").unwrap();
+        assert_eq!(locked_http.name, "http");
+        assert_eq!(locked_http.version, "0.1.0");
+        assert!(locked_http
+            .source
+            .starts_with("registry+https://github.com/alya-lang/http.git#v0.1.0"));
+        assert!(locked_http.entry.ends_with("src/lib.alya"));
+        assert!(locked_http.checksum.starts_with("sha256:"));
 
         let _ = fs::remove_dir_all(&temp_dir);
     }

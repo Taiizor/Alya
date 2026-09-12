@@ -527,7 +527,20 @@ fn parse_pkg_add_args(args: &[String]) -> Result<PkgCommand, String> {
             }
             arg if !arg.starts_with('-') => {
                 if name.is_none() {
-                    name = Some(arg.to_string());
+                    let (pkg_spec, ver_spec) = if let Some((p, v)) = arg.split_once('@') {
+                        (p, Some(v))
+                    } else {
+                        (arg, None)
+                    };
+                    if let Some(v) = ver_spec {
+                        if version.is_none() {
+                            version = Some(v.trim_start_matches('v').to_string());
+                        }
+                        if tag.is_none() {
+                            tag = Some(v.to_string());
+                        }
+                    }
+                    name = Some(pkg_spec.to_string());
                 } else {
                     return Err(format!("Error: Unexpected argument '{}'", arg));
                 }

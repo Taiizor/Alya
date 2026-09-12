@@ -213,6 +213,38 @@ fn test_pkg_add_cli() {
 }
 
 #[test]
+fn test_pkg_add_version_at_syntax() {
+    let args = to_args(&["alyac", "add", "http@0.1.0"]);
+    let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
+    match parsed.command {
+        CommandKind::Pkg(crate::tools::pkg::PkgCommand::Add {
+            name, version, tag, ..
+        }) => {
+            assert_eq!(name, "http");
+            assert_eq!(version, Some("0.1.0".to_string()));
+            assert_eq!(tag, Some("0.1.0".to_string()));
+        }
+        _ => panic!("Expected PkgCommand::Add"),
+    }
+}
+
+#[test]
+fn test_pkg_add_shorthand_syntax() {
+    let args = to_args(&["alyac", "add", "alya-lang/crypto@v0.1.0"]);
+    let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
+    match parsed.command {
+        CommandKind::Pkg(crate::tools::pkg::PkgCommand::Add {
+            name, version, tag, ..
+        }) => {
+            assert_eq!(name, "alya-lang/crypto");
+            assert_eq!(version, Some("0.1.0".to_string()));
+            assert_eq!(tag, Some("v0.1.0".to_string()));
+        }
+        _ => panic!("Expected PkgCommand::Add"),
+    }
+}
+
+#[test]
 fn test_pkg_install_cli() {
     let args = to_args(&["alyac", "install"]);
     let parsed = CliArgs::parse_from(&args).unwrap().unwrap();
