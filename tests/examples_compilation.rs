@@ -179,6 +179,10 @@ fn test_all_examples_execute_with_gcc() {
         if matches!(os, OperatingSystem::Windows) {
             gcc.arg("-lws2_32");
         }
+        gcc.arg("-L.");
+        for lib in codegen::collect_extern_libraries(&ast) {
+            gcc.arg(format!("-l{}", lib));
+        }
         let gcc_status = gcc.status().expect("Failed to run gcc");
         let _ = fs::remove_file(&temp_asm);
         assert!(

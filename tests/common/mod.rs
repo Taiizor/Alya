@@ -83,6 +83,7 @@ pub fn run_alya_code_with_input_and_args(
         gcc.arg("-lws2_32");
     }
 
+    gcc.arg("-L.");
     for lib in codegen::collect_extern_libraries(&ast) {
         gcc.arg(format!("-l{}", lib));
     }

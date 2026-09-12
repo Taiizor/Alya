@@ -24,6 +24,7 @@ pub fn compile_with_gcc(
         gcc_args.push("-lws2_32".to_string());
     }
 
+    gcc_args.push("-L.".to_string());
     for lib in extra_libs {
         gcc_args.push(format!("-l{}", lib));
     }

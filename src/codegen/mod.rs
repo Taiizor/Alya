@@ -209,7 +209,7 @@ impl CodeGen {
 
         // Emit external symbol declarations
         let mut declared_externs = std::collections::HashSet::new();
-        for (name, _) in &self.ctx.extern_functions {
+        for name in self.ctx.extern_functions.keys() {
             let bare = name.rsplit("::").next().unwrap_or(name);
             let bare = bare.rsplit("__").next().unwrap_or(bare);
             if declared_externs.insert(bare.to_string()) {
