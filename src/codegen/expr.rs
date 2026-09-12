@@ -416,8 +416,7 @@ impl CodeGen {
 
                 if (name == "len" || name == "length")
                     && args.len() == 1
-                    && (is_array_expr(&args[0], &self.ctx.variables)
-                        || is_map_expr(&args[0], &self.ctx.variables))
+                    && matches!(&args[0], Expr::Array(_))
                 {
                     self.generate_expression(&args[0]);
                     arch::emit_array_len(&mut self.output, self.arch);

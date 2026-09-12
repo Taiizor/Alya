@@ -255,6 +255,11 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    xor %eax, %eax\n");
     out.push_str("    test %esi, %esi\n");
     out.push_str("    jz .L_x86_get_ret\n");
+    out.push_str("    cmp $65536, %esi\n");
+    out.push_str("    jb .L_x86_get_ret\n");
+    out.push_str("    movl -8(%esi), %eax\n");
+    out.push_str("    cmpl $0x5A110001, %eax\n");
+    out.push_str("    je .L_x86_get_array\n");
     out.push_str("    push 12(%ebp)\n");
     out.push_str("    call alya_map_hash\n");
     out.push_str("    add $4, %esp\n");
@@ -289,6 +294,15 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jmp .L_x86_get_loop\n");
     out.push_str(".L_x86_get_found:\n");
     out.push_str("    mov 4(%edi), %eax\n");
+    out.push_str("    jmp .L_x86_get_ret\n");
+    out.push_str(".L_x86_get_array:\n");
+    out.push_str("    mov 12(%ebp), %edx\n");
+    out.push_str("    test %edx, %edx\n");
+    out.push_str("    js .L_x86_get_not_found\n");
+    out.push_str("    cmpl (%esi), %edx\n");
+    out.push_str("    jae .L_x86_get_not_found\n");
+    out.push_str("    mov 8(%esi), %eax\n");
+    out.push_str("    mov (%eax, %edx, 4), %eax\n");
     out.push_str("    jmp .L_x86_get_ret\n");
     out.push_str(".L_x86_get_not_found:\n");
     out.push_str("    xor %eax, %eax\n");

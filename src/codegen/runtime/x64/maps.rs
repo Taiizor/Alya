@@ -319,6 +319,11 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    xor %rax, %rax\n");
     out.push_str("    test %r12, %r12\n");
     out.push_str("    jz .L_x64_get_ret\n");
+    out.push_str("    cmp $65536, %r12\n");
+    out.push_str("    jb .L_x64_get_ret\n");
+    out.push_str("    movq -16(%r12), %rax\n");
+    out.push_str("    cmp $0x5A110001, %rax\n");
+    out.push_str("    je .L_x64_get_array\n");
     if matches!(os, OperatingSystem::Windows) {
         out.push_str("    mov %r13, %rcx\n");
         out.push_str("    call alya_map_hash\n");
@@ -364,6 +369,14 @@ pub fn emit(out: &mut String, os: OperatingSystem) {
     out.push_str("    jmp .L_x64_get_loop\n");
     out.push_str(".L_x64_get_found:\n");
     out.push_str("    mov 8(%r14), %rax\n");
+    out.push_str("    jmp .L_x64_get_ret\n");
+    out.push_str(".L_x64_get_array:\n");
+    out.push_str("    test %r13, %r13\n");
+    out.push_str("    js .L_x64_get_not_found\n");
+    out.push_str("    cmpq (%r12), %r13\n");
+    out.push_str("    jae .L_x64_get_not_found\n");
+    out.push_str("    movq 16(%r12), %rax\n");
+    out.push_str("    movq (%rax, %r13, 8), %rax\n");
     out.push_str("    jmp .L_x64_get_ret\n");
     out.push_str(".L_x64_get_not_found:\n");
     out.push_str("    xor %rax, %rax\n");
