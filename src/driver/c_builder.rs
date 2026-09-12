@@ -41,7 +41,7 @@ pub fn discover_c_build_plan(
 
     for dir in search_dirs {
         if let Some(manifest_dir) = find_manifest_dir_from(&dir) {
-            let canon_manifest_dir = fs::canonicalize(&manifest_dir).unwrap_or(manifest_dir);
+            let canon_manifest_dir = clean_canonicalize(&manifest_dir);
             if checked_manifest_dirs.insert(canon_manifest_dir.clone()) {
                 let manifest_file = canon_manifest_dir.join("alya.toml");
                 if let Ok(content) = fs::read_to_string(&manifest_file) {
@@ -49,7 +49,7 @@ pub fn discover_c_build_plan(
                         if let Some(build) = manifest.build {
                             for src in build.c_sources {
                                 let src_path = canon_manifest_dir.join(&src);
-                                let canon_src = fs::canonicalize(&src_path).unwrap_or(src_path);
+                                let canon_src = clean_canonicalize(&src_path);
                                 if !plan.sources.contains(&canon_src) {
                                     plan.sources.push(canon_src);
                                 }
@@ -61,7 +61,7 @@ pub fn discover_c_build_plan(
                             }
                             for inc in build.c_include_dirs {
                                 let inc_path = canon_manifest_dir.join(&inc);
-                                let canon_inc = fs::canonicalize(&inc_path).unwrap_or(inc_path);
+                                let canon_inc = clean_canonicalize(&inc_path);
                                 if !plan.include_dirs.contains(&canon_inc) {
                                     plan.include_dirs.push(canon_inc);
                                 }
@@ -99,6 +99,7 @@ pub fn build_c_objects(
     }
 
     let cache_dir = get_global_c_obj_dir().unwrap_or_else(|| PathBuf::from(".alya").join("c_obj"));
+    let cache_dir = clean_canonicalize(&cache_dir);
 
     fs::create_dir_all(&cache_dir).map_err(|e| {
         format!(
@@ -118,7 +119,7 @@ pub fn build_c_objects(
             ));
         }
 
-        let canon_src = fs::canonicalize(src).unwrap_or_else(|_| src.clone());
+        let canon_src = clean_canonicalize(src);
         let stem = canon_src
             .file_stem()
             .and_then(|s| s.to_str())
@@ -154,9 +155,9 @@ pub fn build_c_objects(
         if !obj_path.exists() || fs::metadata(&obj_path).map(|m| m.len()).unwrap_or(0) == 0 {
             let mut gcc_args = vec![
                 "-c".to_string(),
-                canon_src.to_string_lossy().to_string(),
+                path_to_gcc_arg(&canon_src),
                 "-o".to_string(),
-                obj_path.to_string_lossy().to_string(),
+                path_to_gcc_arg(&obj_path),
             ];
 
             if matches!(arch, Architecture::X86) {
@@ -164,7 +165,7 @@ pub fn build_c_objects(
             }
 
             for inc in &plan.include_dirs {
-                gcc_args.push(format!("-I{}", inc.display()));
+                gcc_args.push(format!("-I{}", path_to_gcc_arg(inc)));
             }
 
             for flag in &plan.flags {
@@ -189,16 +190,78 @@ pub fn build_c_objects(
             }
         }
 
-        if !object_files.contains(&obj_path) {
-            object_files.push(obj_path);
+        let clean_obj_path = clean_canonicalize(&obj_path);
+        if !object_files.contains(&clean_obj_path) {
+            object_files.push(clean_obj_path);
         }
     }
 
     Ok(object_files)
 }
 
+pub fn strip_unc_prefix(path: &Path) -> PathBuf {
+    let s = path.to_string_lossy();
+    if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
+        PathBuf::from(format!(r"\\{}", rest))
+    } else if let Some(rest) = s.strip_prefix(r"\\?\") {
+        PathBuf::from(rest)
+    } else {
+        path.to_path_buf()
+    }
+}
+
+pub fn clean_canonicalize(path: &Path) -> PathBuf {
+    match fs::canonicalize(path) {
+        Ok(p) => strip_unc_prefix(&p),
+        Err(_) => strip_unc_prefix(path),
+    }
+}
+
+pub fn path_to_gcc_arg(path: &Path) -> String {
+    let cleaned = strip_unc_prefix(path);
+    cleaned.to_string_lossy().replace('\\', "/")
+}
+
 fn calculate_hash<T: Hash>(t: &T) -> u64 {
     let mut s = std::collections::hash_map::DefaultHasher::new();
     t.hash(&mut s);
     s.finish()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_strip_unc_prefix() {
+        let unc = Path::new(r"\\?\D:\a\sqlite\sqlite\c\sqlite3.c");
+        assert_eq!(
+            strip_unc_prefix(unc),
+            PathBuf::from(r"D:\a\sqlite\sqlite\c\sqlite3.c")
+        );
+
+        let unc_share = Path::new(r"\\?\UNC\server\share\c\sqlite3.c");
+        assert_eq!(
+            strip_unc_prefix(unc_share),
+            PathBuf::from(r"\\server\share\c\sqlite3.c")
+        );
+
+        let normal = Path::new(r"D:\a\sqlite\sqlite\c\sqlite3.c");
+        assert_eq!(
+            strip_unc_prefix(normal),
+            PathBuf::from(r"D:\a\sqlite\sqlite\c\sqlite3.c")
+        );
+    }
+
+    #[test]
+    fn test_path_to_gcc_arg() {
+        let unc = Path::new(r"\\?\D:\a\sqlite\sqlite\c\sqlite3.c");
+        assert_eq!(path_to_gcc_arg(unc), "D:/a/sqlite/sqlite/c/sqlite3.c");
+
+        let normal = Path::new(r"D:\project\file.c");
+        assert_eq!(path_to_gcc_arg(normal), "D:/project/file.c");
+
+        let unix = Path::new("/usr/local/include/sqlite3.h");
+        assert_eq!(path_to_gcc_arg(unix), "/usr/local/include/sqlite3.h");
+    }
 }

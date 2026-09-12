@@ -13,7 +13,7 @@ pub fn compile_with_gcc(
     let mut gcc_args = vec![asm_file.to_string(), "-o".to_string(), exe_file.to_string()];
 
     for obj in c_objects {
-        gcc_args.push(obj.to_string_lossy().to_string());
+        gcc_args.push(crate::driver::c_builder::path_to_gcc_arg(obj));
     }
 
     if matches!(arch, Architecture::X86) {

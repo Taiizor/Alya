@@ -16,6 +16,18 @@ enum BlockKind {
     WhenArm,
     Brace,
     Bracket,
+    Extern,
+}
+
+fn is_in_extern_block(stack: &[BlockKind]) -> bool {
+    for b in stack.iter().rev() {
+        match b {
+            BlockKind::Brace | BlockKind::Bracket => continue,
+            BlockKind::Extern => return true,
+            _ => return false,
+        }
+    }
+    false
 }
 
 fn pop_leading_closing_delimiters(code: &str, block_stack: &mut Vec<BlockKind>) -> usize {
@@ -265,17 +277,21 @@ fn ends_with_word_outside_quotes(s: &str, word: &str) -> bool {
     !in_str_scan
 }
 
-fn get_block_starter(code: &str) -> Option<BlockKind> {
+fn get_block_starter(code: &str, in_extern: bool) -> Option<BlockKind> {
     // If the line ends with 'end' outside quotes, whatever block it opened is immediately closed on the same line
     if ends_with_word_outside_quotes(code, "end") {
         return None;
     }
 
     let first_word = code.split_whitespace().next().unwrap_or("");
-    if first_word == "function"
-        || first_word == "fn"
-        || code.starts_with("function(")
-        || code.starts_with("fn(")
+    if first_word == "extern" {
+        return Some(BlockKind::Extern);
+    }
+    if !in_extern
+        && (first_word == "function"
+            || first_word == "fn"
+            || code.starts_with("function(")
+            || code.starts_with("fn("))
     {
         return Some(BlockKind::Function);
     }
@@ -519,7 +535,8 @@ pub fn format_source(source: &str) -> Result<String, String> {
 
         // Indent increase triggers (opens a new block for following lines)
         if !is_end && !is_is && !is_else && !is_elif && !is_catch && !is_finally {
-            if let Some(new_block) = get_block_starter(code) {
+            let in_extern = is_in_extern_block(&block_stack);
+            if let Some(new_block) = get_block_starter(code, in_extern) {
                 block_stack.push(new_block);
             }
         }
@@ -891,6 +908,40 @@ name = "test"
 path = "/api"
 "
     say "done"
+end
+"#;
+        assert_eq!(format_source(input).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_format_extern_c_block() {
+        let input = r#"extern "C"
+function puts(s: str) -> i32
+function abs(n: i32) -> i32
+end
+"#;
+        let expected = r#"extern "C"
+    function puts(s: str) -> i32
+    function abs(n: i32) -> i32
+end
+"#;
+        assert_eq!(format_source(input).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_format_extern_c_from_lib() {
+        let input = r#"extern "C" from "sqlite3"
+function sqlite3_libversion() -> str
+function sqlite3_sourceid() -> str
+function sqlite3_open(filename: str, pp_db: ptr) -> i32
+function sqlite3_close(db: ptr) -> i32
+end
+"#;
+        let expected = r#"extern "C" from "sqlite3"
+    function sqlite3_libversion() -> str
+    function sqlite3_sourceid() -> str
+    function sqlite3_open(filename: str, pp_db: ptr) -> i32
+    function sqlite3_close(db: ptr) -> i32
 end
 "#;
         assert_eq!(format_source(input).unwrap(), expected);
