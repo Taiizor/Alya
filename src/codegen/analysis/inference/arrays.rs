@@ -1,6 +1,6 @@
 use super::common::collect_function_defs;
 use crate::ast::*;
-use crate::codegen::analysis::traversal::collect_all_call_args;
+use crate::codegen::analysis::traversal::collect_all_call_args_scoped;
 use std::collections::HashSet;
 
 fn expr_is_definitely_array(
@@ -362,9 +362,10 @@ fn collect_array_vars_from_stmts(
             Stmt::Let { name, value, .. } | Stmt::Assign { name, value, .. }
                 if expr_is_definitely_array(value, fn_scope, known_arrays) =>
             {
-                known_arrays.insert(name.clone());
                 if let Some(scope) = fn_scope {
                     known_arrays.insert(format!("{}:{}", scope, name));
+                } else {
+                    known_arrays.insert(name.clone());
                 }
             }
             Stmt::TryCatch {
@@ -404,7 +405,6 @@ fn collect_array_vars_from_stmts(
                     if known_arrays.contains(&format!("fn_param_arr:{}:{}", name, idx))
                         || known_arrays.contains(&format!("fn_param_arr:{}:{}", bare, idx))
                     {
-                        known_arrays.insert(param.clone());
                         known_arrays.insert(format!("{}:{}", name, param));
                         if bare != name {
                             known_arrays.insert(format!("{}:{}", bare, param));
@@ -459,14 +459,14 @@ pub fn collect_known_array_vars(program: &Program) -> HashSet<String> {
                 }
 
                 let mut call_args = Vec::new();
-                collect_all_call_args(&program.statements, name, bare, idx, &mut call_args);
+                collect_all_call_args_scoped(&program.statements, name, bare, idx, &mut call_args);
                 if !call_args.is_empty() {
-                    let has_def_arr = call_args
-                        .iter()
-                        .any(|arg| expr_is_definitely_array(arg, None, &known_arrays));
+                    let has_def_arr = call_args.iter().any(|(caller_scope, arg)| {
+                        expr_is_definitely_array(arg, *caller_scope, &known_arrays)
+                    });
                     let has_conflict = call_args
                         .iter()
-                        .any(|arg| expr_is_definitely_non_array(arg));
+                        .any(|(_, arg)| expr_is_definitely_non_array(arg));
                     if has_def_arr && !has_conflict {
                         known_arrays.insert(format!("fn_param_arr:{}:{}", name, idx));
                         known_arrays.insert(format!("fn_param_arr:{}:{}", bare, idx));

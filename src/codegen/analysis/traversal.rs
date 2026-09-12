@@ -349,3 +349,422 @@ pub fn collect_call_args_in_expr<'a>(
         _ => {}
     }
 }
+
+pub fn collect_all_call_args_scoped<'a>(
+    stmts: &'a [Stmt],
+    func_name: &str,
+    bare_name: &str,
+    param_idx: usize,
+    args: &mut Vec<(Option<&'a str>, &'a Expr)>,
+) {
+    for s in stmts {
+        collect_call_args_in_stmt_scoped(s, func_name, bare_name, param_idx, None, args);
+    }
+}
+
+pub fn collect_call_args_in_stmt_scoped<'a>(
+    stmt: &'a Stmt,
+    func_name: &str,
+    bare_name: &str,
+    param_idx: usize,
+    current_scope: Option<&'a str>,
+    args: &mut Vec<(Option<&'a str>, &'a Expr)>,
+) {
+    match stmt {
+        Stmt::Expr(expr) | Stmt::Say(expr) => {
+            collect_call_args_in_expr_scoped(
+                expr,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+        }
+        Stmt::Let { value, .. } | Stmt::Assign { value, .. } => {
+            collect_call_args_in_expr_scoped(
+                value,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+        }
+        Stmt::If {
+            condition,
+            then_block,
+            else_block,
+        } => {
+            collect_call_args_in_expr_scoped(
+                condition,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+            for s in then_block {
+                collect_call_args_in_stmt_scoped(
+                    s,
+                    func_name,
+                    bare_name,
+                    param_idx,
+                    current_scope,
+                    args,
+                );
+            }
+            if let Some(else_stmts) = else_block {
+                for s in else_stmts {
+                    collect_call_args_in_stmt_scoped(
+                        s,
+                        func_name,
+                        bare_name,
+                        param_idx,
+                        current_scope,
+                        args,
+                    );
+                }
+            }
+        }
+        Stmt::While { condition, body } => {
+            collect_call_args_in_expr_scoped(
+                condition,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+            for s in body {
+                collect_call_args_in_stmt_scoped(
+                    s,
+                    func_name,
+                    bare_name,
+                    param_idx,
+                    current_scope,
+                    args,
+                );
+            }
+        }
+        Stmt::Repeat { body } | Stmt::For { body, .. } | Stmt::ForEach { body, .. } => {
+            for s in body {
+                collect_call_args_in_stmt_scoped(
+                    s,
+                    func_name,
+                    bare_name,
+                    param_idx,
+                    current_scope,
+                    args,
+                );
+            }
+        }
+        Stmt::Throw(opt_expr) | Stmt::Return(opt_expr) => {
+            if let Some(expr) = opt_expr {
+                collect_call_args_in_expr_scoped(
+                    expr,
+                    func_name,
+                    bare_name,
+                    param_idx,
+                    current_scope,
+                    args,
+                );
+            }
+        }
+        Stmt::TryCatch {
+            try_block,
+            catch_block,
+            finally_block,
+            ..
+        } => {
+            for s in try_block {
+                collect_call_args_in_stmt_scoped(
+                    s,
+                    func_name,
+                    bare_name,
+                    param_idx,
+                    current_scope,
+                    args,
+                );
+            }
+            for s in catch_block {
+                collect_call_args_in_stmt_scoped(
+                    s,
+                    func_name,
+                    bare_name,
+                    param_idx,
+                    current_scope,
+                    args,
+                );
+            }
+            if let Some(finally_block) = finally_block {
+                for s in finally_block {
+                    collect_call_args_in_stmt_scoped(
+                        s,
+                        func_name,
+                        bare_name,
+                        param_idx,
+                        current_scope,
+                        args,
+                    );
+                }
+            }
+        }
+        Stmt::IndexAssign {
+            array,
+            index,
+            value,
+        } => {
+            collect_call_args_in_expr_scoped(
+                array,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+            collect_call_args_in_expr_scoped(
+                index,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+            collect_call_args_in_expr_scoped(
+                value,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+        }
+        Stmt::FieldAssign { object, value, .. } => {
+            collect_call_args_in_expr_scoped(
+                object,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+            collect_call_args_in_expr_scoped(
+                value,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+        }
+        Stmt::Function { name, body, .. } => {
+            for s in body {
+                collect_call_args_in_stmt_scoped(
+                    s,
+                    func_name,
+                    bare_name,
+                    param_idx,
+                    Some(name.as_str()),
+                    args,
+                );
+            }
+        }
+        _ => {}
+    }
+}
+
+pub fn collect_call_args_in_expr_scoped<'a>(
+    expr: &'a Expr,
+    func_name: &str,
+    bare_name: &str,
+    param_idx: usize,
+    current_scope: Option<&'a str>,
+    args: &mut Vec<(Option<&'a str>, &'a Expr)>,
+) {
+    match expr {
+        Expr::Call {
+            name,
+            args: call_args,
+        } => {
+            let bare = name.rsplit("::").next().unwrap_or(name.as_str());
+            let bare = bare.rsplit("__").next().unwrap_or(bare);
+            if name == func_name || bare == bare_name || name == bare_name || bare == func_name {
+                if let Some(arg) = call_args.get(param_idx) {
+                    args.push((current_scope, arg));
+                }
+            }
+            for arg in call_args {
+                collect_call_args_in_expr_scoped(
+                    arg,
+                    func_name,
+                    bare_name,
+                    param_idx,
+                    current_scope,
+                    args,
+                );
+            }
+        }
+        Expr::Binary { left, right, .. } => {
+            collect_call_args_in_expr_scoped(
+                left,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+            collect_call_args_in_expr_scoped(
+                right,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+        }
+        Expr::Unary { expr, .. } => {
+            collect_call_args_in_expr_scoped(
+                expr,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+        }
+        Expr::Array(elements) => {
+            for elem in elements {
+                collect_call_args_in_expr_scoped(
+                    elem,
+                    func_name,
+                    bare_name,
+                    param_idx,
+                    current_scope,
+                    args,
+                );
+            }
+        }
+        Expr::Index { array, index } => {
+            collect_call_args_in_expr_scoped(
+                array,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+            collect_call_args_in_expr_scoped(
+                index,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+        }
+        Expr::FieldAccess { object, .. } => {
+            collect_call_args_in_expr_scoped(
+                object,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+        }
+        Expr::StructInit { fields, .. } => {
+            for (_, val) in fields {
+                collect_call_args_in_expr_scoped(
+                    val,
+                    func_name,
+                    bare_name,
+                    param_idx,
+                    current_scope,
+                    args,
+                );
+            }
+        }
+        Expr::Map(entries) => {
+            for (k, v) in entries {
+                collect_call_args_in_expr_scoped(
+                    k,
+                    func_name,
+                    bare_name,
+                    param_idx,
+                    current_scope,
+                    args,
+                );
+                collect_call_args_in_expr_scoped(
+                    v,
+                    func_name,
+                    bare_name,
+                    param_idx,
+                    current_scope,
+                    args,
+                );
+            }
+        }
+        Expr::InterpolatedString(parts) => {
+            for part in parts {
+                collect_call_args_in_expr_scoped(
+                    part,
+                    func_name,
+                    bare_name,
+                    param_idx,
+                    current_scope,
+                    args,
+                );
+            }
+        }
+        Expr::Ternary {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            collect_call_args_in_expr_scoped(
+                condition,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+            collect_call_args_in_expr_scoped(
+                then_branch,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+            collect_call_args_in_expr_scoped(
+                else_branch,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+        }
+        Expr::NullCoalesce { value, default } => {
+            collect_call_args_in_expr_scoped(
+                value,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+            collect_call_args_in_expr_scoped(
+                default,
+                func_name,
+                bare_name,
+                param_idx,
+                current_scope,
+                args,
+            );
+        }
+        _ => {}
+    }
+}
