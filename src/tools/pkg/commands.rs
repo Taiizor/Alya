@@ -200,7 +200,7 @@ pub fn run_add(
         let ver = if let Some(v) = version {
             v.to_string()
         } else if let Some(t) = tag {
-            t.trim_start_matches(|c| c == 'v' || c == 'V').to_string()
+            t.trim_start_matches(['v', 'V']).to_string()
         } else {
             // Dynamically inspect package for declared version without hardcoding
             let mut detected_ver = None;

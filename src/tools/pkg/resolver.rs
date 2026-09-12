@@ -35,7 +35,7 @@ pub fn resolve_package_spec(spec: &str) -> (String, Option<String>) {
         || clean.starts_with("ssh://")
         || clean.starts_with("file://")
     {
-        let repo_part = clean.split('/').last().unwrap_or(clean);
+        let repo_part = clean.split('/').next_back().unwrap_or(clean);
         let name = repo_part.trim_end_matches(".git");
         return (name.to_string(), Some(clean.to_string()));
     }
