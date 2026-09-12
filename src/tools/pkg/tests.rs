@@ -322,8 +322,7 @@ fn test_global_cache_and_copy_dir_all() {
         std::env::temp_dir().join(format!("alya_test_cache_copy_{}", std::process::id()));
     let _ = fs::remove_dir_all(&temp_dir);
 
-    let cache_key =
-        compute_cache_key("crypto", "v0.1.0", "https://github.com/alya-lang/crypto");
+    let cache_key = compute_cache_key("crypto", "v0.1.0", "https://github.com/alya-lang/crypto");
     assert!(cache_key.starts_with("crypto@v0.1.0-"));
 
     let src_dir = temp_dir.join("cache").join(&cache_key);
@@ -520,8 +519,7 @@ fn test_resolve_registry_url() {
 
 #[test]
 fn test_version_dependency_resolution_and_locking() {
-    let temp_dir =
-        std::env::temp_dir().join(format!("alya_test_ver_dep_{}", std::process::id()));
+    let temp_dir = std::env::temp_dir().join(format!("alya_test_ver_dep_{}", std::process::id()));
     let _ = fs::remove_dir_all(&temp_dir);
 
     let app_dir = temp_dir.join("test_app");
