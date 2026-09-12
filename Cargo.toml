@@ -33,6 +33,23 @@ harness = false
 
 [profile.release]
 opt-level = 3
+lto = "thin"
+codegen-units = 16
+strip = true
+
+# Maximum optimization profile for official CI / production distribution
+[profile.dist]
+inherits = "release"
+opt-level = 3
 lto = true
 codegen-units = 1
 strip = true
+
+# Fast release profile for daily local development (skips LTO completely, fast link)
+[profile.quick]
+inherits = "release"
+opt-level = 2
+lto = false
+codegen-units = 16
+strip = false
+
