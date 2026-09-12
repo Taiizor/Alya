@@ -1,0 +1,202 @@
+use super::toml::{parse_inline_table, parse_string_array, strip_toml_comment, unquote};
+use super::types::{DependencySource, PackageInfo, PackageManifest};
+use std::collections::BTreeMap;
+
+pub fn parse_manifest(content: &str) -> Result<PackageManifest, String> {
+    let mut name = String::new();
+    let mut version = "0.1.0".to_string();
+    let mut alya_version = None;
+    let mut authors = Vec::new();
+    let mut description = None;
+    let mut entry = "src/main.alya".to_string();
+    let mut license = None;
+    let mut dependencies = BTreeMap::new();
+
+    let mut current_section = "";
+
+    for (line_no, raw_line) in content.lines().enumerate() {
+        let line = strip_toml_comment(raw_line);
+        if line.is_empty() {
+            continue;
+        }
+
+        if line.starts_with('[') && line.ends_with(']') {
+            current_section = line[1..line.len() - 1].trim();
+            continue;
+        }
+
+        if let Some((k, v)) = line.split_once('=') {
+            let key = k.trim();
+            let val = v.trim();
+
+            match current_section {
+                "package" => match key {
+                    "name" => name = unquote(val),
+                    "version" => version = unquote(val),
+                    "alya-version" => alya_version = Some(unquote(val)),
+                    "authors" => authors = parse_string_array(val),
+                    "description" => description = Some(unquote(val)),
+                    "entry" => entry = unquote(val),
+                    "license" => license = Some(unquote(val)),
+                    _ => {}
+                },
+                "dependencies" => {
+                    if val.starts_with('{') {
+                        let table = parse_inline_table(val);
+                        if let Some(p) = table.get("path") {
+                            dependencies.insert(
+                                key.to_string(),
+                                DependencySource::Path { path: p.clone() },
+                            );
+                        } else if let Some(g) = table.get("git") {
+                            dependencies.insert(
+                                key.to_string(),
+                                DependencySource::Git {
+                                    url: g.clone(),
+                                    tag: table.get("tag").cloned(),
+                                    branch: table.get("branch").cloned(),
+                                    rev: table.get("rev").cloned(),
+                                },
+                            );
+                        } else if let Some(v_inner) = table.get("version") {
+                            dependencies.insert(
+                                key.to_string(),
+                                DependencySource::Version(v_inner.clone()),
+                            );
+                        }
+                    } else {
+                        dependencies
+                            .insert(key.to_string(), DependencySource::Version(unquote(val)));
+                    }
+                }
+                _ => {}
+            }
+        } else {
+            return Err(format!(
+                "Syntax error in alya.toml at line {}: '{}'",
+                line_no + 1,
+                raw_line
+            ));
+        }
+    }
+
+    if name.is_empty() {
+        return Err("Missing required field 'name' under [package] in alya.toml".to_string());
+    }
+
+    Ok(PackageManifest {
+        package: PackageInfo {
+            name,
+            version,
+            alya_version,
+            authors,
+            description,
+            entry,
+            license,
+        },
+        dependencies,
+    })
+}
+
+pub fn serialize_manifest(manifest: &PackageManifest) -> String {
+    let mut out = String::new();
+    out.push_str("[package]\n");
+    out.push_str(&format!("name = \"{}\"\n", manifest.package.name));
+    out.push_str(&format!("version = \"{}\"\n", manifest.package.version));
+    if let Some(av) = &manifest.package.alya_version {
+        out.push_str(&format!("alya-version = \"{}\"\n", av));
+    }
+    out.push_str(&format!("entry = \"{}\"\n", manifest.package.entry));
+    if let Some(desc) = &manifest.package.description {
+        out.push_str(&format!("description = \"{}\"\n", desc));
+    }
+    if !manifest.package.authors.is_empty() {
+        let authors_str = manifest
+            .package
+            .authors
+            .iter()
+            .map(|a| format!("\"{}\"", a))
+            .collect::<Vec<_>>()
+            .join(", ");
+        out.push_str(&format!("authors = [{}]\n", authors_str));
+    }
+    if let Some(lic) = &manifest.package.license {
+        out.push_str(&format!("license = \"{}\"\n", lic));
+    }
+
+    out.push_str("\n[dependencies]\n");
+    for (name, dep) in &manifest.dependencies {
+        match dep {
+            DependencySource::Version(v) => {
+                out.push_str(&format!("{} = \"{}\"\n", name, v));
+            }
+            DependencySource::Path { path } => {
+                out.push_str(&format!(
+                    "{} = {{ path = \"{}\" }}\n",
+                    name,
+                    path.replace('\\', "/")
+                ));
+            }
+            DependencySource::Git {
+                url,
+                tag,
+                branch,
+                rev,
+            } => {
+                let mut parts = vec![format!("git = \"{}\"", url)];
+                if let Some(t) = tag {
+                    parts.push(format!("tag = \"{}\"", t));
+                }
+                if let Some(b) = branch {
+                    parts.push(format!("branch = \"{}\"", b));
+                }
+                if let Some(r) = rev {
+                    parts.push(format!("rev = \"{}\"", r));
+                }
+                out.push_str(&format!("{} = {{ {} }}\n", name, parts.join(", ")));
+            }
+        }
+    }
+    out
+}
+
+pub fn parse_version_tuple(v: &str) -> Option<(u64, u64, u64)> {
+    let clean = v.trim().trim_start_matches(|c| {
+        c == 'v' || c == '^' || c == '~' || c == '=' || c == '>' || c == ' '
+    });
+    let parts: Vec<&str> = clean.split('.').collect();
+    if parts.is_empty() {
+        return None;
+    }
+    let major = parts[0].trim().parse::<u64>().ok()?;
+    let minor = if parts.len() > 1 {
+        parts[1].trim().parse::<u64>().ok()?
+    } else {
+        0
+    };
+    let patch = if parts.len() > 2 {
+        let p = parts[2].split('-').next().unwrap_or(parts[2]).trim();
+        p.parse::<u64>().ok()?
+    } else {
+        0
+    };
+    Some((major, minor, patch))
+}
+
+pub fn check_compiler_compatibility(manifest: &PackageManifest) -> Result<(), String> {
+    if let Some(req_str) = &manifest.package.alya_version {
+        let current_str = env!("CARGO_PKG_VERSION");
+        if let (Some(req), Some(cur)) = (
+            parse_version_tuple(req_str),
+            parse_version_tuple(current_str),
+        ) {
+            if req > cur {
+                return Err(format!(
+                    "Package '{}' requires Alya compiler version >= {}, but current compiler version is {}.",
+                    manifest.package.name, req_str, current_str
+                ));
+            }
+        }
+    }
+    Ok(())
+}
