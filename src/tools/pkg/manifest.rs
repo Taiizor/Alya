@@ -296,17 +296,9 @@ fn merge_multiline_toml(content: &str) -> Vec<(usize, String)> {
             if !in_str {
                 match ch {
                     '[' => bracket_depth += 1,
-                    ']' => {
-                        if bracket_depth > 0 {
-                            bracket_depth -= 1;
-                        }
-                    }
+                    ']' if bracket_depth > 0 => bracket_depth -= 1,
                     '{' => brace_depth += 1,
-                    '}' => {
-                        if brace_depth > 0 {
-                            brace_depth -= 1;
-                        }
-                    }
+                    '}' if brace_depth > 0 => brace_depth -= 1,
                     _ => {}
                 }
             }
